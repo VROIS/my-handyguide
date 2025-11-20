@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 대시보드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    <style>
+        body {
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            background: #f5f5f5;
+        }
+        .tab-button {
+            transition: all 0.2s;
+        }
+        .tab-button.active {
+            background: white;
+            border-bottom: 2px solid #4285F4;
+        }
+        .stat-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        /* 반응형 디자인 */
+        @media (max-width: 768px) {
+            .max-w-7xl {
+                padding: 1rem;
+            }
+            #guidesGrid {
+                grid-template-columns: 1fr !important;
+            }
+            #createShareBtn {
+                font-size: 0.875rem;
+                padding: 0.5rem 1rem;
+            }
+            .tab-button {
+                font-size: 0.875rem;
+                padding: 0.75rem 1rem;
+            }
+        }
+        
+        @media (min-width: 769px) and (max-width: 1023px) {
+            #guidesGrid {
+                grid-template-columns: repeat(2, 1fr) !important;
+            }
+        }
+        
+        @media (min-width: 1024px) {
+            #guidesGrid {
+                grid-template-columns: repeat(3, 1fr) !important;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="max-w-7xl mx-auto p-6">
+        <!-- 헤더 -->
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-900">관리자 대시보드</h1>
+            <button onclick="window.close()" class="px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition">
+                닫기
+            </button>
+        </div>
+
+        <!-- 탭 네비게이션 -->
+        <div class="bg-white rounded-lg shadow-sm mb-6">
+            <div class="flex border-b">
+                <button onclick="showTab('overview')" id="tab-overview" class="tab-button active px-6 py-3 font-medium text-gray-700">
+                    요약
+                </button>
+                <button onclick="showTab('content')" id="tab-content" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
+                    콘텐츠
+                </button>
+                <button onclick="showTab('guides')" id="tab-guides" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
+                    🔍 가이드 관리
+                </button>
+                <button onclick="showTab('revenue')" id="tab-revenue" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
+                    수익
+                </button>
+                <button onclick="showTab('stats')" id="tab-stats" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
+                    통계
+                </button>
+            </div>
+        </div>
+
+        <!-- 로딩 상태 -->
+        <div id="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-gray-200 border-t-blue-500"></div>
+            <p class="mt-4 text-gray-600">데이터 로딩 중...</p>
+        </div>
+
+        <!-- 요약 탭 -->
+        <div id="content-overview" class="hidden">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <!-- 가입자 -->
+                <div class="stat-card bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-sm font-medium text-gray-500 mb-2">가입자</h3>
+                    <p id="totalUsers" class="text-3xl font-bold text-gray-900 mb-1">-</p>
+                    <p class="text-sm text-gray-500">최근 7일: <span id="recentUsers" class="font-semibold text-blue-600">-</span>명</p>
+                </div>
+
+                <!-- AI 호출 횟수 -->
+                <div class="stat-card bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-sm font-medium text-gray-500 mb-2">AI 호출 횟수</h3>
+                    <p id="totalApiCalls" class="text-3xl font-bold text-gray-900 mb-1">-</p>
+                    <p class="text-sm text-gray-500">예상 비용: <span id="estimatedCost" class="font-semibold text-orange-600">-</span></p>
+                </div>
+
+                <!-- 공유 링크 -->
+                <div class="stat-card bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-sm font-medium text-gray-500 mb-2">공유 링크</h3>
+                    <p id="totalShares" class="text-3xl font-bold text-gray-900 mb-1">-</p>
+                    <p class="text-sm text-gray-500">생성된 링크</p>
+                </div>
+
+                <!-- 공유 조회수 -->
+                <div class="stat-card bg-white rounded-lg p-6 shadow-sm">
+                    <h3 class="text-sm font-medium text-gray-500 mb-2">공유 조회수</h3>
+                    <p id="totalViews" class="text-3xl font-bold text-gray-900 mb-1">-</p>
+                    <p class="text-sm text-gray-500">누적 조회</p>
+                </div>
+            </div>
+
+            <!-- 로그인 방식 -->
+            <div class="bg-white rounded-lg p-6 shadow-sm">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">로그인 방식별 사용자</h2>
+                <div id="providerStats" class="space-y-3">
+                    <!-- 동적 생성 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 콘텐츠 탭 (from index.html Featured 갤러리 관리) -->
+        <div id="content-content" class="hidden">
+            <!-- ⭐ Featured 갤러리 관리 (관리자 전용) -->
+            <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-yellow-500">
+                <div class="flex items-center justify-between mb-3">
+                    <h2 class="text-lg font-semibold text-gray-800">⭐ Featured 갤러리 관리</h2>
+                    <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">관리자 전용</span>
+                </div>
+                <p class="text-sm text-gray-500 mb-4">추천 갤러리에 표시할 공유 페이지를 검색하세요 (최대 3개)</p>
+                
+                <div class="space-y-4">
+                    <!-- 검색창 -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">🔍 공유 페이지 이름 검색</label>
+                        <input 
+                            type="text" 
+                            id="shareSearchInput" 
+                            placeholder="예: 철수아빠 파리3일여행" 
+                            class="w-full px-4 py-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-yellow-500 focus:border-yellow-500 text-base"
+                            data-testid="input-share-search"
+                        />
+                    </div>
+                    
+                    <!-- 검색 결과 -->
+                    <div id="searchResults" class="space-y-2 max-h-80 overflow-y-auto">
+                        <p class="text-sm text-gray-400 text-center py-4">검색어를 입력하세요</p>
+                    </div>
+                </div>
+                
+                <!-- 현재 Featured 목록 -->
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <h3 class="text-sm font-semibold text-gray-700 mb-3">현재 Featured (<span id="featuredCount">0</span>/3)</h3>
+                    <div id="featuredList" class="space-y-2">
+                        <p class="text-sm text-gray-400">로딩 중...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 전체 공유 관리 -->
+            <div class="bg-white rounded-lg p-6 shadow-sm mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-gray-900">전체 공유 관리</h2>
+                    <div class="flex gap-3">
+                        <button onclick="migrateToV2()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            v1→v2 마이그레이션
+                        </button>
+                        <input type="text" id="allSharesSearch" placeholder="검색..." class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        <select id="sortOrder" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                            <option value="latest">최신순</option>
+                            <option value="views">조회수순</option>
+                            <option value="name">이름순</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="allSharesList" class="space-y-3">
+                    <!-- 동적 생성 -->
+                </div>
+                <div class="mt-4 text-center">
+                    <button id="loadMoreBtn" onclick="loadMore()" class="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition">
+                        더 보기
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 가이드 관리 탭 -->
+        <div id="content-guides" class="hidden">
+            <div class="space-y-6">
+                <!-- 검색 및 필터 -->
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">가이드 검색 및 필터</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <input type="text" id="guideLocationSearch" placeholder="위치 검색 (예: 베르사유, 에펠탑)" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                        <input type="text" id="guideTagsSearch" placeholder="태그 검색 (쉼표 구분, 예: 궁전,역사)" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
+                    </div>
+                    <div class="mt-4 flex gap-3">
+                        <button onclick="searchGuides()" class="px-6 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition">
+                            🔍 검색
+                        </button>
+                        <button onclick="resetGuideFilters()" class="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition">
+                            초기화
+                        </button>
+                        <span id="guideCount" class="ml-auto self-center text-sm text-gray-500">총 0개</span>
+                    </div>
+                </div>
+
+                <!-- 가이드 그리드 -->
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-lg font-semibold text-gray-900">가이드 목록</h2>
+                        <button id="createShareBtn" onclick="openCreateShareModal()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                            선택한 가이드로 공유 페이지 만들기 (<span id="selectedCount">0</span>)
+                        </button>
+                    </div>
+                    <div id="guidesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <!-- 동적 생성 -->
+                    </div>
+                    <div class="mt-4 text-center">
+                        <button id="loadMoreGuidesBtn" onclick="loadMoreGuides()" class="px-6 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg transition">
+                            더 보기
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 수익 탭 -->
+        <div id="content-revenue" class="hidden">
+            <div class="bg-white rounded-lg p-12 shadow-sm text-center">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">준비 중</h2>
+                <p class="text-gray-500">Phase 2에서 크레딧 및 결제 기능이 추가될 예정입니다.</p>
+            </div>
+        </div>
+
+        <!-- 통계 탭 -->
+        <div id="content-stats" class="hidden">
+            <div class="space-y-6">
+                <!-- 일별 추이 -->
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">일별 활동 추이 (최근 7일)</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b">
+                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">날짜</th>
+                                    <th class="text-center py-3 px-4 text-sm font-medium text-gray-500">신규 가입</th>
+                                    <th class="text-center py-3 px-4 text-sm font-medium text-gray-500">AI 호출</th>
+                                    <th class="text-center py-3 px-4 text-sm font-medium text-gray-500">공유 링크</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dailyTrends">
+                                <!-- 동적 생성 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 사용자 행동 -->
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">사용자 행동</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- 디바이스 분포 -->
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-500 mb-3">디바이스 분포</h3>
+                            <div id="deviceStats" class="space-y-2">
+                                <!-- 동적 생성 -->
+                            </div>
+                        </div>
+                        <!-- 브라우저 분포 -->
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-500 mb-3">브라우저 분포</h3>
+                            <div id="browserStats" class="space-y-2">
+                                <!-- 동적 생성 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI 성능 -->
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">AI 성능</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-500 mb-2">평균 응답 시간</h3>
+                            <p id="avgResponseTime" class="text-2xl font-bold text-gray-900">-</p>
+                            <p class="text-xs text-gray-500 mt-1">목표: 2-2.5초</p>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-500 mb-2">성공률</h3>
+                            <p id="successRate" class="text-2xl font-bold text-green-600">-</p>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-500 mb-2">에러율</h3>
+                            <p id="errorRate" class="text-2xl font-bold text-red-600">-</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentTab = 'overview';
+        let allShares = [];
+        let displayedShares = 0;
+        const SHARES_PER_PAGE = 20;
+
+        // 탭 전환
+        function showTab(tab) {
+            currentTab = tab;
+            
+            // 모든 탭 숨기기
+            ['overview', 'content', 'guides', 'revenue', 'stats'].forEach(t => {
+                document.getElementById(`content-${t}`).classList.add('hidden');
+                document.getElementById(`tab-${t}`).classList.remove('active');
+                document.getElementById(`tab-${t}`).classList.add('text-gray-500');
+                document.getElementById(`tab-${t}`).classList.remove('text-gray-700');
+            });
+            
+            // 선택된 탭 표시
+            document.getElementById(`content-${tab}`).classList.remove('hidden');
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            document.getElementById(`tab-${tab}`).classList.remove('text-gray-500');
+            document.getElementById(`tab-${tab}`).classList.add('text-gray-700');
+            
+            // 탭별 데이터 로드
+            if (tab === 'content') {
+                loadAdminData();
+            } else if (tab === 'guides') {
+                searchGuides();
+                loadCurrentFeatured();
+            } else if (tab === 'stats') {
+                loadStats();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════
+        // Featured 갤러리 관리 함수들 (from index.js)
+        // ═══════════════════════════════════════════════════
+        async function loadAdminData() {
+            await loadFeaturedList();
+            await loadAllShares(); // 전체 공유 목록도 로드
+            
+            // 검색창 이벤트 리스너 추가
+            const searchInput = document.getElementById('shareSearchInput');
+            if (searchInput && !searchInput.dataset.listenerAdded) {
+                searchInput.dataset.listenerAdded = 'true';
+                let searchTimeout;
+                searchInput.addEventListener('input', (e) => {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        searchShares(e.target.value);
+                    }, 300); // 300ms 디바운스
+                });
+            }
+        }
+
+        async function searchShares(query) {
+            const resultsContainer = document.getElementById('searchResults');
+            if (!resultsContainer) return;
+
+            if (!query || query.trim().length === 0) {
+                resultsContainer.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">검색어를 입력하세요</p>';
+                return;
+            }
+
+            try {
+                resultsContainer.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">검색 중...</p>';
+                
+                const response = await fetch(`/api/admin/all-shares?search=${encodeURIComponent(query)}`, {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) throw new Error('검색 실패');
+                
+                const shares = await response.json();
+                
+                if (!shares || shares.length === 0) {
+                    resultsContainer.innerHTML = `
+                        <p class="text-sm text-gray-400 text-center py-4">
+                            "<span class="font-semibold">${query}</span>" 검색 결과가 없습니다
+                        </p>
+                    `;
+                    return;
+                }
+                
+                resultsContainer.innerHTML = shares.map(share => `
+                    <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-yellow-400 transition-colors">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-medium text-gray-900 truncate">${share.name}</p>
+                            <div class="flex items-center gap-3 mt-1">
+                                <span class="text-xs text-gray-500">📥 ${share.downloadCount || 0}회</span>
+                                <span class="text-xs text-gray-400">${new Date(share.createdAt).toLocaleDateString()}</span>
+                                ${share.featured ? '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">⭐ Featured</span>' : ''}
+                            </div>
+                        </div>
+                        ${!share.featured ? `
+                            <button 
+                                onclick="addFeaturedById('${share.id}')" 
+                                class="ml-3 px-3 py-1.5 bg-yellow-500 text-white text-sm font-medium rounded hover:bg-yellow-600 transition-colors whitespace-nowrap"
+                                data-testid="button-add-featured-${share.id}">
+                                ⭐ 추가
+                            </button>
+                        ` : `
+                            <span class="ml-3 px-3 py-1.5 bg-gray-200 text-gray-500 text-sm font-medium rounded cursor-not-allowed whitespace-nowrap">
+                                이미 추가됨
+                            </span>
+                        `}
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('공유 페이지 검색 오류:', error);
+                resultsContainer.innerHTML = '<p class="text-sm text-red-400 text-center py-4">검색 중 오류가 발생했습니다</p>';
+            }
+        }
+
+        async function loadFeaturedList() {
+            try {
+                const response = await fetch('/api/admin/featured', {
+                    credentials: 'include'
+                });
+                if (!response.ok) throw new Error('Failed to load featured');
+                
+                const featured = await response.json();
+                
+                const list = document.getElementById('featuredList');
+                const count = document.getElementById('featuredCount');
+                
+                if (count) count.textContent = featured.length;
+                
+                if (!list) return;
+                
+                if (!featured || featured.length === 0) {
+                    list.innerHTML = '<p class="text-sm text-gray-400">Featured 페이지가 없습니다</p>';
+                    return;
+                }
+                
+                list.innerHTML = featured.map(page => `
+                    <div class="flex items-center justify-between p-2 bg-yellow-50 rounded">
+                        <span class="text-sm font-medium text-gray-800">${page.name}</span>
+                        <div class="flex items-center gap-2">
+                            <button onclick="editFeatured('${page.id}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                ✏️ 편집
+                            </button>
+                            <button onclick="removeFeatured('${page.id}')" class="text-red-500 hover:text-red-700 text-sm font-medium">
+                                ✕ 제거
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('Featured 목록 로드 오류:', error);
+                const list = document.getElementById('featuredList');
+                if (list) list.innerHTML = '<p class="text-sm text-red-400">로드 실패</p>';
+            }
+        }
+
+        window.addFeaturedById = async function(shareId) {
+            if (!shareId) {
+                alert('공유 페이지를 선택해주세요');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/admin/featured/${shareId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('⭐ Featured에 추가되었습니다!');
+                    await loadFeaturedList();
+                    // 검색 결과 다시 로드해서 "이미 추가됨" 표시
+                    const searchInput = document.getElementById('shareSearchInput');
+                    if (searchInput && searchInput.value) {
+                        await searchShares(searchInput.value);
+                    }
+                } else {
+                    alert(data.error || 'Featured 추가 실패');
+                }
+            } catch (error) {
+                console.error('Featured 추가 오류:', error);
+                alert('Featured 추가 중 오류 발생');
+            }
+        };
+
+        window.removeFeatured = async function(shareId) {
+            if (!confirm('Featured에서 제거하시겠습니까?')) return;
+            
+            try {
+                const response = await fetch(`/api/admin/featured/${shareId}`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    alert('Featured에서 제거되었습니다');
+                    await loadFeaturedList();
+                } else {
+                    alert(data.error || 'Featured 제거 실패');
+                }
+            } catch (error) {
+                console.error('Featured 제거 오류:', error);
+                alert('Featured 제거 중 오류 발생');
+            }
+        };
+
+        // Featured 편집 모달
+        window.editFeatured = async function(id) {
+            try {
+                // 1. 관리자용 API로 데이터 가져오기
+                const res = await fetch(`/api/admin/featured/${id}/data`, {
+                    credentials: 'include'
+                });
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    throw new Error(errorData.error || '데이터 로드 실패');
+                }
+                const data = await res.json();
+                const { page, guides } = data;
+                
+                console.log('📊 편집 데이터:', { page, guides, guidesCount: guides?.length });
+                
+                // 2. 모달 입력 필드 채우기
+                document.getElementById('editTitle').value = page.name || '';
+                document.getElementById('editSender').value = page.sender || '여행자';
+                document.getElementById('editLocation').value = page.location || '미지정';
+                document.getElementById('editDate').value = page.date || new Date(page.createdAt).toISOString().split('T')[0];
+                
+                // 3. 모바일 친화적 가이드 리스트 생성 (위/아래 버튼)
+                const guideListHtml = guides.map((guide, index) => {
+                    const imgSrc = guide.imageUrl || '';
+                    const isFirst = index === 0;
+                    const isLast = index === guides.length - 1;
+                    return `
+                        <div class="guide-item flex items-center gap-2 p-3 bg-white rounded-lg border-2 border-gray-300 mb-2" data-guide-id="${guide.id}">
+                            <img src="${imgSrc}" alt="가이드 ${index + 1}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; flex-shrink: 0;">
+                            <span class="font-medium text-gray-700 flex-1">가이드 ${index + 1}</span>
+                            <div class="flex flex-col gap-1">
+                                <button onclick="moveGuideUp(this)" ${isFirst ? 'disabled' : ''} class="px-3 py-1 bg-blue-500 text-white rounded disabled:bg-gray-300 disabled:cursor-not-allowed text-lg font-bold" style="min-width: 40px; min-height: 36px;">▲</button>
+                                <button onclick="moveGuideDown(this)" ${isLast ? 'disabled' : ''} class="px-3 py-1 bg-blue-500 text-white rounded disabled:bg-gray-300 disabled:cursor-not-allowed text-lg font-bold" style="min-width: 40px; min-height: 36px;">▼</button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+                
+                document.getElementById('guideList').innerHTML = guideListHtml;
+                
+                // 5. 모달 표시
+                document.getElementById('editFeaturedModal').classList.remove('hidden');
+                
+                // 6. 저장 버튼 클릭 이벤트
+                document.getElementById('saveFeaturedBtn').onclick = async () => {
+                    const title = document.getElementById('editTitle').value;
+                    const sender = document.getElementById('editSender').value;
+                    const location = document.getElementById('editLocation').value;
+                    const date = document.getElementById('editDate').value;
+                    
+                    if (!title || !sender || !location || !date) {
+                        alert('❌ 모든 필드를 입력해주세요.');
+                        return;
+                    }
+                    
+                    // 가이드 순서 가져오기 (UUID 문자열로 유지)
+                    const guideItems = document.querySelectorAll('.guide-item');
+                    const newGuideIds = Array.from(guideItems).map(item => item.dataset.guideId);
+                    
+                    try {
+                        const response = await fetch(`/api/admin/featured/${id}/regenerate`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                title,
+                                sender,
+                                location,
+                                date,
+                                guideIds: newGuideIds
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            const errorData = await response.json();
+                            throw new Error(errorData.error || 'HTML 재생성 실패');
+                        }
+                        
+                        alert('✅ Featured 페이지가 업데이트되었습니다!');
+                        closeEditModal();
+                        loadFeaturedList();
+                    } catch (error) {
+                        console.error('Featured 편집 오류:', error);
+                        alert('❌ 편집 실패: ' + error.message);
+                    }
+                };
+            } catch (error) {
+                console.error('Featured 편집 오류:', error);
+                alert('❌ 편집 실패: ' + error.message);
+            }
+        };
+
+        // 모달 닫기
+        window.closeEditModal = function() {
+            document.getElementById('editFeaturedModal').classList.add('hidden');
+        };
+
+        // 가이드 위로 이동 (모바일 친화적)
+        window.moveGuideUp = function(button) {
+            const item = button.closest('.guide-item');
+            const prev = item.previousElementSibling;
+            if (prev) {
+                item.parentNode.insertBefore(item, prev);
+                updateGuideNumbers();
+            }
+        };
+
+        // 가이드 아래로 이동 (모바일 친화적)
+        window.moveGuideDown = function(button) {
+            const item = button.closest('.guide-item');
+            const next = item.nextElementSibling;
+            if (next) {
+                item.parentNode.insertBefore(next, item);
+                updateGuideNumbers();
+            }
+        };
+
+        // 가이드 번호 및 버튼 상태 업데이트
+        function updateGuideNumbers() {
+            const items = document.querySelectorAll('.guide-item');
+            items.forEach((item, index) => {
+                // 번호 업데이트
+                const label = item.querySelector('span.font-medium');
+                if (label) label.textContent = `가이드 ${index + 1}`;
+                
+                // 버튼 상태 업데이트
+                const upBtn = item.querySelector('button:first-of-type');
+                const downBtn = item.querySelector('button:last-of-type');
+                
+                upBtn.disabled = (index === 0);
+                downBtn.disabled = (index === items.length - 1);
+            });
+        }
+
+        // ═══════════════════════════════════════════════════
+        // 가이드 관리 함수
+        // ═══════════════════════════════════════════════════
+        let allGuides = [];
+        let displayedGuides = 0;
+        const GUIDES_PER_PAGE = 30;
+        let selectedGuideIds = new Set();
+
+        async function searchGuides() {
+            const locationSearch = document.getElementById('guideLocationSearch').value.trim();
+            const tagsSearch = document.getElementById('guideTagsSearch').value.trim();
+            
+            const params = new URLSearchParams();
+            if (locationSearch) params.append('locationName', locationSearch);
+            if (tagsSearch) params.append('tags', tagsSearch);
+            params.append('limit', GUIDES_PER_PAGE);
+            params.append('offset', 0);
+            
+            try {
+                const res = await fetch(`/api/admin/guides?${params}`);
+                if (!res.ok) throw new Error('검색 실패');
+                
+                const data = await res.json();
+                allGuides = data.guides;
+                displayedGuides = allGuides.length;
+                
+                document.getElementById('guideCount').textContent = `총 ${data.total}개`;
+                renderGuides();
+            } catch (error) {
+                console.error('가이드 검색 오류:', error);
+                alert('가이드 검색에 실패했습니다.');
+            }
+        }
+
+        function renderGuides() {
+            const grid = document.getElementById('guidesGrid');
+            if (!grid) return;
+            
+            if (allGuides.length === 0) {
+                grid.innerHTML = '<p class="text-gray-500 col-span-full text-center py-8">검색 결과가 없습니다.</p>';
+                return;
+            }
+            
+            grid.innerHTML = allGuides.map(guide => `
+                <div class="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition ${selectedGuideIds.has(guide.id) ? 'ring-2 ring-blue-500' : ''}">
+                    <div class="relative">
+                        <img src="${guide.imageUrl || '/placeholder.jpg'}" alt="${guide.title}" class="w-full h-48 object-cover">
+                        <label class="absolute top-2 right-2 cursor-pointer">
+                            <input type="checkbox" class="w-5 h-5 rounded" ${selectedGuideIds.has(guide.id) ? 'checked' : ''} onchange="toggleGuideSelection('${guide.id}')">
+                        </label>
+                    </div>
+                    <div class="p-4">
+                        <h3 class="font-semibold text-gray-900 mb-2 truncate">${guide.title}</h3>
+                        <p class="text-sm text-gray-500 mb-2">${guide.locationName || '위치 없음'}</p>
+                        <div class="flex flex-wrap gap-1 mb-3">
+                            ${(guide.tags || []).map(tag => `
+                                <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded">${tag}</span>
+                            `).join('')}
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="editGuideTags('${guide.id}')" class="flex-1 px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded transition text-sm">
+                                태그 편집
+                            </button>
+                            <button onclick="deleteGuide('${guide.id}')" class="px-3 py-1.5 bg-red-500 hover:bg-red-600 text-white rounded transition text-sm">
+                                삭제
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            
+            updateSelectionUI();
+        }
+
+        async function editGuideTags(guideId) {
+            const guide = allGuides.find(g => g.id === guideId);
+            if (!guide) return;
+            
+            const currentTags = (guide.tags || []).join(', ');
+            const newTagsStr = prompt(`태그 편집 (쉼표로 구분)\\n\\n현재 태그: ${currentTags || '없음'}`, currentTags);
+            
+            if (newTagsStr === null) return;
+            
+            const newTags = newTagsStr.split(',').map(t => t.trim()).filter(t => t);
+            
+            try {
+                const res = await fetch(`/api/admin/guides/${guideId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tags: newTags })
+                });
+                
+                if (!res.ok) throw new Error('태그 편집 실패');
+                
+                alert('✅ 태그가 수정되었습니다!');
+                searchGuides();
+            } catch (error) {
+                console.error('태그 편집 오류:', error);
+                alert('태그 편집에 실패했습니다.');
+            }
+        }
+
+        async function deleteGuide(guideId) {
+            const guide = allGuides.find(g => g.id === guideId);
+            if (!guide) return;
+            
+            const guideName = guide.title || guide.locationName || '이 가이드';
+            if (!confirm(`"${guideName}"를 삭제하시겠습니까?\\n\\n이 작업은 되돌릴 수 없습니다.`)) return;
+            
+            try {
+                const res = await fetch(`/api/admin/guides/${guideId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (!res.ok) throw new Error('가이드 삭제 실패');
+                
+                alert('✅ 가이드가 삭제되었습니다!');
+                
+                // 선택된 가이드 목록에서도 제거
+                selectedGuideIds.delete(guideId);
+                
+                // 목록 새로고침
+                searchGuides();
+            } catch (error) {
+                console.error('가이드 삭제 오류:', error);
+                alert('가이드 삭제에 실패했습니다.');
+            }
+        }
+
+        function toggleGuideSelection(guideId) {
+            if (selectedGuideIds.has(guideId)) {
+                selectedGuideIds.delete(guideId);
+            } else {
+                selectedGuideIds.add(guideId);
+            }
+            renderGuides();
+        }
+
+        function updateSelectionUI() {
+            const count = selectedGuideIds.size;
+            document.getElementById('selectedCount').textContent = count;
+            document.getElementById('createShareBtn').disabled = count === 0;
+        }
+
+        function openCreateShareModal() {
+            const name = prompt(`공유 페이지 이름을 입력하세요\n\n선택한 가이드: ${selectedGuideIds.size}개`);
+            if (!name || name.trim().length === 0) return;
+            
+            createShareFromGuides(name.trim());
+        }
+
+        async function createShareFromGuides(name) {
+            try {
+                const res = await fetch('/api/admin/create-share-from-guides', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        guideIds: Array.from(selectedGuideIds),
+                        name
+                    })
+                });
+                
+                if (!res.ok) {
+                    const error = await res.json();
+                    throw new Error(error.error || '공유 페이지 생성 실패');
+                }
+                
+                const data = await res.json();
+                alert(`공유 페이지가 생성되었습니다!\n\n${data.shareUrl}`);
+                
+                selectedGuideIds.clear();
+                renderGuides();
+            } catch (error) {
+                console.error('공유 페이지 생성 오류:', error);
+                alert('공유 페이지 생성에 실패했습니다: ' + error.message);
+            }
+        }
+
+        function resetGuideFilters() {
+            document.getElementById('guideLocationSearch').value = '';
+            document.getElementById('guideTagsSearch').value = '';
+            searchGuides();
+        }
+
+        async function loadMoreGuides() {
+            const locationSearch = document.getElementById('guideLocationSearch').value.trim();
+            const tagsSearch = document.getElementById('guideTagsSearch').value.trim();
+            
+            const params = new URLSearchParams();
+            if (locationSearch) params.append('locationName', locationSearch);
+            if (tagsSearch) params.append('tags', tagsSearch);
+            params.append('limit', GUIDES_PER_PAGE);
+            params.append('offset', displayedGuides);
+            
+            try {
+                const res = await fetch(`/api/admin/guides?${params}`);
+                if (!res.ok) throw new Error('로드 실패');
+                
+                const data = await res.json();
+                allGuides = [...allGuides, ...data.guides];
+                displayedGuides = allGuides.length;
+                
+                renderGuides();
+            } catch (error) {
+                console.error('더 보기 오류:', error);
+                alert('더 보기에 실패했습니다.');
+            }
+        }
+
+        // ═══════════════════════════════════════════════════
+        // Featured 갤러리 관리 함수
+        // ═══════════════════════════════════════════════════
+        let allSharePages = [];
+        let currentFeaturedPages = [];
+
+        async function searchFeaturedShares() {
+            const query = document.getElementById('featuredShareSearch').value.trim();
+            
+            try {
+                const res = await fetch(`/api/admin/shares?search=${encodeURIComponent(query)}`);
+                if (!res.ok) throw new Error('검색 실패');
+                
+                const data = await res.json();
+                allSharePages = data.shares;
+                renderFeaturedSearchResults();
+            } catch (error) {
+                console.error('공유 페이지 검색 오류:', error);
+            }
+        }
+
+        function renderFeaturedSearchResults() {
+            const list = document.getElementById('featuredSharesList');
+            if (!list) return;
+            
+            if (allSharePages.length === 0) {
+                list.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">검색 결과가 없습니다</p>';
+                return;
+            }
+            
+            list.innerHTML = allSharePages.map(share => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-medium text-gray-900 truncate">${share.name}</p>
+                        <p class="text-sm text-gray-500">조회수: ${share.downloadCount || 0}</p>
+                    </div>
+                    <button onclick="addToFeatured('${share.id}')" class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded transition">
+                        추가
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        async function loadCurrentFeatured() {
+            try {
+                const res = await fetch('/api/featured');
+                if (!res.ok) throw new Error('Featured 로드 실패');
+                
+                const data = await res.json();
+                currentFeaturedPages = data.featured || [];
+                renderCurrentFeatured();
+            } catch (error) {
+                console.error('Featured 로드 오류:', error);
+            }
+        }
+
+        function renderCurrentFeatured() {
+            const list = document.getElementById('currentFeaturedList');
+            const countDisplay = document.getElementById('featuredCountDisplay');
+            if (!list || !countDisplay) return;
+            
+            countDisplay.textContent = `${currentFeaturedPages.length}/3`;
+            
+            if (currentFeaturedPages.length === 0) {
+                list.innerHTML = '<p class="text-gray-500 text-sm text-center py-4">Featured 항목이 없습니다</p>';
+                return;
+            }
+            
+            list.innerHTML = currentFeaturedPages.map(page => `
+                <div class="flex justify-between items-center p-3 bg-blue-50 rounded-lg">
+                    <div class="flex-1 min-w-0">
+                        <p class="font-medium text-gray-900 truncate">${page.name}</p>
+                        <p class="text-sm text-gray-500">순서: ${page.featuredOrder || '-'}</p>
+                    </div>
+                    <button onclick="removeFromFeatured('${page.id}')" class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-sm rounded transition">
+                        제거
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        async function addToFeatured(shareId) {
+            if (currentFeaturedPages.length >= 3) {
+                alert('Featured는 최대 3개까지만 추가할 수 있습니다.');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/admin/shares/${shareId}/featured`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ featured: true })
+                });
+                
+                if (!res.ok) throw new Error('Featured 추가 실패');
+                
+                alert('Featured에 추가되었습니다!');
+                await loadCurrentFeatured();
+            } catch (error) {
+                console.error('Featured 추가 오류:', error);
+                alert('Featured 추가에 실패했습니다.');
+            }
+        }
+
+        async function removeFromFeatured(shareId) {
+            if (!confirm('Featured에서 제거하시겠습니까?')) return;
+            
+            try {
+                const res = await fetch(`/api/admin/shares/${shareId}/featured`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ featured: false })
+                });
+                
+                if (!res.ok) throw new Error('Featured 제거 실패');
+                
+                alert('Featured에서 제거되었습니다.');
+                await loadCurrentFeatured();
+            } catch (error) {
+                console.error('Featured 제거 오류:', error);
+                alert('Featured 제거에 실패했습니다.');
+            }
+        }
+
+        // 검색 입력 이벤트
+        document.addEventListener('DOMContentLoaded', () => {
+            const searchInput = document.getElementById('featuredShareSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', () => {
+                    if (searchInput.value.trim().length > 0) {
+                        searchFeaturedShares();
+                    }
+                });
+            }
+        });
+
+        // 초기 데이터 로드
+        async function init() {
+            try {
+                // 요약 데이터 로드
+                const res = await fetch('/api/admin/overview');
+                if (!res.ok) throw new Error('데이터 로드 실패');
+                const data = await res.json();
+                
+                renderOverview(data);
+                
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('content-overview').classList.remove('hidden');
+            } catch (error) {
+                console.error('초기화 오류:', error);
+                document.getElementById('loading').innerHTML = `
+                    <p class="text-red-600">데이터 로드 실패</p>
+                    <p class="text-sm text-gray-500 mt-2">${error.message}</p>
+                `;
+            }
+        }
+
+        // 요약 렌더링
+        function renderOverview(data) {
+            document.getElementById('totalUsers').textContent = data.totalUsers.toLocaleString();
+            document.getElementById('recentUsers').textContent = data.recentUsers.toLocaleString();
+            document.getElementById('totalApiCalls').textContent = data.totalApiCalls.toLocaleString();
+            document.getElementById('estimatedCost').textContent = `₩${Math.round(data.estimatedCost * 1300).toLocaleString()}`;
+            document.getElementById('totalShares').textContent = data.totalShares.toLocaleString();
+            document.getElementById('totalViews').textContent = data.totalViews.toLocaleString();
+            
+            // 로그인 방식
+            const providerHtml = data.providers.map(p => `
+                <div class="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
+                    <span class="font-medium text-gray-700">${p.provider === 'google' ? 'Google' : p.provider === 'kakao' ? 'Kakao' : 'Replit'}</span>
+                    <span class="font-bold text-gray-900">${p.count}명</span>
+                </div>
+            `).join('');
+            document.getElementById('providerStats').innerHTML = providerHtml;
+        }
+
+        // 추천 갤러리 로드
+        async function loadFeatured() {
+            try {
+                const res = await fetch('/api/admin/featured');
+                if (!res.ok) throw new Error('추천 갤러리 로드 실패');
+                const data = await res.json();
+                renderFeatured(data.featured);
+            } catch (error) {
+                console.error('추천 갤러리 로드 오류:', error);
+            }
+        }
+
+        // 추천 갤러리 렌더링
+        function renderFeatured(featured) {
+            const html = featured.map(item => `
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-gray-900">${item.name}</h3>
+                        <p class="text-sm text-gray-500">${new Date(item.createdAt).toLocaleDateString('ko-KR')}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="window.open('/s/${item.id}', '_blank')" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition">
+                            미리보기
+                        </button>
+                        <button onclick="removeFeatured('${item.id}')" class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm rounded-lg transition">
+                            제거
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            document.getElementById('featuredList').innerHTML = html || '<p class="text-center text-gray-500 py-8">추천 갤러리가 없습니다.</p>';
+        }
+
+        // 전체 공유 로드
+        async function loadAllShares() {
+            try {
+                const res = await fetch('/api/admin/content/all-shares');
+                if (!res.ok) throw new Error('전체 공유 로드 실패');
+                const data = await res.json();
+                allShares = data.shares;
+                displayedShares = 0;
+                renderAllShares();
+            } catch (error) {
+                console.error('전체 공유 로드 오류:', error);
+            }
+        }
+
+        // 전체 공유 렌더링
+        function renderAllShares() {
+            const end = Math.min(displayedShares + SHARES_PER_PAGE, allShares.length);
+            const shares = allShares.slice(displayedShares, end);
+            
+            const html = shares.map(item => `
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition">
+                    <div class="flex-1">
+                        <h3 class="font-semibold text-gray-900">${item.name}</h3>
+                        <p class="text-sm text-gray-500">${new Date(item.createdAt).toLocaleDateString('ko-KR')} | 조회수: ${item.downloadCount || 0}</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="window.open('/s/${item.id}', '_blank')" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm rounded-lg transition">
+                            미리보기
+                        </button>
+                        <button onclick="deleteShare('${item.id}')" class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg transition">
+                            삭제
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            
+            if (displayedShares === 0) {
+                document.getElementById('allSharesList').innerHTML = html || '<p class="text-center text-gray-500 py-8">공유 페이지가 없습니다.</p>';
+            } else {
+                document.getElementById('allSharesList').insertAdjacentHTML('beforeend', html);
+            }
+            
+            displayedShares = end;
+            document.getElementById('loadMoreBtn').style.display = displayedShares >= allShares.length ? 'none' : 'block';
+        }
+
+        // 더 보기
+        function loadMore() {
+            renderAllShares();
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // ⭐ Phase 1: 템플릿 v1 → v2 일괄 마이그레이션 (2025-11-13)
+        // ═══════════════════════════════════════════════════════════════
+        async function migrateToV2() {
+            if (!confirm('모든 공유페이지를 v2 템플릿으로 업그레이드하시겠습니까?\n\n• URL 불변 (카카오톡 링크 정상)\n• v2.js 수정 시 모든 페이지 일괄 적용\n• 파일 크기 90% 감소')) {
+                return;
+            }
+
+            try {
+                const button = event.target.closest('button');
+                const originalText = button.innerHTML;
+                button.disabled = true;
+                button.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+
+                const res = await fetch('/api/admin/migrate-to-v2', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                if (!res.ok) {
+                    throw new Error('마이그레이션 실패');
+                }
+
+                const data = await res.json();
+                alert(`✅ 마이그레이션 완료!\n\n${data.message}`);
+                
+                // 페이지 새로고침
+                location.reload();
+            } catch (error) {
+                console.error('마이그레이션 오류:', error);
+                alert('❌ 마이그레이션에 실패했습니다.');
+                button.disabled = false;
+                button.innerHTML = originalText;
+            }
+        }
+
+        // 통계 로드
+        async function loadStats() {
+            try {
+                const res = await fetch('/api/admin/stats');
+                if (!res.ok) throw new Error('통계 로드 실패');
+                const data = await res.json();
+                renderStats(data);
+            } catch (error) {
+                console.error('통계 로드 오류:', error);
+            }
+        }
+
+        // 통계 렌더링
+        function renderStats(data) {
+            // 일별 추이
+            const trendsHtml = data.dailyTrends && data.dailyTrends.length > 0
+                ? data.dailyTrends.map(day => `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="py-3 px-4 text-sm text-gray-700">${new Date(day.date).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</td>
+                        <td class="py-3 px-4 text-sm text-center font-semibold text-gray-900">${day.newUsers}</td>
+                        <td class="py-3 px-4 text-sm text-center font-semibold text-gray-900">${day.apiCalls}</td>
+                        <td class="py-3 px-4 text-sm text-center font-semibold text-gray-900">${day.shares}</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="4" class="py-8 text-center text-gray-500">데이터가 없습니다. (AI 호출 및 사용자 활동 로그 수집 전)</td></tr>';
+            document.getElementById('dailyTrends').innerHTML = trendsHtml;
+
+            // 디바이스
+            const deviceHtml = data.devices && data.devices.length > 0
+                ? data.devices.map(d => `
+                    <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                        <span class="text-sm text-gray-700">${d.type}</span>
+                        <span class="text-sm font-semibold text-gray-900">${d.count} (${d.percentage}%)</span>
+                    </div>
+                `).join('')
+                : '<p class="text-sm text-center text-gray-500 py-4">데이터가 없습니다</p>';
+            document.getElementById('deviceStats').innerHTML = deviceHtml;
+
+            // 브라우저
+            const browserHtml = data.browsers && data.browsers.length > 0
+                ? data.browsers.map(b => `
+                    <div class="flex justify-between items-center p-2 bg-gray-50 rounded">
+                        <span class="text-sm text-gray-700">${b.name}</span>
+                        <span class="text-sm font-semibold text-gray-900">${b.count} (${b.percentage}%)</span>
+                    </div>
+                `).join('')
+                : '<p class="text-sm text-center text-gray-500 py-4">데이터가 없습니다</p>';
+            document.getElementById('browserStats').innerHTML = browserHtml;
+
+            // AI 성능
+            document.getElementById('avgResponseTime').textContent = data.aiPerformance.avgResponseTime || data.aiPerformance.avgResponseTime === 0 ? `${data.aiPerformance.avgResponseTime}ms` : '-';
+            document.getElementById('successRate').textContent = data.aiPerformance.successRate || data.aiPerformance.successRate === 0 ? `${data.aiPerformance.successRate}%` : '-';
+            document.getElementById('errorRate').textContent = data.aiPerformance.errorRate || data.aiPerformance.errorRate === 0 ? `${data.aiPerformance.errorRate}%` : '-';
+        }
+
+        // Featured 제거
+        async function removeFeatured(id) {
+            if (!confirm('추천 갤러리에서 제거하시겠습니까?')) return;
+            
+            try {
+                const res = await fetch(`/api/admin/featured/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('제거 실패');
+                alert('제거되었습니다.');
+                loadFeatured();
+            } catch (error) {
+                alert('오류: ' + error.message);
+            }
+        }
+
+        // 공유 삭제
+        async function deleteShare(id) {
+            const share = allShares.find(s => s.id === id);
+            const name = share ? share.name : '공유 페이지';
+            
+            if (!confirm(`"${name}" 공유 페이지를 영구 삭제하시겠습니까?\n\n이 작업은 되돌릴 수 없습니다.`)) return;
+            if (!confirm(`최종 확인: 정말로 삭제하시겠습니까?`)) return;
+            
+            try {
+                const res = await fetch(`/api/admin/shares/${id}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('삭제 실패');
+                const result = await res.json();
+                alert(result.message);
+                loadAllShares();
+            } catch (error) {
+                alert('오류: ' + error.message);
+            }
+        }
+
+        // 검색 기능
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('featuredSearch')?.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                document.querySelectorAll('#featuredList > div').forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    item.style.display = text.includes(query) ? 'flex' : 'none';
+                });
+            });
+
+            document.getElementById('allSharesSearch')?.addEventListener('input', (e) => {
+                const query = e.target.value.toLowerCase();
+                document.querySelectorAll('#allSharesList > div').forEach(item => {
+                    const text = item.textContent.toLowerCase();
+                    item.style.display = text.includes(query) ? 'flex' : 'none';
+                });
+            });
+        });
+
+        // 초기화
+        init();
+    </script>
+
+    <!-- Featured 편집 모달 (from index.html) -->
+    <div id="editFeaturedModal" class="hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+            <!-- 모달 헤더 -->
+            <div class="flex items-center justify-between p-6 border-b border-gray-200">
+                <h2 class="text-2xl font-bold text-gray-800">✏️ Featured 편집</h2>
+                <button onclick="closeEditModal()" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- 모달 바디 -->
+            <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 200px);">
+                <!-- 입력 필드 -->
+                <div class="space-y-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">제목</label>
+                        <input id="editTitle" type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">발신자</label>
+                        <input id="editSender" type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">위치</label>
+                        <input id="editLocation" type="text" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">날짜</label>
+                        <input id="editDate" type="date" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <!-- 가이드 목록 -->
+                <div>
+                    <h3 class="text-lg font-bold text-gray-800 mb-3">📸 콘텐츠 순서 (▲▼ 버튼으로 변경)</h3>
+                    <p class="text-sm text-gray-500 mb-3">여행 동선이나 하이라이트 순서대로 배치하세요</p>
+                    <div id="guideList" class="space-y-2 p-4 bg-gray-50 rounded-lg" style="max-height: 400px; overflow-y: auto;">
+                        <!-- 동적 생성 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 모달 푸터 -->
+            <div class="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">
+                <button onclick="closeEditModal()" class="px-6 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-100 font-semibold transition-colors">
+                    취소
+                </button>
+                <button id="saveFeaturedBtn" class="px-6 py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-semibold transition-all shadow-lg">
+                    💾 저장 및 HTML 재생성
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
