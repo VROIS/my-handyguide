@@ -2285,9 +2285,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             onclick="event.stopPropagation(); handleFeaturedDownload('${shareUrl}', ${index})"
                             data-testid="button-download-featured-${index}"
                             class="w-full py-2 px-3 flex items-center justify-center rounded-full transition-all interactive-btn"
-                            style="background-color: rgba(0, 0, 0, 0.6); backdrop-filter: blur(12px);"
                             aria-label="링크 복사">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" style="color: #4285F4;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" style="color: #4285F4;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
                             </svg>
                         </button>
