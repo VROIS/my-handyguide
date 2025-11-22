@@ -655,28 +655,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             continue; // Skip invalid items
           }
           
-          // Base64 → 파일 저장
-          let imageUrl = '';
-          if (imageDataUrl) {
-            // Extract base64 data
-            const base64Match = imageDataUrl.match(/^data:image\/(\w+);base64,(.+)$/);
-            if (base64Match) {
-              const [, imageType, base64Data] = base64Match;
-              const imageExtension = imageType === 'jpeg' ? 'jpg' : imageType;
-              const imageName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${imageExtension}`;
-              const imagePath = path.join('uploads', imageName);
-              
-              // Save base64 to file
-              const imageBuffer = Buffer.from(base64Data, 'base64');
-              fs.writeFileSync(imagePath, imageBuffer);
-              
-              imageUrl = `/uploads/${imageName}`;
-              console.log(`✅ 이미지 저장 완료: ${imageName}`);
-            } else {
-              console.error(`❌ Base64 형식 오류: ${imageDataUrl.substring(0, 50)}...`);
-              continue;
-            }
-          }
+          // ✨ (2025-11-22) 수정: Base64를 그대로 guides DB에 저장 (원래 설계)
+          // 파일 저장 제거 → guides DB에 이미지+텍스트 한 덩어리로 저장
+          // 공유 페이지 생성 시 buildSharePageFromGuides()에서 직접 사용
+          const imageUrl = imageDataUrl; // Base64 그대로 유지
+          console.log(`✅ guides DB에 Base64 저장: ${title} (${imageUrl.substring(0, 50)}...)`);
           
           // guides DB 저장
           const guideData = {
