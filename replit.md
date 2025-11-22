@@ -18,7 +18,7 @@ The backend is an Express.js server written in TypeScript. It uses Drizzle ORM f
 PostgreSQL is the primary database, with schema defined by Drizzle ORM. Key tables include users, travel guides (with content, images, location), share links, and authentication sessions. A hybrid storage system ensures data safety by backing up guide data to the DB while also embedding it in HTML files for fast offline access. Guides are automatically saved to the database upon user action, not just sharing.
 
 ## AI Integration
-Google Gemini AI analyzes images and location data to generate descriptions and tips, supporting multi-language content. The Gemini 2.5 Flash model is used for optimal balance of image recognition, prompt adherence, and cost efficiency. Image compression to 0.9 quality is applied to optimize AI processing without causing hallucinations.
+Google Gemini AI analyzes images and location data to generate descriptions and tips, supporting multi-language content. **The Gemini 2.5 Flash model is used for optimal balance of image recognition, prompt adherence, and cost efficiency** ($0.30 input / $2.50 output per 1M tokens). Image compression to 0.9 quality is applied to optimize AI processing without causing hallucinations. All API calls (content generation, share descriptions, cinematic prompts, script optimization) use the same model for consistency and cost control.
 
 ## Authentication & Authorization
 Replit Auth and Google OAuth 2.0 (via `passport-google-oauth20`) are integrated using Passport.js. User sessions are managed by a PostgreSQL-backed session middleware. An authentication modal guides unauthenticated users to log in, with Google Login active and Kakao Login planned.
