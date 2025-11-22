@@ -1255,11 +1255,25 @@ export class DatabaseStorage implements IStorage {
     console.log(`✅ guides DB 조회 완료: ${guidesData.length}개`);
     
     // 2. Guide[] → GuideItem[] 변환 (순서 유지용 임시 데이터)
-    const guideItemsWithId = guidesData.map((guide) => ({
-      id: guide.id,
-      localId: guide.localId || undefined,
-      imageDataUrl: guide.imageUrl || '', // Base64 이미지
-      description: guide.description || guide.aiGeneratedContent || '' // description 우선, 없으면 aiGeneratedContent
+    const guideItemsWithId = await Promise.all(guidesData.map(async (guide) => {
+      // ✨ 파일 경로 → Base64 변환 (2025-11-22 수정)
+      let imageDataUrl = guide.imageUrl || '';
+      if (imageDataUrl && imageDataUrl.startsWith('/uploads/')) {
+        try {
+          imageDataUrl = await this.convertImageToBase64(imageDataUrl);
+          console.log(`✅ 이미지 변환: ${guide.id} (${imageDataUrl.substring(0, 50)}...)`);
+        } catch (err) {
+          console.warn(`⚠️ 이미지 변환 실패: ${imageDataUrl}`, err);
+          imageDataUrl = ''; // 변환 실패시 빈 문자열
+        }
+      }
+      
+      return {
+        id: guide.id,
+        localId: guide.localId || undefined,
+        imageDataUrl, // Base64 또는 기존 Base64 유지
+        description: guide.description || guide.aiGeneratedContent || '' // description 우선, 없으면 aiGeneratedContent
+      };
     }));
     
     // 3. 순서 유지: guideIds 순서대로 정렬 (UUID 또는 localId로 매칭)
@@ -1304,6 +1318,41 @@ export class DatabaseStorage implements IStorage {
       "'": '&#039;'
     };
     return text.replace(/[&<>"']/g, m => map[m]);
+  }
+
+  /**
+   * 🖼️ 파일 경로 → Base64 데이터 URL 변환 (2025-11-22 추가)
+   * 
+   * 목적: guides.imageUrl이 파일 경로(/uploads/xxx.jpg)로 저장된 경우
+   *       공유 페이지 생성 시 Base64로 변환하여 오프라인 호환성 확보
+   * 
+   * @param imagePath - 파일 경로 (예: /uploads/1763592749114-6zurcg.jpg)
+   * @returns Base64 데이터 URL (data:image/jpeg;base64,...)
+   */
+  private async convertImageToBase64(imagePath: string): Promise<string> {
+    try {
+      // 상대 경로를 절대 경로로 변환
+      const fullPath = path.join(process.cwd(), 'public', imagePath);
+      
+      // 파일 읽기 (동기)
+      const fileBuffer = fs.readFileSync(fullPath);
+      const base64 = fileBuffer.toString('base64');
+      
+      // MIME 타입 결정
+      const ext = path.extname(imagePath).toLowerCase();
+      const mimeType = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp'
+      }[ext] || 'image/jpeg';
+      
+      return `data:${mimeType};base64,${base64}`;
+    } catch (error) {
+      console.error(`❌ Base64 변환 실패: ${imagePath}`, error);
+      throw error;
+    }
   }
 }
 
