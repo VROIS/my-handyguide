@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cancelSelectionBtn = document.getElementById('cancelSelectionBtn');
     const selectionCount = document.getElementById('selectionCount');
     const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
-    const archiveSelectBtn = document.getElementById('archiveSelectBtn');
+    const profileBtn = document.getElementById('profileBtn');
     const archiveShareBtn = document.getElementById('archiveShareBtn');
     const archiveDeleteBtn = document.getElementById('archiveDeleteBtn');
     const archiveSettingsBtn = document.getElementById('archiveSettingsBtn');
@@ -3145,27 +3145,10 @@ document.addEventListener('DOMContentLoaded', () => {
     saveBtn?.addEventListener('click', () => debounceClick('save', handleSaveClick, 500));
     textToggleBtn?.addEventListener('click', () => textOverlay.classList.toggle('hidden'));
 
-    archiveSelectBtn?.addEventListener('click', () => {
-        // 선택 버튼: 선택 모드 토글
-        console.log('🔴 [DEBUG] 선택 버튼 클릭됨');
-        toggleSelectionMode(!isSelectionMode);
-        
-        // 즉시 다운로드 버튼 상태 확인
-        setTimeout(() => {
-            const container = document.getElementById('downloadSelectedBtnContainer');
-            const button = document.getElementById('downloadSelectedBtn');
-            console.log('🔴 [DEBUG] 다운로드 컨테이너:', {
-                exists: !!container,
-                hidden: container?.classList.contains('hidden'),
-                display: container ? window.getComputedStyle(container).display : 'N/A',
-                visibility: container ? window.getComputedStyle(container).visibility : 'N/A'
-            });
-            console.log('🔴 [DEBUG] 다운로드 버튼:', {
-                exists: !!button,
-                text: button?.textContent,
-                disabled: button?.disabled
-            });
-        }, 100);
+    // ✅ 2025.11.22: 프로필 버튼 - 기능 일시 중지 (나중에 프로필 페이지 연결 예정)
+    profileBtn?.addEventListener('click', () => {
+        console.log('👤 프로필 버튼 클릭됨 (기능 일시 중지)');
+        // TODO: 프로필 페이지 또는 사용자 정보 표시 기능 추가 예정
     });
     // ✅ 공유 버튼 간편 로직 - 2025.10.02 구현 완료 (디바운스 추가)
     // 핵심: 1회 클릭 → 선택 모드 활성화 / 2회 클릭 (선택 후) → 공유 모달
