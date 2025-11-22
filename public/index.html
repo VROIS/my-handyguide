@@ -692,28 +692,32 @@
             </div>
         </div>
         
-        <!-- ✅ 존 4: 하단 Footer (고정) - 2025.11.22 UI 개선: 배경 제거, 제미니 블루 진하게 -->
+        <!-- ✅ 존 4: 하단 Footer (고정) - 2025.11.22 UI 개선: 원형 배경 + 단순 아이콘 -->
         <!-- 핵심: .footer-safe-area로 100px 고정 높이 -->
         <footer id="archiveFooter" class="footer-safe-area bg-white/95 backdrop-blur-sm border-t border-gray-200/80">
-             <button id="profileBtn" aria-label="프로필" class="w-16 h-16 flex items-center justify-center rounded-full interactive-btn" style="color: #4285F4;">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+             <button id="profileBtn" aria-label="프로필" class="w-16 h-16 flex items-center justify-center rounded-full interactive-btn" style="background-color: rgba(66, 133, 244, 0.1); color: #4285F4;">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="8" r="4" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
                 </svg>
             </button>
-             <button id="archiveShareBtn" aria-label="선택 항목 공유" class="w-16 h-16 flex items-center justify-center rounded-full interactive-btn" style="color: #4285F4;">
-                 <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M7.217 10.907a2.25 2.25 0 1 0 0 2.186m0-2.186c.18.324.4.625.663.896m-.663-.896-3.118 6.058m0 0a2.25 2.25 0 0 0 3.804-.992m-3.804.992-1.804-.992m1.804.992 1.804.992m10.509-11.652a2.25 2.25 0 0 0 0 2.186m0-2.186c-.18.324-.4.625-.663.896m.663-.896 3.118 6.058m0 0a2.25 2.25 0 0 1-3.804-.992m3.804.992 1.804-.992m-1.804.992-1.804.992m0 0a2.25 2.25 0 0 0 3.804.992m-3.804-.992-1.804.992m1.804-.992 1.804-.992m7.5 2.25a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-18 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm9-12a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
+             <button id="archiveShareBtn" aria-label="선택 항목 공유" class="w-16 h-16 flex items-center justify-center rounded-full interactive-btn" style="background-color: rgba(66, 133, 244, 0.1); color: #4285F4;">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
                 </svg>
             </button>
-             <button id="archiveDeleteBtn" aria-label="삭제" class="w-16 h-16 flex items-center justify-center rounded-full interactive-btn" style="color: #4285F4;">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.124-2.033-2.124H8.033c-1.12 0-2.033.944-2.033 2.124v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+             <button id="archiveDeleteBtn" aria-label="삭제" class="w-16 h-16 flex items-center justify-center rounded-full interactive-btn" style="background-color: rgba(66, 133, 244, 0.1); color: #4285F4;">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                 </svg>
             </button>
-             <button id="archiveSettingsBtn" aria-label="설정" class="w-16 h-16 flex items-center justify-center rounded-full interactive-btn" style="color: #4285F4;">
-                 <svg xmlns="http://www.w3.org/2000/svg" class="h-9 w-9" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+             <button id="archiveSettingsBtn" aria-label="설정" class="w-16 h-16 flex items-center justify-center rounded-full interactive-btn" style="background-color: rgba(66, 133, 244, 0.1); color: #4285F4;">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <circle cx="12" cy="12" r="3" />
                 </svg>
             </button>
         </footer>
