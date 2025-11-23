@@ -2543,7 +2543,7 @@ self.addEventListener('fetch', (event) => {
   app.post('/api/admin/create-share-from-guides', requireAdmin, async (req: any, res) => {
     try {
       const { guideIds, name } = req.body;
-      const userId = getUserId(req.user);
+      const userId = req.session?.adminUserId || (req.user ? getUserId(req.user) : 'anonymous');
 
       if (!Array.isArray(guideIds) || guideIds.length === 0) {
         return res.status(400).json({ error: '가이드를 선택해주세요.' });
