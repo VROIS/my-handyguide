@@ -14,6 +14,7 @@ import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 import { generateShareHtml } from "./html-template";
+import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 
 // Configure multer for image uploads
 const upload = multer({
@@ -80,6 +81,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
   
+  // ═══════════════════════════════════════════════════════════════
+  // 📦 App Storage API (Object Storage)
+  // ═══════════════════════════════════════════════════════════════
+  // 목적: Dream Studio 이미지/비디오를 App Storage에 저장
+  // 배포 안정성: ephemeral 파일 시스템 문제 해결
+  // ═══════════════════════════════════════════════════════════════
+  
+  // Get presigned upload URL for object storage
+  app.post('/api/objects/upload', async (req, res) => {
+    try {
+      const objectStorageService = new ObjectStorageService();
+      const uploadURL = await objectStorageService.getObjectEntityUploadURL();
+      res.json({ uploadURL });
+    } catch (error) {
+      console.error('Upload URL 생성 오류:', error);
+      res.status(500).json({ error: 'Upload URL 생성 실패' });
+    }
+  });
+  
+  // Download object from storage (public access)
+  app.get('/objects/:objectPath(*)', async (req, res) => {
+    const objectStorageService = new ObjectStorageService();
+    try {
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      objectStorageService.downloadObject(objectFile, res);
+    } catch (error) {
+      console.error('객체 다운로드 오류:', error);
+      if (error instanceof ObjectNotFoundError) {
+        return res.sendStatus(404);
+      }
+      return res.sendStatus(500);
+    }
+  });
+
   // Gemini streaming endpoint
   app.post('/api/gemini', async (req, res) => {
     try {
