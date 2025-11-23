@@ -1228,23 +1228,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
         sender: undefined
       });
       
-      // 파일명 생성 (안전한 파일명으로 변환)
-      const safeFileName = name.replace(/[^a-zA-Z0-9가-힣\s]/g, '').replace(/\s+/g, '-');
-      const fileName = `share-${safeFileName}-${Date.now()}.html`;
-      const filePath = path.join(process.cwd(), 'public', fileName);
+      // ═══════════════════════════════════════════════════════════════
+      // 🔧 App Storage 마이그레이션 (2025-11-23)
+      // ═══════════════════════════════════════════════════════════════
+      // 변경: HTML 파일 저장 → DB htmlContent 저장
+      // 이유: Production 환경에서 파일 시스템은 ephemeral (재배포 시 삭제)
+      // 해결: DB에 HTML 내용을 직접 저장하여 rollback 지원 + 안정성 확보
+      // ═══════════════════════════════════════════════════════════════
+      
+      // Generate short ID (8 chars, nanoid compatible)
+      const shareId = crypto.randomBytes(4).toString('base64url').slice(0, 8);
+      
+      // Save to database (sharedHtmlPages table)
+      const sharePage = await storage.createSharedHtmlPage(userId, {
+        id: shareId,
+        name: name.trim(),
+        htmlContent: htmlContent, // ✅ DB에 HTML 직접 저장 (파일 시스템 X)
+        htmlFilePath: null, // ✅ 파일 경로는 null (사용 안 함)
+        guideIds: guideIds,
+        thumbnail: shareItems[0]?.imageBase64 ? `data:image/jpeg;base64,${shareItems[0].imageBase64}` : null,
+        location: includeLocation ? (guides[0]?.locationName || null) : null,
+        date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
+        featured: false,
+        isActive: true
+      });
 
-      // HTML 파일 저장
-      fs.writeFileSync(filePath, htmlContent, 'utf8');
+      // 공유 URL 생성 (short URL)
+      const shareUrl = `${req.protocol}://${req.get('host')}/s/${shareId}`;
 
-      // 공유 URL 생성
-      const shareUrl = `${req.protocol}://${req.get('host')}/${fileName}`;
-
-      console.log(`📄 HTML 공유 페이지 생성 완료: ${fileName}`);
+      console.log(`📄 HTML 공유 페이지 생성 완료 (DB 저장): /s/${shareId}`);
       
       res.json({
         success: true,
         shareUrl,
-        fileName,
+        shareId,
         itemCount: shareItems.length,
         createdAt: sharePageData.createdAt
       });
