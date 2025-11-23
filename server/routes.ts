@@ -614,7 +614,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   /**
    * ✅ 배치 가이드 저장 (보관 시 guides DB 저장)
    * 
+   * ⚠️ **사용자 승인 없이 수정 불가**
+   * 
    * 목적: 사용자가 보관 버튼 클릭 시 IndexedDB 데이터를 guides DB에도 저장
+   * 인증: 불필요 (비로그인 사용자도 로컬 가이드 저장 가능 - 원래 설계)
    * 
    * Request body:
    * {
@@ -633,9 +636,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
    * 
    * Response: { guideIds: ["uuid1", "uuid2", ...] }
    */
-  app.post('/api/guides/batch', isAuthenticated, async (req: any, res) => {
+  app.post('/api/guides/batch', async (req: any, res) => {
     try {
-      const userId = getUserId(req.user);
+      // 비로그인 사용자도 저장 가능 (userId는 optional)
+      const userId = req.user ? getUserId(req.user) : null;
       const { guides: guidesData } = req.body;
       
       if (!Array.isArray(guidesData) || guidesData.length === 0) {
@@ -674,9 +678,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             language: 'ko'
           };
           
-          const savedGuide = await storage.createGuide(userId, guideData);
+          const savedGuide = await storage.createGuide(userId || 'anonymous', guideData);
           savedGuideIds.push(savedGuide.id);
-          console.log(`✅ guides DB 저장 완료: ${savedGuide.id} (${title}, localId: ${localId})`);
+          console.log(`✅ guides DB 저장 완료: ${savedGuide.id} (${title}, localId: ${localId}, userId: ${userId || 'anonymous'})`);
           
         } catch (itemError) {
           console.error(`❌ 가이드 저장 실패:`, itemError);
