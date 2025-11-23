@@ -29,7 +29,7 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
   const { title, sender, location, date, guideItems, isFeatured = false } = data;
   
   // ⚠️ 2025-11-23: appOrigin 하드코딩 (개발본/배포본 동일 작동 보장)
-  // 홈 버튼 3개 (추천갤러리 리턴, 메인 하단, 가이드 페이지 하단)에서 사용
+  // 홈 버튼 2개 (메인 하단 "손안에 가이드 시작하기", 가이드 페이지 하단)에서 사용
   const appOrigin = 'https://My-handyguide1.replit.app';
   
   // HTML escape 함수 (XSS 방지 및 파싱 에러 방지)
