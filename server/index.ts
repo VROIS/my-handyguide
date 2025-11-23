@@ -54,22 +54,32 @@ app.get('/s/:id', async (req, res) => {
     res.setHeader('Content-Disposition', 'inline');
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
     
+    // ═══════════════════════════════════════════════════════════════
+    // 🔧 App Storage 마이그레이션 (2025-11-23)
+    // ═══════════════════════════════════════════════════════════════
+    // 변경: DB htmlContent 우선 → htmlFilePath fallback (하위 호환성)
+    // 이유: Production 환경에서 파일 시스템은 ephemeral (재배포 시 삭제)
+    // 해결: DB에 저장된 HTML을 우선 사용, 파일은 fallback만
+    // ═══════════════════════════════════════════════════════════════
+    
+    // 1. DB htmlContent 우선 (신규 데이터)
+    if (page.htmlContent) {
+      log(`[SHARE] ✅ Serving from DB (htmlContent)`);
+      return res.send(page.htmlContent);
+    }
+    
+    // 2. htmlFilePath fallback (구 데이터 호환성)
     if (page.htmlFilePath) {
       const relativePath = page.htmlFilePath.replace(/^\//, '');
       const fullPath = path.join(process.cwd(), 'public', relativePath);
       
       if (fs.existsSync(fullPath)) {
         const htmlContent = fs.readFileSync(fullPath, 'utf8');
-        log(`[SHARE] Serving file: ${relativePath}`);
+        log(`[SHARE] ⚠️ Serving from file (legacy): ${relativePath}`);
         return res.send(htmlContent);
       } else {
-        log(`[SHARE] File not found: ${fullPath}`);
+        log(`[SHARE] ❌ File not found: ${fullPath}`);
       }
-    }
-    
-    if (page.htmlContent) {
-      log(`[SHARE] Serving from DB`);
-      return res.send(page.htmlContent);
     }
     
     return res.status(404).send('HTML content not found');
