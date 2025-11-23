@@ -592,10 +592,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       fs.renameSync(file.path, imagePath);
 
+      // ✨ (2025-11-23) 수정: 파일 경로 대신 Base64로 저장
+      // 이미지 파일을 다시 읽어서 Base64로 변환
+      const imageBuffer = fs.readFileSync(imagePath);
+      const imageBase64String = imageBuffer.toString('base64');
+      
+      // MIME 타입 결정
+      const mimeType = {
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.png': 'image/png',
+        '.gif': 'image/gif',
+        '.webp': 'image/webp'
+      }[imageExtension.toLowerCase()] || 'image/jpeg';
+      
+      const imageDataUrl = `data:${mimeType};base64,${imageBase64String}`;
+      console.log(`✅ 이미지 Base64 변환 완료: ${imageName} (${imageDataUrl.length} chars)`);
+
       const guideData = {
         title: guideContent.title,
         description: guideContent.description,
-        imageUrl: `/uploads/${imageName}`,
+        imageUrl: imageDataUrl,
         latitude: latitude.toString(),
         longitude: longitude.toString(),
         locationName,
