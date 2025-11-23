@@ -24,7 +24,7 @@ Google Gemini AI analyzes images and location data to generate descriptions and 
 Replit Auth and Google OAuth 2.0 (via `passport-google-oauth20`) are integrated using Passport.js. User sessions are managed by a PostgreSQL-backed session middleware. An authentication modal guides unauthenticated users to log in, with Google Login active and Kakao Login planned.
 
 ## File Upload & Storage
-Multer handles image uploads, storing them locally. It includes file type validation, size limits, and image compression to 0.6 quality for optimized processing.
+**App Storage Migration (2025-11-23):** Migrated from ephemeral file system to Replit App Storage for production stability. Shared HTML pages are now stored in PostgreSQL database (`sharedHtmlPages.htmlContent`) instead of `public/` directory. Dream Studio AI-generated images (future) will be stored in App Storage using presigned URLs. This ensures data persistence across deployments and enables rollback support.
 
 ## API Design
 A RESTful API built with Express features shared TypeScript schemas, robust error handling, and authentication middleware. A short URL system is implemented for share links.
@@ -32,7 +32,7 @@ A RESTful API built with Express features shared TypeScript schemas, robust erro
 ## System Design Choices
 -   **UI/UX:** Mobile-first, responsive design with camera/GPS integration.
 -   **Performance:** Optimized AI response times (target 2-2.5 seconds) through model selection and image compression. Featured Gallery caching is implemented for instant display.
--   **Share Feature:** Includes short URLs, preservation of item selection order, and a standard share page template (Pure CSS, 3-column responsive grid, Microsoft Heami Voice TTS, data-driven from guides DB). A fix for KakaoTalk in-app browser forcing Chrome redirect is implemented.
+-   **Share Feature:** Includes short URLs, preservation of item selection order, and a standard share page template (Pure CSS, 3-column responsive grid, Microsoft Heami Voice TTS, data-driven from guides DB). **Production-Ready Storage (2025-11-23):** Shared HTML pages stored in DB (`htmlContent`) instead of ephemeral file system, ensuring persistence across deployments. A fix for KakaoTalk in-app browser forcing Chrome redirect is implemented.
 -   **Admin UI:** Features search functionality for shared pages, automatic featured ordering, and a real-time statistics dashboard for KPIs.
 
 # External Dependencies
@@ -41,6 +41,7 @@ A RESTful API built with Express features shared TypeScript schemas, robust erro
 -   **Replit Authentication**: OpenID Connect for user authentication.
 -   **Google Gemini AI**: Vision and text generation API.
 -   **PostgreSQL Database**: Primary data storage.
+-   **Replit App Storage**: Cloud object storage for AI-generated media files (production-ready, ephemeral-safe).
 
 ## Frontend Libraries
 -   **Vanilla JavaScript**: Core language.
@@ -52,7 +53,8 @@ A RESTful API built with Express features shared TypeScript schemas, robust erro
 -   **Express.js**: Web application framework.
 -   **Drizzle ORM**: Database toolkit.
 -   **Passport.js**: Authentication middleware.
--   **Multer**: Middleware for `multipart/form-data`.
+-   **Multer**: Middleware for `multipart/form-data` (Dream Studio temporary uploads).
+-   **@google-cloud/storage**: Replit App Storage client for persistent file storage.
 -   **OpenID Client**: OpenID Connect client.
 -   **connect-pg-simple**: PostgreSQL session store.
 

@@ -660,22 +660,20 @@ export class DatabaseStorage implements IStorage {
       try {
         const shortId = generateShortId();
         
-        // 💾 HTML 파일로 저장 (DB 용량 절약!)
-        const htmlFilePath = `/shared/${shortId}.html`;
-        const fullPath = path.join(process.cwd(), 'public', htmlFilePath);
+        // ═══════════════════════════════════════════════════════════════
+        // 🔧 App Storage 마이그레이션 (2025-11-23)
+        // ═══════════════════════════════════════════════════════════════
+        // 변경: HTML 파일 저장 제거 → DB htmlContent만 사용
+        // 이유: Production 환경에서 파일 시스템은 ephemeral (재배포 시 삭제)
+        // 해결: DB에 HTML 내용을 직접 저장하여 rollback 지원 + 안정성 확보
+        // ═══════════════════════════════════════════════════════════════
         
-        // public/shared 폴더 확인 및 생성
-        const sharedDir = path.join(process.cwd(), 'public', 'shared');
-        if (!fs.existsSync(sharedDir)) {
-          fs.mkdirSync(sharedDir, { recursive: true });
-        }
-        
-        // HTML 파일 저장
+        // Validation: htmlContent 필수
         if (!page.htmlContent) {
           throw new Error('htmlContent가 없습니다.');
         }
-        fs.writeFileSync(fullPath, page.htmlContent, 'utf8');
-        console.log(`✅ HTML 파일 저장: ${htmlFilePath}`);
+        
+        console.log(`✅ HTML DB 저장 준비: ${shortId} (${(page.htmlContent.length / 1024).toFixed(1)} KB)`);
         
         // 🆕 HTML에서 가이드 데이터 추출 및 guides 테이블에 백업 저장
         try {
@@ -717,21 +715,19 @@ export class DatabaseStorage implements IStorage {
           console.error('⚠️ guides 테이블 백업 실패 (공유 페이지는 정상 생성됨):', guideError);
         }
         
-        // ⚠️ DB에 htmlContent도 함께 저장 (배포 시 파일 삭제 대비!)
-        // 배포 환경에서는 파일 시스템이 persistent하지 않으므로,
-        // DB에 htmlContent를 저장하여 fallback으로 사용
+        // ✅ DB에 htmlContent 저장 (파일 시스템 사용 안 함!)
         const [newPage] = await db
           .insert(sharedHtmlPages)
           .values({ 
             ...page,
             id: shortId,
             userId: userId,
-            htmlFilePath: htmlFilePath,
-            htmlContent: page.htmlContent // ← htmlContent도 DB에 저장!
+            htmlFilePath: null, // ✅ 파일 경로 없음 (DB만 사용)
+            htmlContent: page.htmlContent // ✅ HTML 내용 DB 저장
           })
           .returning();
         
-        console.log(`✅ DB 저장 완료: ${shortId} (파일: ${htmlFilePath})`);
+        console.log(`✅ DB 저장 완료: ${shortId} (htmlContent: ${(page.htmlContent.length / 1024).toFixed(1)} KB)`);
         return newPage; // ✅ 성공!
       } catch (error: any) {
         attempts++;

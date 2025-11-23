@@ -1236,12 +1236,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // 해결: DB에 HTML 내용을 직접 저장하여 rollback 지원 + 안정성 확보
       // ═══════════════════════════════════════════════════════════════
       
-      // Generate short ID (8 chars, nanoid compatible)
-      const shareId = crypto.randomBytes(4).toString('base64url').slice(0, 8);
-      
       // Save to database (sharedHtmlPages table)
+      // storage.createSharedHtmlPage가 자동으로 ID 생성 (8자, 충돌 방지)
       const sharePage = await storage.createSharedHtmlPage(userId, {
-        id: shareId,
         name: name.trim(),
         htmlContent: htmlContent, // ✅ DB에 HTML 직접 저장 (파일 시스템 X)
         htmlFilePath: null, // ✅ 파일 경로는 null (사용 안 함)
@@ -1254,14 +1251,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // 공유 URL 생성 (short URL)
-      const shareUrl = `${req.protocol}://${req.get('host')}/s/${shareId}`;
+      const shareUrl = `${req.protocol}://${req.get('host')}/s/${sharePage.id}`;
 
-      console.log(`📄 HTML 공유 페이지 생성 완료 (DB 저장): /s/${shareId}`);
+      console.log(`📄 HTML 공유 페이지 생성 완료 (DB 저장): /s/${sharePage.id}`);
       
       res.json({
         success: true,
         shareUrl,
-        shareId,
+        shareId: sharePage.id,
         itemCount: shareItems.length,
         createdAt: sharePageData.createdAt
       });
