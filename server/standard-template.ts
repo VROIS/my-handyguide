@@ -1,9 +1,14 @@
-/**
- * 표준 공유페이지 템플릿 (Standard Share Page Template)
- * 
- * 출처: public/index.js의 generateShareHTML 함수 (373-900번 라인)
- * 수정: 데이터 요소만 TypeScript 변수로 교체
- */
+// ═══════════════════════════════════════════════════════════════
+// ⚠️ CRITICAL: 표준 공유페이지 템플릿 - 1000+회 테스트된 핵심 파일
+// ═══════════════════════════════════════════════════════════════
+// 🔴 DO NOT MODIFY WITHOUT USER APPROVAL
+// 🔴 이 파일은 신규 유입자가 앱으로 오는 **유일한 통로**입니다
+// 🔴 임의 수정 시 전체 공유페이지 시스템이 깨집니다
+// 
+// 작업 이력:
+// - 2025-11-23: appOrigin 하드코딩 (개발본/배포본 동일 작동 보장)
+// - 출처: public/index.js의 generateShareHTML 함수 (373-900번 라인)
+// ═══════════════════════════════════════════════════════════════
 
 export interface StandardTemplateData {
   title: string;
@@ -21,7 +26,11 @@ export interface GuideItem {
 }
 
 export function generateStandardShareHTML(data: StandardTemplateData): string {
-  const { title, sender, location, date, guideItems, appOrigin, isFeatured = false } = data;
+  const { title, sender, location, date, guideItems, isFeatured = false } = data;
+  
+  // ⚠️ 2025-11-23: appOrigin 하드코딩 (개발본/배포본 동일 작동 보장)
+  // 홈 버튼 3개 (추천갤러리 리턴, 메인 하단, 가이드 페이지 하단)에서 사용
+  const appOrigin = 'https://My-handyguide1.replit.app';
   
   // HTML escape 함수 (XSS 방지 및 파싱 에러 방지)
   const escapeHTML = (str: string) => {
