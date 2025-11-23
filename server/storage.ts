@@ -1241,7 +1241,7 @@ export class DatabaseStorage implements IStorage {
     guideIds: string[], 
     metadata: { title: string; sender: string; location: string; date: string; appOrigin: string }
   ): Promise<string> {
-    console.log(`📦 guides DB에서 ${guideIds.length}개 조회 중...`);
+    console.log(`📦 guides DB에서 ${guideIds.length}개 조회 중... guideIds:`, guideIds);
     
     // 1. guides 테이블에서 ID 또는 localId로 조회
     const guidesData = await db
@@ -1253,6 +1253,13 @@ export class DatabaseStorage implements IStorage {
       ));
     
     console.log(`✅ guides DB 조회 완료: ${guidesData.length}개`);
+    
+    // 🔍 디버깅: 조회된 각 가이드의 정보 출력
+    guidesData.forEach((guide, index) => {
+      const imgPreview = guide.imageUrl ? guide.imageUrl.substring(0, 50) : 'NULL';
+      const imgLen = guide.imageUrl ? guide.imageUrl.length : 0;
+      console.log(`  [${index}] ID: ${guide.id}, Title: ${guide.title}, Image Length: ${imgLen}, Preview: ${imgPreview}...`);
+    });
     
     // 2. Guide[] → GuideItem[] 변환 (순서 유지용 임시 데이터)
     const guideItemsWithId = await Promise.all(guidesData.map(async (guide) => {
@@ -1266,6 +1273,10 @@ export class DatabaseStorage implements IStorage {
           console.warn(`⚠️ 이미지 변환 실패: ${imageDataUrl}`, err);
           imageDataUrl = ''; // 변환 실패시 빈 문자열
         }
+      } else if (imageDataUrl) {
+        console.log(`✅ Base64 이미지 유지: ${guide.id} (길이: ${imageDataUrl.length}, 앞 50자: ${imageDataUrl.substring(0, 50)}...)`);
+      } else {
+        console.warn(`⚠️ 이미지 없음: ${guide.id}`);
       }
       
       return {
@@ -1278,9 +1289,13 @@ export class DatabaseStorage implements IStorage {
     
     // 3. 순서 유지: guideIds 순서대로 정렬 (UUID 또는 localId로 매칭)
     const orderedGuideItems: GuideItem[] = guideIds
-      .map(id => {
+      .map((id, idx) => {
         const found = guideItemsWithId.find(item => item.id === id || item.localId === id);
-        if (!found) return null;
+        if (!found) {
+          console.warn(`⚠️ [${idx}] guideId "${id}"에 해당하는 가이드를 찾을 수 없음`);
+          return null;
+        }
+        console.log(`✅ [${idx}] guideId "${id}" 찾음 - imageDataUrl 길이: ${found.imageDataUrl.length}`);
         return {
           imageDataUrl: found.imageDataUrl,
           description: found.description
@@ -1288,7 +1303,7 @@ export class DatabaseStorage implements IStorage {
       })
       .filter((item): item is GuideItem => item !== null);
     
-    console.log(`✅ 데이터 변환 완료: ${orderedGuideItems.length}개 (순서 유지)`);
+    console.log(`✅ 데이터 변환 완료: ${orderedGuideItems.length}개 (순서 유지), 최종 이미지 개수: ${orderedGuideItems.filter(i => i.imageDataUrl).length}개`);
     
     // 4. 표준 템플릿 데이터 구성
     const templateData: StandardTemplateData = {
