@@ -3383,8 +3383,32 @@ document.addEventListener('DOMContentLoaded', () => {
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/service-worker.js')
-              .then(reg => console.log('SW registered: ', reg))
+              .then(reg => {
+                  console.log('SW registered: ', reg);
+                  
+                  // 새 버전 감지 시 자동 업데이트
+                  reg.addEventListener('updatefound', () => {
+                      const newWorker = reg.installing;
+                      newWorker.addEventListener('statechange', () => {
+                          if (newWorker.state === 'activated') {
+                              // 새 버전이 활성화되면 자동으로 페이지 새로고침
+                              if (!navigator.serviceWorker.controller) {
+                                  // 첫 설치일 경우 새로고침하지 않음
+                                  return;
+                              }
+                              console.log('🔄 새 버전 업데이트 완료, 페이지 새로고침...');
+                              window.location.reload();
+                          }
+                      });
+                  });
+              })
               .catch(err => console.log('SW registration failed: ', err));
+        });
+        
+        // Service Worker 제어권 변경 감지 (백그라운드 업데이트)
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            console.log('🔄 Service Worker 업데이트됨, 페이지 새로고침...');
+            window.location.reload();
         });
     }
 });

@@ -1,7 +1,7 @@
 // service-worker.js
 
-const CACHE_NAME = 'travel-assistant-cache-v6';
-const API_CACHE_NAME = 'travel-assistant-api-cache-v5';
+const CACHE_NAME = 'travel-assistant-cache-v7';
+const API_CACHE_NAME = 'travel-assistant-api-cache-v7';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -13,7 +13,9 @@ const urlsToCache = [
 ];
 
 self.addEventListener('install', event => {
-  // 설치 단계를 수행합니다.
+  // 새 버전 설치 시 즉시 활성화 (대기 없이)
+  self.skipWaiting();
+  
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
@@ -132,16 +134,22 @@ self.addEventListener('fetch', event => {
 });
 
 self.addEventListener('activate', event => {
-  const cacheWhitelist = [CACHE_NAME, API_CACHE_NAME];
+  // 새 Service Worker가 활성화되면 즉시 제어권 획득
   event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
+    (async () => {
+      // 오래된 캐시 삭제
+      const cacheWhitelist = [CACHE_NAME, API_CACHE_NAME];
+      const cacheNames = await caches.keys();
+      await Promise.all(
         cacheNames.map(cacheName => {
           if (cacheWhitelist.indexOf(cacheName) === -1) {
             return caches.delete(cacheName);
           }
         })
       );
-    })
+      
+      // 모든 클라이언트에 즉시 적용
+      return self.clients.claim();
+    })()
   );
 });
