@@ -2569,7 +2569,7 @@ self.addEventListener('fetch', (event) => {
 
       const templateData = {
         title: name.trim(),
-        sender: user?.email || '관리자',
+        sender: '관리자',
         location: guides[0]?.locationName || '파리',
         date: new Date().toLocaleDateString('ko-KR'),
         guideItems,
@@ -2588,7 +2588,7 @@ self.addEventListener('fetch', (event) => {
         templateVersion: 'v2',
         guideIds,
         thumbnail: guides[0]?.imageUrl || null,
-        sender: user?.email || '관리자',
+        sender: '관리자',
         location: guides[0]?.locationName || '파리',
         date: new Date().toISOString().split('T')[0],
         featured: false,
