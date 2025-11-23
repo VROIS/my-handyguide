@@ -538,27 +538,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/guides', isAuthenticated, upload.single('image'), async (req: any, res) => {
+  /**
+   * ✅ 단일 가이드 생성 (원래 설계로 복원 - 2025-11-23)
+   * 
+   * ⚠️ **사용자 승인 없이 수정 불가**
+   * 
+   * 목적: 사용자가 새 사진 촬영 시 guides DB에 저장
+   * 방식: Base64 이미지를 그대로 저장 (파일 경로 아님!)
+   * 
+   * Request body:
+   * {
+   *   "imageDataUrl": "data:image/jpeg;base64,...",
+   *   "latitude": 48.8606,
+   *   "longitude": 2.3376,
+   *   "language": "ko",
+   *   "enableAI": true
+   * }
+   * 
+   * Response: Guide 객체
+   */
+  app.post('/api/guides', isAuthenticated, async (req: any, res) => {
     try {
       const userId = getUserId(req.user);
-      const file = req.file;
+      const { imageDataUrl, latitude, longitude, language = 'ko', enableAI = true } = req.body;
       
-      if (!file) {
-        return res.status(400).json({ message: "Image file is required" });
+      if (!imageDataUrl) {
+        return res.status(400).json({ message: "imageDataUrl is required" });
       }
 
-      // Parse form data
-      const latitude = parseFloat(req.body.latitude);
-      const longitude = parseFloat(req.body.longitude);
-      const language = req.body.language || 'ko';
-      const enableAI = req.body.enableAI === 'true';
-
-      if (isNaN(latitude) || isNaN(longitude)) {
+      if (!latitude || !longitude || isNaN(parseFloat(latitude)) || isNaN(parseFloat(longitude))) {
         return res.status(400).json({ message: "Valid latitude and longitude are required" });
       }
 
       // Get location name
-      const locationName = await getLocationName(latitude, longitude);
+      const locationName = await getLocationName(parseFloat(latitude), parseFloat(longitude));
 
       let guideContent: GuideContent = {
         title: "새 가이드",
@@ -572,12 +585,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Generate AI content if enabled
       if (enableAI) {
         try {
-          const imageBuffer = fs.readFileSync(file.path);
-          const imageBase64 = imageBuffer.toString('base64');
+          // Base64 이미지에서 순수 데이터 추출
+          const imageBase64 = imageDataUrl.split(',')[1];
           
           guideContent = await generateLocationBasedContent(
             imageBase64,
-            { latitude, longitude, locationName },
+            { latitude: parseFloat(latitude), longitude: parseFloat(longitude), locationName },
             language
           );
         } catch (aiError) {
@@ -585,23 +598,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
 
-      // Save image with proper filename
-      const imageExtension = path.extname(file.originalname) || '.jpg';
-      const imageName = `${Date.now()}-${Math.random().toString(36).substring(7)}${imageExtension}`;
-      const imagePath = path.join('uploads', imageName);
-      
-      fs.renameSync(file.path, imagePath);
-
+      // ✨ Base64 이미지를 그대로 guides DB에 저장 (원래 설계)
       const guideData = {
         title: guideContent.title,
         description: guideContent.description,
-        imageUrl: `/uploads/${imageName}`,
+        imageUrl: imageDataUrl, // Base64 그대로 저장!
         latitude: latitude.toString(),
         longitude: longitude.toString(),
         locationName,
         aiGeneratedContent: JSON.stringify(guideContent),
         language
       };
+
+      console.log(`✅ guides DB에 Base64 저장: ${guideContent.title} (${imageDataUrl.substring(0, 50)}...)`);
 
       const guide = await storage.createGuide(userId, guideData);
       res.json(guide);
