@@ -1,7 +1,7 @@
 // service-worker.js
 
-const CACHE_NAME = 'travel-assistant-cache-v8';
-const API_CACHE_NAME = 'travel-assistant-api-cache-v8';
+const CACHE_NAME = 'travel-assistant-cache-v9';
+const API_CACHE_NAME = 'travel-assistant-api-cache-v9';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -27,6 +27,12 @@ self.addEventListener('install', event => {
 
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
+  
+  // Featured Gallery는 항상 최신 데이터 필요 - 캐싱 제외
+  if (url.pathname === '/api/share/featured/list') {
+    event.respondWith(fetch(event.request));
+    return;
+  }
   
   // Share API 요청에 대해 stale-while-revalidate 전략 사용
   if (url.pathname.startsWith('/api/share')) {
