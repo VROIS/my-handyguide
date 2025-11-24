@@ -592,27 +592,40 @@ function handleItemSelect(id) {
 ### 🔴 우선순위 1: 관리자 대시보드 기능 개선 (2025-11-24)
 
 #### 1. 공유 페이지 편집 기능 백엔드 적용
-**상태:** 🚧 작업 중  
-**예상 시간:** 2-3시간  
+**상태:** ✅ 완료  
+**완료 시간:** 2025-11-24 02:15  
 **날짜:** 2025-11-24
 
-**현재 상황:**
-- ✅ 프론트엔드 완성 (편집 모달, 순서 변경 UI, 태그 편집)
-- ❌ 백엔드 API 누락 (PUT /api/admin/shares/:id)
-
-**필요 작업:**
-1. **공유 페이지 편집 API 추가**
-   - 제목(title), 발신자(sender), 위치(location), 날짜(date) 수정
-   - 가이드 순서 변경 (guideIds 배열)
-   - HTML 재생성 및 DB 업데이트
+**완료 내역:**
+1. ✅ **공유 페이지 편집 API 추가**
+   - 엔드포인트: `PUT /api/admin/shares/:id`
+   - 제목(title), 발신자(sender), 위치(location), 날짜(date) 수정 지원
+   - 가이드 순서 변경 (guideIds 배열) 지원
+   - HTML 재생성 및 DB 업데이트 (`regenerateFeaturedHtml` 활용)
    
-2. **태그 편집 기능 확인**
-   - 태그가 DB 어디에 저장되는지 확인
-   - 공유 페이지/가이드 상세에서 표시 위치 명시
+2. ✅ **프론트엔드 연동 완료**
+   - `admin-dashboard.html` 편집 모달에서 API 호출
+   - 엔드포인트 `/api/admin/featured/:id/regenerate` → `/api/admin/shares/:id` 수정
+   - 성공 메시지 표시
 
-**기술 접근:**
-- 기존 로직 건드리지 않고 새 API 엔드포인트 추가
-- `createSharedHtmlPage()` 로직 재사용
+3. ✅ **태그 편집 기능 확인**
+   - API: `PATCH /api/admin/guides/:id` (이미 존재)
+   - 프론트엔드: `editGuideTags()` 함수 (이미 완성)
+   - DB 저장: `guides.tags` (text array)
+   - 관리자 대시보드에서 태그 표시 및 편집 가능
+
+**수동 테스트 방법:**
+1. `/admin-dashboard.html` 접속
+2. 비밀번호 "1234" 입력
+3. Featured 탭 → 편집 버튼 클릭
+4. 제목/발신자/위치/날짜 수정 및 순서 변경
+5. 저장 버튼 클릭
+6. Featured Gallery에서 변경사항 확인
+
+**기술 구현:**
+- 기존 `regenerateFeaturedHtml()` 로직 재사용
+- 관리자 인증: `requireAdmin` 미들웨어 (세션 기반)
+- HTML 파일: DB `htmlContent` 필드에 저장 (App Storage 마이그레이션 완료)
 
 ---
 
