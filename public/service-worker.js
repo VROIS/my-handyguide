@@ -1,13 +1,14 @@
 // service-worker.js
 
-const CACHE_NAME = 'travel-assistant-cache-v9';
-const API_CACHE_NAME = 'travel-assistant-api-cache-v9';
+const CACHE_NAME = 'travel-assistant-cache-v10';
+const API_CACHE_NAME = 'travel-assistant-api-cache-v10';
 const urlsToCache = [
   '/',
   '/index.html',
-  '/index.js',
+  // JS 파일은 캐싱하지 않음 (개발 중 수정 즉시 반영 위해)
+  // '/index.js',
   '/share.html',
-  '/share-page.js',
+  // '/share-page.js',
   // 캐시할 다른 에셋(CSS, 이미지 등)을 추가합니다.
   'https://hangeul.pstatic.net/maruburi/maruburi.css'
 ];
