@@ -593,8 +593,8 @@
                     const newGuideIds = Array.from(guideItems).map(item => item.dataset.guideId);
                     
                     try {
-                        const response = await fetch(`/api/admin/featured/${id}/regenerate`, {
-                            method: 'POST',
+                        const response = await fetch(`/api/admin/shares/${id}`, {
+                            method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
                             credentials: 'include',
                             body: JSON.stringify({
@@ -608,10 +608,11 @@
                         
                         if (!response.ok) {
                             const errorData = await response.json();
-                            throw new Error(errorData.error || 'HTML 재생성 실패');
+                            throw new Error(errorData.error || '편집 실패');
                         }
                         
-                        alert('✅ Featured 페이지가 업데이트되었습니다!');
+                        const result = await response.json();
+                        alert('✅ ' + result.message);
                         closeEditModal();
                         loadFeaturedList();
                     } catch (error) {
