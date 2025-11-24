@@ -1567,6 +1567,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // PUT /api/admin/shares/:id - 공유페이지 편집 (관리자 전용)
+  // 제목, 발신자, 위치, 날짜, 가이드 순서 변경 가능
+  app.put('/api/admin/shares/:id', requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { title, sender, location, date, guideIds } = req.body;
+      
+      // 공유페이지 존재 확인
+      const sharedPage = await storage.getSharedHtmlPage(id);
+      if (!sharedPage) {
+        return res.status(404).json({ error: '공유페이지를 찾을 수 없습니다.' });
+      }
+      
+      console.log('✏️ 공유페이지 편집 시작:', { 
+        id, 
+        title, 
+        sender, 
+        location, 
+        date, 
+        guideIds: guideIds?.length 
+      });
+      
+      // HTML 재생성 (메타데이터 + 순서 변경)
+      await storage.regenerateFeaturedHtml(id, {
+        title: title || sharedPage.name,
+        sender: sender || sharedPage.sender || '여행자',
+        location: location || sharedPage.location || '미지정',
+        date: date || sharedPage.date || new Date().toISOString().split('T')[0],
+        guideIds: guideIds || sharedPage.guideIds
+      });
+      
+      console.log('✅ HTML 재생성 완료');
+      
+      res.json({ 
+        success: true, 
+        message: `공유페이지 "${title || sharedPage.name}" 편집 완료` 
+      });
+    } catch (error) {
+      console.error('공유페이지 편집 오류:', error);
+      res.status(500).json({ error: '편집에 실패했습니다.' });
+    }
+  });
+
   // DELETE /api/admin/shares/:id - 공유페이지 영구 삭제 (관리자 전용)
   // ⚠️ CRITICAL: DB + HTML 파일 모두 영구 삭제 (복구 불가!)
   app.delete('/api/admin/shares/:id', requireAdmin, async (req: any, res) => {
