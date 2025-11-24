@@ -2204,7 +2204,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const CACHE_DURATION = 5 * 60 * 1000; // 5분
             
             // API 호출 (버전 체크를 위해)
-            const response = await fetch('/api/share/featured/list');
+            // ✅ URL 타임스탬프로 브라우저 HTTP 캐시 우회 (2025-11-24)
+            const response = await fetch(`/api/share/featured/list?t=${Date.now()}`);
             if (!response.ok) return;
             
             const data = await response.json();
