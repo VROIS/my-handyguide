@@ -1234,8 +1234,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } catch (error) {
             console.error(`Initialization error: ${error.message}`);
-            showToast("카메라 시작에 실패했습니다. 권한을 확인해주세요.");
-            showPage(featuresPage);
+            console.log('⚠️ 카메라 초기화 실패, 업로드 기능은 사용 가능합니다.');
+            showToast("카메라를 시작할 수 없습니다. 업로드 기능을 사용해주세요.");
+            // ✅ 수정: 카메라 실패해도 메인 페이지 유지 (업로드 기능은 사용 가능)
+            // showPage(featuresPage); ← 제거됨
         } finally {
             mainLoader.classList.add('hidden');
         }

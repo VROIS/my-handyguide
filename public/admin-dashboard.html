@@ -1017,7 +1017,16 @@
         async function init() {
             try {
                 // 요약 데이터 로드
-                const res = await fetch('/api/admin/overview');
+                const res = await fetch('/api/admin/overview', {
+                    credentials: 'include'
+                });
+                
+                // 401 에러 시 로그인 프롬프트
+                if (res.status === 401) {
+                    await promptAdminLogin();
+                    return init(); // 로그인 후 재시도
+                }
+                
                 if (!res.ok) throw new Error('데이터 로드 실패');
                 const data = await res.json();
                 
@@ -1032,6 +1041,29 @@
                     <p class="text-sm text-gray-500 mt-2">${error.message}</p>
                 `;
             }
+        }
+        
+        // 관리자 로그인 프롬프트
+        async function promptAdminLogin() {
+            const password = prompt('관리자 비밀번호를 입력하세요:');
+            if (!password) {
+                throw new Error('비밀번호가 입력되지 않았습니다.');
+            }
+            
+            const res = await fetch('/api/admin/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ password })
+            });
+            
+            if (!res.ok) {
+                alert('❌ 잘못된 비밀번호입니다.');
+                throw new Error('인증 실패');
+            }
+            
+            const data = await res.json();
+            console.log('✅ 관리자 인증 성공:', data);
         }
 
         // 요약 렌더링
