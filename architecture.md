@@ -1,6 +1,40 @@
 # 내손가이드 앱 아키텍처 완전 가이드
 > **작성일:** 2025-11-09  
+> **최종 업데이트:** 2025-11-24  
 > **목적:** AI 에이전트와 개발자가 앱 구조를 정확히 이해하고 시행착오 없이 작업하기 위함
+
+---
+
+## 📖 용어 통일 (Terminology) ⭐ 필독!
+
+> **중요:** 이 앱의 모든 코드, 문서, 대화에서 아래 확정된 한국어 용어를 사용합니다.  
+> **갱신일:** 2025-11-24
+
+| 기존 혼용 용어 | ✅ 확정된 한국어 | 설명 | 위치 |
+|---|---|---|---|
+| **Featured / Featured Gallery** | **추천모음** | 관리자가 선정한 상위 3개 외부 공유페이지 | 보관함 페이지 상단 |
+| **Guide** | **상세페이지** | 사용자가 촬영/저장한 개별 여행 가이드 | DB `guides` 테이블 |
+| **Share / Share Page** | **외부 공유페이지** | 카톡/링크로 공유되는 독립 HTML 페이지 | `/s/:id` 경로, `public/shared/*.html` |
+| **Dashboard** | **대시보드** | 관리자 전용 관리 페이지 (비밀번호: 1234) | `/admin-dashboard.html` |
+| **Gallery** | ~~삭제~~ | 더 이상 사용하지 않음 | - |
+| **Archive** | **보관함** | 사용자가 저장한 상세페이지 목록 + 추천모음 | index.html 내 archivePage |
+| **Detail Page** | **상세페이지** (동일) | AI 생성 콘텐츠를 표시하는 화면 | index.html 내 detailPage |
+| **Main Page** | **메인 페이지** (동일) | 카메라 라이브뷰 + 4개 입력 버튼 | index.html 내 mainPage |
+
+### 대시보드 탭 구성 (5개)
+1. **요약** - 실시간 KPI 통계
+2. **공유페이지** - 외부 공유페이지 관리 + 추천모음 선정
+3. **상세페이지** - 사용자 상세페이지 관리 (태그 편집 등)
+4. **수익** - (준비 중)
+5. **통계** - 7일 트렌드 분석
+
+### 용어 사용 예시
+- ❌ "Featured Gallery를 클릭하면..."
+- ✅ "추천모음을 클릭하면..."
+- ❌ "Share Page 생성"
+- ✅ "외부 공유페이지 생성"
+- ❌ "Guide를 저장"
+- ✅ "상세페이지를 저장"
 
 ---
 
@@ -57,22 +91,29 @@
 
 ## 🗺️ 페이지 구조 및 네비게이션
 
-### 1. **Features Page** (추천 갤러리)
+### 1. **Features Page** (기능 설명 페이지)
 **파일:** `public/index.js` (featuresPage)  
-**목적:** 추천 공유 페이지 갤러리 표시
+**목적:** 앱 사용법 3단계 안내 + 추천모음 표시
 
 **주요 버튼:**
 ```javascript
-#startCameraFromFeaturesBtn  // "카메라 시작" → Main Page 이동
-#archiveBtn                   // "보관함" → Archive Page 이동
-Featured Gallery 아이템 클릭  // 공유 페이지 새 창 오픈 (비로그인: 인증 모달)
+#startCameraFromFeaturesBtn  // "바로 시작하기" → 메인 페이지(카메라) 이동
 ```
 
+**화면 구성:**
+1. **추천모음** (상단 3개)
+   - 관리자가 선정한 외부 공유페이지 (DB `featured=true`)
+   - 클릭 시 외부 공유페이지 새 창 오픈
+2. **사용법 3단계** (중간)
+   - 1단계: 사진 찍기
+   - 2단계: AI 설명 받기
+   - 3단계: 보관 및 공유
+3. **바로 시작하기 버튼** (하단)
+   - 메인 페이지(카메라)로 이동
+
 **동작:**
-1. 로그인 안 한 사용자: Featured Gallery만 표시
-2. Featured 아이템 클릭 시:
-   - ✅ 로그인: 공유 페이지 새 창 오픈
-   - ❌ 비로그인: 인증 모달 표시 → 로그인 후 페이지 오픈
+- 이 페이지는 앱 최초 진입 시 커튼 애니메이션 다음에 자동 표시됨
+- 추천모음은 비로그인 사용자도 볼 수 있음 (사용 경험 우선)
 
 ---
 
@@ -120,36 +161,50 @@ Featured Gallery 아이템 클릭  // 공유 페이지 새 창 오픈 (비로그
 
 ---
 
-### 4. **Archive Page** (보관함)
+### 4. **Archive Page** (보관함 페이지) ⭐ 핵심!
 **파일:** `public/index.js` (archivePage)  
-**목적:** 저장된 가이드 관리 + 공유
+**목적:** 저장된 상세페이지 관리 + 추천모음 표시 + 외부 공유페이지 생성
+
+**화면 구성:**
+1. **추천모음** (상단 3개)
+   - 관리자가 선정한 외부 공유페이지
+   - **클릭 시 인증 모달 표시** (충분한 사용 경험 후 인증 유도)
+   - 로그인 후 외부 공유페이지 새 창 오픈
+2. **내 저장 상세페이지** (중간 모자이크)
+   - 사용자가 보관한 상세페이지 목록
+   - 클릭 시 상세페이지 읽기 전용 모드로 표시
 
 **주요 버튼:**
 ```javascript
 #archiveBackBtn       // 뒤로가기 → Features Page 복귀
-#archiveSelectBtn     // 선택 모드 활성화
-#archiveShareBtn      // 선택한 아이템 공유 → 공유 모달
-#archiveDeleteBtn     // 선택한 아이템 삭제
+#profileBtn           // 프로필 (현재 미사용)
+#archiveShareBtn      // 선택한 상세페이지로 외부 공유페이지 생성
+#archiveDeleteBtn     // 선택한 상세페이지 삭제
 #archiveSettingsBtn   // 설정 페이지 이동
-#cancelSelectionBtn   // 선택 모드 취소
-#deleteSelectedBtn    // 선택된 아이템 삭제
-아이템 클릭           // Detail Page (읽기 전용)
 ```
 
-**공유 플로우:**
+**외부 공유페이지 생성 플로우:**
 ```
-1. 아이템 1개 이상 선택
+1. 상세페이지 1개 이상 선택 (체크박스)
    ↓
 2. "공유" 버튼 클릭
    ↓
 3. 제목 입력 모달
    ↓
-4. /api/share/create (HTML 생성 + DB 저장)
+4. POST /api/share/create
+   ├─ HTML 생성 (generateShareHTML 함수)
+   ├─ DB 저장 (sharedHtmlPages 테이블)
+   └─ public/shared/:id.html 파일 생성
    ↓
-5. 공유 링크 생성: /s/abc12345
+5. 짧은 URL 반환: /s/abc12345
    ↓
 6. 클립보드 복사 + 토스트 메시지
 ```
+
+**⭐ 인증 모달 트리거 조건 (2025-11-24 확정)**
+- **유일한 트리거:** 보관함의 추천모음(상단 3개) 클릭 시
+- **이유:** 충분한 사용 경험 후 인증 유도 → 사용자 거부감 최소화
+- **로그인 후 동작:** 외부 공유페이지 새 창 자동 오픈
 
 ---
 
@@ -169,9 +224,16 @@ Featured Gallery 아이템 클릭  // 공유 페이지 새 창 오픈 (비로그
 
 ---
 
-### 6. **Share Page** (공유 페이지)
-**파일:** `public/shared/*.html` (독립 HTML)  
-**목적:** 오프라인 지원 영구 여행 일기
+### 6. **외부 공유페이지** (독립 HTML) ⭐ 핵심!
+**파일:** `public/shared/:id.html` (독립 HTML)  
+**접근:** `/s/:id` 경로 (예: `/s/abc12345`)  
+**목적:** 카톡/링크로 공유되는 오프라인 지원 영구 여행 일기
+
+**특징:**
+- 앱 내에서는 보이지 않음 (독립 페이지)
+- 카톡, 링크로만 공유 가능
+- Service Worker로 오프라인 영구 보관
+- 관리자는 대시보드에서 전체 목록 확인 가능
 
 **페이지 구조:**
 ```html
@@ -185,16 +247,13 @@ Featured Gallery 아이템 클릭  // 공유 페이지 새 창 오픈 (비로그
 
 <!-- 갤러리 뷰 (기본) -->
 <div id="gallery-view">
-  <!-- Featured 전용 리턴 버튼 (왼쪽 상단) -->
-  <button>← 보관함으로 돌아가기</button>
-  
-  <!-- 갤러리 그리드 -->
+  <!-- 상세페이지 그리드 (3열 반응형) -->
   <div class="gallery-grid">
     <img> <!-- 클릭 → 상세 뷰 -->
   </div>
   
   <!-- 하단 홈 버튼 -->
-  <a id="home-button">손안에 가이드 시작하기</a> ✅ 음성 정지 후 이동
+  <a id="home-button">손안에 가이드 시작하기</a> ✅ 음성 정지 후 앱 이동
 </div>
 
 <!-- 상세 뷰 (hidden) -->
@@ -205,24 +264,24 @@ Featured Gallery 아이템 클릭  // 공유 페이지 새 창 오픈 (비로그
   <!-- 배경 이미지 -->
   <img id="detail-bg">
   
-  <!-- 텍스트 오버레이 -->
+  <!-- 텍스트 오버레이 (AI 설명) -->
   <div id="detail-text">
     <p id="detail-description"></p>
   </div>
   
   <!-- 하단 Footer -->
   <footer id="detail-footer">
-    <button id="detail-audio">🔊/⏸</button>  <!-- 음성 재생/정지 -->
+    <button id="detail-audio">🔊/⏸</button>  <!-- 음성 재생/정지 (TTS) -->
     <button id="text-toggle">📄</button>      <!-- 텍스트 표시/숨김 -->
     <a id="detail-home">🏠</a>                <!-- ✅ 음성 정지 후 앱 이동 -->
   </footer>
 </div>
 ```
 
-**⚠️ 음성 정지 중요 버튼:**
+**⚠️ 음성 정지 필수 버튼 (Microsoft Heami TTS)**
 ```javascript
 #detail-back   // 갤러리 복귀 (음성 정지 O)
-#detail-home   // 앱으로 이동 (음성 정지 O) ← 최근 수정!
+#detail-home   // 앱으로 이동 (음성 정지 O)
 #home-button   // 갤러리 하단 홈 (음성 정지 O)
 ```
 
@@ -230,6 +289,11 @@ Featured Gallery 아이템 클릭  // 공유 페이지 새 창 오픈 (비로그
 - Cache-First 전략
 - 오프라인 영구 보관
 - `/sw-share.js` 등록
+
+**⭐ 2025-11-24 변경사항: 관리자 편집 기능**
+- 대시보드에서 제목/발신자/위치/날짜 수정 가능
+- 상세페이지 순서 변경 가능 (▲▼ 버튼)
+- HTML 자동 재생성 (수정 시)
 
 ---
 
@@ -253,44 +317,54 @@ createdAt: timestamp
 updatedAt: timestamp
 ```
 
-### **guides** (여행 가이드)
+### **guides** (상세페이지) ⭐ 핵심!
 ```typescript
-id: varchar (UUID)           // 가이드 ID
+id: varchar (UUID)           // 상세페이지 ID
 userId: varchar → users.id   // 작성자
 title: text                  // 제목
 description: text            // 설명
-imageUrl: text               // 이미지 경로
-latitude: decimal            // GPS 위도
-longitude: decimal           // GPS 경도
-locationName: text           // 위치 이름
-aiGeneratedContent: text     // AI 생성 콘텐츠
+imageUrl: text               // 이미지 경로 (Base64 또는 URL)
+latitude: decimal            // GPS 위도 (EXIF 추출)
+longitude: decimal           // GPS 경도 (EXIF 추출)
+locationName: text           // 위치 이름 (Google Maps API)
+aiGeneratedContent: text     // Gemini AI 생성 콘텐츠
+tags: text[]                 // 태그 배열 (예: ['궁전', '역사'])
 viewCount: integer           // 조회수
 language: varchar            // ko | en
 createdAt: timestamp
 updatedAt: timestamp
 ```
 
-### **sharedHtmlPages** (공유 페이지) ⭐ 핵심!
+**⭐ 2025-11-24 추가:**
+- `tags` 필드: 관리자 대시보드에서 편집 가능 (PATCH /api/admin/guides/:id)
+
+### **sharedHtmlPages** (외부 공유페이지) ⭐ 핵심!
 ```typescript
 id: varchar (8자)            // 짧은 ID (abc12345)
 userId: varchar → users.id   // 생성자
-name: text                   // 공유 페이지 제목
-htmlContent: text            // (구) 완전한 HTML (nullable)
-htmlFilePath: text           // (신) HTML 파일 경로 /shared/abc12345.html
-guideIds: text[]             // 포함된 가이드 ID 배열
+name: text                   // 외부 공유페이지 제목
+htmlContent: text            // 완전한 HTML (DB 저장) ⭐ 2025-11-23 App Storage 마이그레이션
+htmlFilePath: text           // (구버전) HTML 파일 경로 (nullable, 호환성 유지)
+guideIds: text[]             // 포함된 상세페이지 ID 배열 (순서 유지)
 thumbnail: text              // 썸네일 이미지
 sender: text                 // 발신자 이름 (nullable)
 location: text               // 위치 정보 (nullable)
 date: text                   // 공유 날짜 (YYYY-MM-DD)
-featured: boolean            // 추천 갤러리 표시
-featuredOrder: integer       // Featured 순서 (클릭 순서대로 1, 2, 3...)
+featured: boolean            // 추천모음 표시 여부
+featuredOrder: integer       // 추천모음 순서 (1, 2, 3...)
 downloadCount: integer       // 조회수
 isActive: boolean            // 활성화 상태
 createdAt: timestamp
 updatedAt: timestamp
 ```
 
-**⚠️ 중요:** `htmlFilePath`로 HTML 파일을 저장하여 DB 용량 78% 절감 (184MB → 39MB)
+**⚠️ 중요한 변경사항:**
+1. **2025-11-23:** `htmlContent` 필드로 HTML을 DB에 직접 저장 (App Storage 마이그레이션)
+   - 이유: 배포 시 파일 시스템 초기화 문제 해결, 롤백 지원
+   - 기존 `htmlFilePath`는 호환성 유지를 위해 nullable로 보존
+2. **2025-11-24:** `PUT /api/admin/shares/:id` API로 메타데이터 편집 가능
+   - 수정 가능 항목: name, sender, location, date, guideIds (순서)
+   - HTML 자동 재생성 (`regenerateFeaturedHtml` 함수)
 
 ---
 
@@ -330,15 +404,25 @@ POST /api/gemini             이미지 분석 + 설명 생성
 ### **관리자 (Admin)**
 ```
 POST   /api/admin/auth                관리자 인증 (비밀번호: 1234)
-GET    /api/admin/shares              공유 페이지 검색
-GET    /api/admin/all-shares          전체 공유 페이지 목록
-GET    /api/admin/featured            Featured 목록
-POST   /api/admin/featured/:id        Featured 추가 (자동 순서 지정)
-DELETE /api/admin/featured/:id        Featured 제거
-POST   /api/admin/featured/:id/regenerate  HTML 재생성
-GET    /api/admin/stats               통계 (사용자, 가이드, 공유, 조회수)
+GET    /api/admin/shares              외부 공유페이지 검색
+GET    /api/admin/all-shares          전체 외부 공유페이지 목록
+GET    /api/admin/featured            추천모음 목록
+POST   /api/admin/featured/:id        추천모음 추가 (자동 순서 지정)
+DELETE /api/admin/featured/:id        추천모음 제거
+PUT    /api/admin/shares/:id          외부 공유페이지 편집 (제목/발신자/위치/날짜/순서) ⭐ 신규 (2025-11-24)
+PATCH  /api/admin/guides/:id          상세페이지 태그 편집
+GET    /api/admin/stats               통계 (사용자, 상세페이지, 외부 공유페이지, 조회수)
 GET    /api/admin/analytics           7일 트렌드 분석
 ```
+
+**⭐ 2025-11-24 신규 추가: 외부 공유페이지 편집 API**
+- **엔드포인트:** `PUT /api/admin/shares/:id`
+- **기능:**
+  - 제목(name), 발신자(sender), 위치(location), 날짜(date) 수정
+  - 상세페이지 순서 변경 (guideIds 배열)
+  - HTML 자동 재생성 (`regenerateFeaturedHtml` 함수 활용)
+- **추가 이유:** 관리자가 대시보드에서 추천모음 메타데이터를 직접 수정할 수 있도록 UX 개선
+- **사용 예시:** 대시보드 → 공유페이지 탭 → 편집 버튼 → 제목/발신자/위치/날짜 수정 + 순서 변경(▲▼) → 저장
 
 ### **설정 (User Preferences)**
 ```
@@ -354,66 +438,88 @@ GET /sw-share.js             Service Worker 파일
 
 ## 🎨 주요 기능 플로우
 
-### **1. 사진 촬영 → AI 분석 → 저장**
+### **1. 사진 촬영 → AI 분석 → 상세페이지 저장**
 ```
-Main Page
-  ↓ 촬영/업로드
+메인 페이지 (카메라 스탠바이)
+  ↓ 촬영/업로드/음성입력
 Image Compression (0.9 quality)
   ↓
 POST /api/gemini (Gemini 2.5 Flash)
   ↓ AI 분석 (2-2.5초)
-Detail Page (이미지 + 설명 + 음성)
+상세페이지 (이미지 + AI 설명 + TTS 음성)
   ↓ 저장 버튼
-IndexedDB 저장
+DB 저장 (guides 테이블) + IndexedDB 저장
   ↓
-Archive Page (보관함)
+보관함 페이지 (추천모음 + 내 저장 목록)
 ```
 
-### **2. 공유 페이지 생성**
+### **2. 외부 공유페이지 생성 (카톡/링크 공유)**
 ```
-Archive Page
-  ↓ 아이템 선택
+보관함 페이지
+  ↓ 상세페이지 1개 이상 선택
 선택 모드 활성화
-  ↓ 공유 버튼
+  ↓ 공유 버튼 클릭
 제목 입력 모달
   ↓
 POST /api/share/create
   ├─ generateShareHTML() 실행 (public/index.js)
-  ├─ HTML 파일 생성 (/public/shared/abc12345.html)
-  ├─ DB 저장 (sharedHtmlPages 테이블)
+  ├─ HTML 생성 (독립 HTML)
+  ├─ DB 저장 (sharedHtmlPages.htmlContent 필드) ⭐ 2025-11-23 변경
   └─ 짧은 URL 반환 (/s/abc12345)
   ↓
-클립보드 복사 + 토스트
+클립보드 복사 + 토스트 메시지
+  ↓
+카톡/링크로 공유 가능
 ```
 
-### **3. 공유 페이지 접속 (오프라인 지원)**
+### **3. 외부 공유페이지 접속 (오프라인 지원)**
 ```
-/s/abc12345 접속
+/s/abc12345 접속 (카톡 링크 클릭)
   ↓
 Service Worker 확인
   ├─ 캐시 있음 → 즉시 표시 (0ms)
   └─ 캐시 없음 → 서버 요청
        ↓
-  GET /s/:id → HTML 파일 제공
+  GET /s/:id → DB에서 HTML 조회 (htmlContent 필드)
        ↓
   Service Worker 캐시 저장
        ↓
   오프라인 영구 보관 완료
 ```
 
-### **4. Featured 갤러리 관리 (관리자)**
+### **4. 추천모음 관리 (관리자 대시보드)**
 ```
-Admin Dashboard (/admin-dashboard.html)
+관리자 대시보드 (/admin-dashboard.html)
   ↓ 비밀번호 입력 (1234)
 POST /api/admin/auth
   ↓
-공유 페이지 검색
-  ↓ Featured 추가
+공유페이지 탭
+  ↓ 외부 공유페이지 검색
+  ↓ 추천모음 추가 버튼
 POST /api/admin/featured/:id
-  ├─ featuredOrder 자동 지정 (클릭 순서대로 1, 2, 3...)
-  └─ DB 업데이트
+  ├─ featuredOrder 자동 지정 (1, 2, 3...)
+  └─ DB 업데이트 (featured=true)
   ↓
-Featured Gallery 표시 (localStorage 5분 캐시)
+앱 보관함 상단에 추천모음 표시 (localStorage 5분 캐시)
+```
+
+### **5. 외부 공유페이지 편집 (2025-11-24 신규)**
+```
+관리자 대시보드 → 공유페이지 탭
+  ↓ 편집 버튼 클릭
+편집 모달 표시
+  ├─ 제목(name) 수정
+  ├─ 발신자(sender) 수정
+  ├─ 위치(location) 수정
+  ├─ 날짜(date) 수정
+  └─ 상세페이지 순서 변경 (▲▼ 버튼)
+  ↓
+PUT /api/admin/shares/:id
+  ├─ DB 업데이트 (sharedHtmlPages 테이블)
+  ├─ regenerateFeaturedHtml() 실행
+  └─ HTML 재생성 (htmlContent 필드 업데이트)
+  ↓
+외부 공유페이지 링크로 즉시 반영 확인 가능
 ```
 
 ---
@@ -473,15 +579,16 @@ Featured Gallery 표시 (localStorage 5분 캐시)
 - **보호 이유:** Galaxy 사용자 핵심 UX
 - **기능:** 카톡 브라우저 감지 → Chrome 강제 리다이렉트
 
-### **5. Admin Dashboard**
+### **5. Admin Dashboard** (관리자 대시보드)
 - **위치:** public/admin-dashboard.html
 - **보호 이유:** 비즈니스 핵심 기능
 - **비밀번호:** 1234 (변경 금지)
 - **기능:**
   - 실시간 통계 (KPI)
-  - Featured 관리
-  - 공유 페이지 검색
-  - HTML 재생성
+  - 추천모음 관리
+  - 외부 공유페이지 검색 및 편집 ⭐ 2025-11-24 신규
+  - 상세페이지 태그 편집
+  - HTML 자동 재생성
 
 ---
 
@@ -525,13 +632,20 @@ Featured Gallery 표시 (localStorage 5분 캐시)
 - **문제:** `querySelector` vs `getElementById` 혼동
 - **해결:** ID는 `getElementById`, Class는 `querySelector`
 
-### **4. Featured Gallery 캐시 미적용**
+### **4. 추천모음 캐시 미적용**
 - **문제:** localStorage 캐시 로직 누락
 - **해결:** 5분 캐시 (localStorage + version hash)
 
 ### **5. 관리자 기능 접근 불가**
 - **문제:** 비밀번호 틀림 또는 세션 만료
 - **해결:** 비밀번호 1234 재입력
+
+### **6. 용어 혼용으로 인한 혼란 (2025-11-24 해결)**
+- **문제:** Featured/Gallery/Guide/Share 등 영어-한국어 혼용
+- **해결:** 용어 통일표 참고 (최상단 섹션)
+  - Featured → 추천모음
+  - Guide → 상세페이지
+  - Share → 외부 공유페이지
 
 ---
 
@@ -577,6 +691,44 @@ Featured Gallery 표시 (localStorage 5분 캐시)
 
 ---
 
-**마지막 업데이트:** 2025-11-09  
+---
+
+## 📜 변경 이력 (Change Log)
+
+### **2025-11-24 (최신)**
+1. **용어 통일 확정**
+   - Featured → 추천모음
+   - Guide → 상세페이지
+   - Share → 외부 공유페이지
+   - Gallery 삭제 (더 이상 사용 안 함)
+
+2. **관리자 대시보드 편집 기능 추가**
+   - 엔드포인트: `PUT /api/admin/shares/:id`
+   - 기능: 외부 공유페이지 메타데이터 수정 (제목/발신자/위치/날짜)
+   - 기능: 상세페이지 순서 변경 (▲▼ 버튼)
+   - 기능: HTML 자동 재생성 (`regenerateFeaturedHtml`)
+   - 이유: 관리자 UX 개선, 외부 공유페이지 유연한 관리
+
+3. **인증 모달 트리거 명확화**
+   - 유일한 트리거: 보관함의 추천모음(상단 3개) 클릭 시
+   - 이유: 충분한 사용 경험 후 인증 유도 → 사용자 거부감 최소화
+
+4. **문서 구조 개선**
+   - 용어 통일 섹션 최상단 배치 (필독 표시)
+   - 모든 섹션에 용어 통일 반영
+   - 변경사항에 이유 명시
+
+### **2025-11-23**
+1. **App Storage 마이그레이션**
+   - 외부 공유페이지 HTML을 DB `htmlContent` 필드에 저장
+   - 이유: 배포 시 파일 시스템 초기화 문제 해결, 롤백 지원
+
+### **2025-11-09 (초기 작성)**
+- architecture.md 최초 작성
+- 전체 앱 구조, 페이지별 설명, API 엔드포인트, DB 스키마 문서화
+
+---
+
+**최종 업데이트:** 2025-11-24 02:30  
 **작성자:** Replit AI Agent (Claude Sonnet 4.5)  
 **검토자:** 프로젝트 오너님 💙
