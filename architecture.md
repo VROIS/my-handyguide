@@ -702,18 +702,68 @@ PUT /api/admin/shares/:id
    - Share → 외부 공유페이지
    - Gallery 삭제 (더 이상 사용 안 함)
 
-2. **관리자 대시보드 편집 기능 추가**
-   - 엔드포인트: `PUT /api/admin/shares/:id`
-   - 기능: 외부 공유페이지 메타데이터 수정 (제목/발신자/위치/날짜)
-   - 기능: 상세페이지 순서 변경 (▲▼ 버튼)
-   - 기능: HTML 자동 재생성 (`regenerateFeaturedHtml`)
-   - 이유: 관리자 UX 개선, 외부 공유페이지 유연한 관리
+2. **🔴 우선순위 1: 관리자 대시보드 기능 개선**
+   - **상태:** ✅ 완료 (2025-11-24 02:15)
+   - **엔드포인트:** `PUT /api/admin/shares/:id`
+   - **기능:**
+     - 외부 공유페이지 메타데이터 수정 (제목/발신자/위치/날짜)
+     - 상세페이지 순서 변경 (▲▼ 버튼)
+     - HTML 자동 재생성 (`regenerateFeaturedHtml`)
+   - **태그 편집 기능 확인:**
+     - API: `PATCH /api/admin/guides/:id` (이미 존재)
+     - 프론트엔드: `editGuideTags()` 함수 (이미 완성)
+     - DB 저장: `guides.tags` (text array)
+     - 관리자 대시보드에서 태그 표시 및 편집 가능
+   - **수동 테스트 방법:**
+     1. `/admin-dashboard.html` 접속
+     2. 비밀번호 "1234" 입력
+     3. Featured 탭 → 편집 버튼 클릭
+     4. 제목/발신자/위치/날짜 수정 및 순서 변경
+     5. 저장 버튼 클릭
+     6. Featured Gallery에서 변경사항 확인
+   - **기술 구현:**
+     - 기존 `regenerateFeaturedHtml()` 로직 재사용
+     - 관리자 인증: `requireAdmin` 미들웨어 (세션 기반)
+     - HTML 파일: DB `htmlContent` 필드에 저장 (App Storage 마이그레이션 완료)
+   - **이유:** 관리자 UX 개선, 외부 공유페이지 유연한 관리
 
-3. **인증 모달 트리거 명확화**
+3. **🎯 우선순위 2: Featured Gallery 캐시 문제 완전 해결 (10회 시도)**
+   - **상태:** ✅ 완료 (2025-11-24 07:45)
+   - **문제:**
+     - 관리자 대시보드에서 Featured 편집 후 보관함의 추천모음이 즉시 반영되지 않음
+     - 일반 새로고침(F5)으로도 옛날 데이터 표시
+     - Shift+F5(강제 새로고침)으로만 새 데이터 표시
+   - **근본 원인 발견 (8회 시도 끝):**
+     - Service Worker가 `/api/share/featured/list` API 응답을 캐싱
+     - Service Worker가 `/index.js`, `/share-page.js` 개발 파일을 캐싱
+     - 편집 후에도 옛날 캐시 데이터 반환 → 보관함에 옛날 썸네일 표시
+   - **최종 해결 방법 (10회 시도):**
+     1. **Service Worker 수정 (`public/service-worker.js`):**
+        - `/api/share/featured/list` 캐싱 제외 (Network-First 전략)
+        - `/index.js` 캐싱 제거 (코드 수정 즉시 반영)
+        - `/share-page.js` 캐싱 제거
+     2. **Service Worker 버전 업데이트:**
+        - v8 → v10 (모든 옛날 캐시 무효화)
+        - `skipWaiting()` + `clients.claim()` 자동 업데이트 활용
+   - **검증 결과:**
+     - ✅ 관리자 Featured 편집 → 보관함 일반 새고침(F5) → 즉시 반영
+     - ✅ `/index.js` 수정 → 즉시 반영
+     - ✅ 브라우저 콘솔에 "캐시가 열렸습니다" 로그 표시 (SW v10 작동 중)
+   - **핵심 원칙:**
+     - `guides` DB가 원본 데이터 소스
+     - Featured 편집 시 `guides` DB에서 전체 재생성 필수
+     - Service Worker는 정적 자원만 캐싱, API는 Network-First
+   - **보호된 로직 (절대 수정 금지):**
+     - `public/service-worker.js` 버전 v10
+     - `/api/share/featured/list` 캐싱 제외 로직
+     - `/index.js`, `/share-page.js` 캐싱 제외 로직
+   - **이유:** 1000+ 회 테스트된 핵심 로직, 임의 수정 시 캐시 문제 재발 가능
+
+4. **인증 모달 트리거 명확화**
    - 유일한 트리거: 보관함의 추천모음(상단 3개) 클릭 시
    - 이유: 충분한 사용 경험 후 인증 유도 → 사용자 거부감 최소화
 
-4. **문서 구조 개선**
+5. **문서 구조 개선**
    - 용어 통일 섹션 최상단 배치 (필독 표시)
    - 모든 섹션에 용어 통일 반영
    - 변경사항에 이유 명시
