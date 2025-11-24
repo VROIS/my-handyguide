@@ -990,82 +990,75 @@ export class DatabaseStorage implements IStorage {
    * @param id - 공유 페이지 ID
    * @param metadata - 수정할 메타데이터 (title, sender, location, date, guideIds)
    * 
-   * 작동 방식:
-   * 1. DB 메타데이터 업데이트 (guideIds 포함)
-   * 2. HTML 파일 읽기
-   * 3. 메타데이터 부분 교체 (정규식)
-   * 4. guideIds가 있으면 갤러리 순서 재생성 ⭐ NEW (2025-10-31)
-   * 5. 리턴 버튼 추가 (Featured용)
-   * 6. HTML 파일 덮어쓰기
+   * 작동 방식 (2025-11-24 수정):
+   * 1. 기존 공유 페이지 조회
+   * 2. buildSharePageFromGuides() 호출해서 전체 HTML 재생성
+   *    - guides DB에서 데이터 가져오기
+   *    - 새로운 순서로 HTML 생성 (guideIds 순서 반영)
+   *    - 메타데이터 적용 (제목, 발신자, 위치, 날짜)
+   * 3. DB htmlContent + 메타데이터 업데이트
+   * 4. HTML 파일 덮어쓰기
+   * 
+   * ⚠️ CRITICAL: 정규식 교체 방식 폐기 → 전체 재생성 방식
+   *    - 순서 변경 지원 ✅
+   *    - DB htmlContent 동기화 ✅
    */
   async regenerateFeaturedHtml(id: string, metadata: { title: string; sender: string; location: string; date: string; guideIds?: string[] }): Promise<void> {
-    // 1. DB 메타데이터 업데이트 (guideIds 포함)
-    const updateData: any = {
-      name: metadata.title,
-      sender: metadata.sender,
-      location: metadata.location,
-      date: metadata.date,
-      updatedAt: new Date()
-    };
-    
-    if (metadata.guideIds) {
-      updateData.guideIds = metadata.guideIds;
+    // 1. 기존 공유 페이지 조회
+    const page = await this.getSharedHtmlPage(id);
+    if (!page) {
+      throw new Error(`공유 페이지를 찾을 수 없습니다: ${id}`);
     }
-    
+
+    // 2. guideIds 결정 (새로운 순서 또는 기존 순서)
+    const finalGuideIds = metadata.guideIds || page.guideIds;
+    if (!finalGuideIds || finalGuideIds.length === 0) {
+      throw new Error('guideIds가 없습니다. 공유 페이지를 재생성할 수 없습니다.');
+    }
+
+    console.log(`🔄 Featured HTML 전체 재생성 시작: ${id}`);
+    console.log(`  - 제목: ${metadata.title}`);
+    console.log(`  - 가이드 개수: ${finalGuideIds.length}`);
+    console.log(`  - 가이드 순서: ${finalGuideIds.join(', ')}`);
+
+    // 3. buildSharePageFromGuides() 호출해서 전체 HTML 재생성
+    const newHtmlContent = await this.buildSharePageFromGuides(
+      finalGuideIds,
+      {
+        title: metadata.title,
+        sender: metadata.sender,
+        location: metadata.location,
+        date: metadata.date,
+        appOrigin: '' // 공유 페이지는 appOrigin 불필요
+      }
+    );
+
+    console.log(`✅ 새로운 HTML 생성 완료 (길이: ${newHtmlContent.length} 자)`);
+
+    // 4. DB 업데이트 (htmlContent + 메타데이터 + 순서)
     await db
       .update(sharedHtmlPages)
-      .set(updateData)
+      .set({
+        htmlContent: newHtmlContent,
+        name: metadata.title,
+        sender: metadata.sender,
+        location: metadata.location,
+        date: metadata.date,
+        guideIds: finalGuideIds,
+        updatedAt: new Date()
+      })
       .where(eq(sharedHtmlPages.id, id));
 
-    // 2. HTML 파일 읽기
-    const page = await this.getSharedHtmlPage(id);
-    if (!page || !page.htmlFilePath) {
-      throw new Error('HTML 파일 경로를 찾을 수 없습니다.');
+    console.log(`✅ DB 업데이트 완료 (htmlContent + 메타데이터)`);
+
+    // 5. HTML 파일 덮어쓰기 (선택적, DB가 주 저장소)
+    if (page.htmlFilePath) {
+      const htmlPath = path.join(process.cwd(), 'public', page.htmlFilePath);
+      fs.writeFileSync(htmlPath, newHtmlContent, 'utf8');
+      console.log(`✅ HTML 파일 덮어쓰기 완료: ${page.htmlFilePath}`);
     }
 
-    const htmlPath = path.join(process.cwd(), 'public', page.htmlFilePath);
-    if (!fs.existsSync(htmlPath)) {
-      throw new Error(`HTML 파일이 존재하지 않습니다: ${htmlPath}`);
-    }
-
-    let htmlContent = fs.readFileSync(htmlPath, 'utf8');
-
-    // 3. 메타데이터 교체
-    // 제목 교체
-    htmlContent = htmlContent.replace(
-      /<title>.*?<\/title>/,
-      `<title>${this.escapeHtml(metadata.title)} - 손안에 가이드</title>`
-    );
-    htmlContent = htmlContent.replace(
-      /<h1>.*?<\/h1>/,
-      `<h1>${this.escapeHtml(metadata.title)}</h1>`
-    );
-
-    // 메타데이터 섹션 교체
-    htmlContent = htmlContent.replace(
-      /<p>👤 .*?<\/p>/,
-      `<p>👤 ${this.escapeHtml(metadata.sender)} 님이 보냄</p>`
-    );
-    htmlContent = htmlContent.replace(
-      /<p>📍 .*?<\/p>/,
-      `<p>📍 ${this.escapeHtml(metadata.location)}</p>`
-    );
-    htmlContent = htmlContent.replace(
-      /<p>📅 .*?<\/p>/,
-      `<p>📅 ${this.escapeHtml(metadata.date)}</p>`
-    );
-
-    // 4. 우측 상단 X 닫기 버튼 z-index 업데이트
-    // ⚠️ CRITICAL: Featured 페이지는 X 버튼만 사용 (리턴 버튼 없음)
-    // X 버튼으로 탭 닫기 → 앱으로 복귀 → 라이브뷰 상태 유지
-    htmlContent = htmlContent.replace(
-      /(id="closeWindowBtn"[^>]*z-index:\s*)\d+/,
-      '$1 99999'
-    );
-
-    // 5. HTML 파일 덮어쓰기
-    fs.writeFileSync(htmlPath, htmlContent, 'utf8');
-    console.log(`✅ Featured HTML 재생성 완료: ${page.htmlFilePath}`);
+    console.log(`✅ Featured HTML 재생성 완료: ${id}`);
   }
 
   /**
