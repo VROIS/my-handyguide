@@ -2081,6 +2081,9 @@ self.addEventListener('fetch', (event) => {
       ).sort().join(',');
       const version = crypto.createHash('md5').update(versionString).digest('hex').substring(0, 8);
       
+      // ✅ 브라우저 캐시 비활성화 (관리자 편집 즉시 반영)
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+      
       res.json({
         success: true,
         version,
