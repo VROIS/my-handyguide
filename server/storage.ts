@@ -1252,16 +1252,11 @@ export class DatabaseStorage implements IStorage {
     
     // 2. Guide[] → GuideItem[] 변환 (순서 유지용 임시 데이터)
     const guideItemsWithId = await Promise.all(guidesData.map(async (guide) => {
-      // ✨ 파일 경로 → Base64 변환 (2025-11-22 수정)
+      // ✨ 파일 경로 → Base64 변환 (2025-11-24 수정)
       let imageDataUrl = guide.imageUrl || '';
       if (imageDataUrl && imageDataUrl.startsWith('/uploads/')) {
-        try {
-          imageDataUrl = await this.convertImageToBase64(imageDataUrl);
-          console.log(`✅ 이미지 변환: ${guide.id} (${imageDataUrl.substring(0, 50)}...)`);
-        } catch (err) {
-          console.warn(`⚠️ 이미지 변환 실패: ${imageDataUrl}`, err);
-          imageDataUrl = ''; // 변환 실패시 빈 문자열
-        }
+        // App Storage 이미지는 웹에서 접근 가능하므로 경로 그대로 사용
+        console.log(`✅ App Storage 이미지 경로 유지: ${imageDataUrl}`);
       } else if (imageDataUrl) {
         console.log(`✅ Base64 이미지 유지: ${guide.id} (길이: ${imageDataUrl.length}, 앞 50자: ${imageDataUrl.substring(0, 50)}...)`);
       } else {
