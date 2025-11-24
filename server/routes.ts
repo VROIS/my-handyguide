@@ -1795,27 +1795,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
    * 핵심:
    * - /s/:id 경로를 캐시하여 오프라인에서도 작동
    * - 여행 중 인터넷 없을 때 필수 (해외 로밍 OFF, 지하철, 산악 지역)
-   * - Cache-First 전략: 캐시 우선, 실패 시 네트워크
+   * - Network-First 전략: 최신 우선, 오프라인 시 캐시 사용 (2025-11-24 변경)
    */
   app.get('/sw-share.js', (req, res) => {
     res.setHeader('Content-Type', 'application/javascript');
     res.send(`
-const CACHE_NAME = 'share-page-cache-v1';
+const CACHE_NAME = 'share-page-cache-v2';
 
 // Service Worker 설치
 self.addEventListener('install', (event) => {
-  console.log('[SW] 설치됨');
+  console.log('[SW-Share] v2 설치됨');
   self.skipWaiting();
 });
 
 // Service Worker 활성화
 self.addEventListener('activate', (event) => {
-  console.log('[SW] 활성화됨');
+  console.log('[SW-Share] v2 활성화됨');
   event.waitUntil(
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
           if (cacheName !== CACHE_NAME) {
+            console.log('[SW-Share] 옛날 캐시 삭제:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -1824,11 +1825,9 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// ⚠️ 수정금지 - 2025-10-04 오프라인 iOS Safari 다운로드 문제 해결
-// 문제: 오프라인(비행기모드)에서 캐시된 HTML을 txt 파일로 다운로드하려 함
-// 해결: 캐시된 응답에 Content-Disposition: inline 헤더 명시적 추가
-// 영향: iOS Safari 15+ 필수, Chrome/Android는 문제 없음
-// 네트워크 요청 가로채기 (오프라인 지원!)
+// ⚠️ 2025-11-24 변경: Cache-First → Network-First
+// 이유: 관리자 편집 후 즉시 반영 + 오프라인 지원
+// 동작: 서버 먼저 확인 → 최신 HTML 반환, 오프라인 시 캐시 사용
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   
@@ -1836,37 +1835,41 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.startsWith('/s/')) {
     event.respondWith(
       caches.open(CACHE_NAME).then(cache => {
-        return cache.match(event.request).then(cachedResponse => {
-          if (cachedResponse) {
-            // ⚠️ iOS Safari 다운로드 방지: 헤더 명시적 추가
-            // 이유: iOS Safari는 큰 HTML 파일을 오프라인에서 열 때
-            //       Content-Disposition 헤더가 없으면 다운로드 프롬프트 표시
-            const headers = new Headers(cachedResponse.headers);
-            headers.set('Content-Disposition', 'inline');
-            headers.set('Content-Type', 'text/html; charset=utf-8');
-            
-            return new Response(cachedResponse.body, {
-              status: cachedResponse.status,
-              statusText: cachedResponse.statusText,
-              headers: headers
-            });
-          }
-          
-          return fetch(event.request).then(networkResponse => {
+        // Network-First: 서버 먼저 확인
+        return fetch(event.request)
+          .then(networkResponse => {
+            // ✅ 성공: 캐시 저장 + 반환
             if (networkResponse && networkResponse.status === 200) {
               cache.put(event.request, networkResponse.clone());
             }
             return networkResponse;
-          }).catch(() => {
-            return new Response('오프라인 상태입니다.', {
-              status: 503,
-              headers: { 
-                'Content-Type': 'text/plain; charset=utf-8',
-                'Content-Disposition': 'inline'
+          })
+          .catch(() => {
+            // ❌ 오프라인: 캐시에서 가져오기
+            return cache.match(event.request).then(cachedResponse => {
+              if (cachedResponse) {
+                // ⚠️ iOS Safari 다운로드 방지: 헤더 명시적 추가
+                const headers = new Headers(cachedResponse.headers);
+                headers.set('Content-Disposition', 'inline');
+                headers.set('Content-Type', 'text/html; charset=utf-8');
+                
+                return new Response(cachedResponse.body, {
+                  status: cachedResponse.status,
+                  statusText: cachedResponse.statusText,
+                  headers: headers
+                });
               }
+              
+              // 캐시도 없음
+              return new Response('오프라인 상태입니다. 이 페이지는 아직 캐시되지 않았습니다.', {
+                status: 503,
+                headers: { 
+                  'Content-Type': 'text/plain; charset=utf-8',
+                  'Content-Disposition': 'inline'
+                }
+              });
             });
           });
-        });
       })
     );
   }
