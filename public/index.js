@@ -2200,49 +2200,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // ═══════════════════════════════════════════════════════════════
     async function loadFeaturedGallery() {
         try {
-            const CACHE_KEY = 'featuredGalleryCache_v2'; // ✅ X 버튼 업데이트
-            const CACHE_DURATION = 5 * 60 * 1000; // 5분
-            
-            // API 호출 (버전 체크를 위해)
-            // ✅ URL 타임스탬프로 브라우저 HTTP 캐시 우회 (2025-11-24)
+            // ✅ API 호출 - 항상 최신 데이터 사용 (2025-11-24)
+            // URL 타임스탬프로 브라우저 HTTP 캐시 우회
             const response = await fetch(`/api/share/featured/list?t=${Date.now()}`);
             if (!response.ok) return;
             
             const data = await response.json();
             const featuredPages = data.pages || [];
-            const currentVersion = data.version;
             
-            // 캐시 확인
-            const cached = localStorage.getItem(CACHE_KEY);
-            if (cached) {
-                try {
-                    const { data: cachedData, timestamp, version: cachedVersion } = JSON.parse(cached);
-                    const age = Date.now() - timestamp;
-                    
-                    if (age < CACHE_DURATION && cachedVersion === currentVersion) {
-                        console.log('💾 Featured Gallery 캐시 사용 (버전:', currentVersion, ', 나이:', Math.round(age / 1000), '초)');
-                        renderFeaturedGallery(cachedData.pages || []);
-                        return;
-                    } else if (cachedVersion !== currentVersion) {
-                        console.log('🔄 Featured Gallery 버전 변경 감지 (', cachedVersion, '→', currentVersion, ') - 캐시 무효화');
-                    }
-                } catch (e) {
-                    // 캐시 파싱 실패 시 무시
-                }
-            }
-            
-            // 캐시 저장
-            try {
-                localStorage.setItem(CACHE_KEY, JSON.stringify({
-                    data: data,
-                    version: currentVersion,
-                    timestamp: Date.now()
-                }));
-                console.log('💾 Featured Gallery 캐시 저장 완료 (버전:', currentVersion, ')');
-            } catch (e) {
-                // localStorage 저장 실패 시 무시
-            }
-            
+            // 바로 렌더링 (localStorage 캐시 사용 안 함)
             renderFeaturedGallery(featuredPages);
         } catch (error) {
             console.warn('Featured gallery not available yet:', error);
