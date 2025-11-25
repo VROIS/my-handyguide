@@ -1035,7 +1035,20 @@ export class DatabaseStorage implements IStorage {
 
     console.log(`✅ 새로운 HTML 생성 완료 (길이: ${newHtmlContent.length} 자)`);
 
-    // 4. DB 업데이트 (htmlContent + 메타데이터 + 순서)
+    // 4. 첫 번째 가이드의 이미지를 thumbnail로 설정
+    const firstGuide = await db
+      .select()
+      .from(guides)
+      .where(eq(guides.id, finalGuideIds[0]))
+      .limit(1);
+    
+    const newThumbnail = firstGuide.length > 0 ? firstGuide[0].imageUrl : page.thumbnail;
+    
+    if (newThumbnail !== page.thumbnail) {
+      console.log(`🖼️ Thumbnail 업데이트: ${page.thumbnail?.substring(0, 50)}... → ${newThumbnail?.substring(0, 50)}...`);
+    }
+
+    // 5. DB 업데이트 (htmlContent + 메타데이터 + 순서 + thumbnail)
     await db
       .update(sharedHtmlPages)
       .set({
@@ -1045,11 +1058,12 @@ export class DatabaseStorage implements IStorage {
         location: metadata.location,
         date: metadata.date,
         guideIds: finalGuideIds,
+        thumbnail: newThumbnail, // 🆕 첫 번째 가이드 이미지로 자동 업데이트
         updatedAt: new Date()
       })
       .where(eq(sharedHtmlPages.id, id));
 
-    console.log(`✅ DB 업데이트 완료 (htmlContent + 메타데이터)`);
+    console.log(`✅ DB 업데이트 완료 (htmlContent + 메타데이터 + thumbnail)`);
 
     // 5. HTML 파일 덮어쓰기 (선택적, DB가 주 저장소)
     if (page.htmlFilePath) {
