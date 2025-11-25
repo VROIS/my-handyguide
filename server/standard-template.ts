@@ -21,6 +21,7 @@ export interface StandardTemplateData {
 }
 
 export interface GuideItem {
+  id?: string; // Guide UUID (optional, fallback to index)
   imageDataUrl: string;
   description: string;
 }
@@ -43,16 +44,18 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
   };
   
   // 갤러리 그리드 아이템 생성 (2열)
+  // ✅ 2025-11-25: data-id에 실제 guideId(UUID) 저장 (parseGuidesFromHtml 정상화)
   const galleryItemsHTML = guideItems.map((item, index) => `
-            <div class="gallery-item" data-id="${index}">
+            <div class="gallery-item" data-id="${item.id || index}">
                 <img src="${item.imageDataUrl || ''}" alt="가이드 ${index + 1}" loading="lazy">
                 <p>가이드 ${index + 1}</p>
             </div>
         `).join('');
 
   // 데이터 JSON (이미지 + 설명만, title 없음!)
+  // ✅ 2025-11-25: id에 실제 guideId(UUID) 저장 (parseGuidesFromHtml 정상화)
   const dataJSON = JSON.stringify(guideItems.map((item, index) => ({
-    id: index,
+    id: item.id || index,
     imageDataUrl: item.imageDataUrl || '',
     description: item.description || ''
   })));

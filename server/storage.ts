@@ -1281,6 +1281,7 @@ export class DatabaseStorage implements IStorage {
         }
         console.log(`✅ [${idx}] guideId "${id}" 찾음 - imageDataUrl 길이: ${found.imageDataUrl.length}`);
         return {
+          id: found.id, // ✅ 2025-11-25: 실제 guideId(UUID) 추가 (parseGuidesFromHtml 정상화)
           imageDataUrl: found.imageDataUrl,
           description: found.description
         };
