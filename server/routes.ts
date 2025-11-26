@@ -15,6 +15,7 @@ import fs from "fs";
 import crypto from "crypto";
 import { generateShareHtml } from "./html-template";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import profileRoutes from "./profileRoutes";
 
 // Configure multer for image uploads
 const upload = multer({
@@ -2722,6 +2723,14 @@ self.addEventListener('fetch', (event) => {
       res.status(500).json({ error: '공유 페이지 생성에 실패했습니다.' });
     }
   });
+
+  // ═══════════════════════════════════════════════════════════════
+  // 💳 프로필 페이지 API 라우트 (2025-11-26)
+  // ═══════════════════════════════════════════════════════════════
+  // 목적: 프로필 페이지, 크레딧, 결제 관련 API
+  // 파일: server/profileRoutes.ts
+  // ═══════════════════════════════════════════════════════════════
+  app.use('/api', profileRoutes);
 
   const httpServer = createServer(app);
   return httpServer;
