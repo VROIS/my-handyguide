@@ -44,18 +44,20 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
   };
   
   // 갤러리 그리드 아이템 생성 (2열)
-  // ✅ 2025-11-25: data-id에 실제 guideId(UUID) 저장 (parseGuidesFromHtml 정상화)
+  // ✅ 2025-11-26: data-id는 인덱스 (클릭 핸들러용), data-guid는 UUID (parseGuidesFromHtml용)
+  // ⚠️ CRITICAL: data-id는 반드시 숫자 인덱스여야 함! parseInt(data-id)로 appData 접근하기 때문
   const galleryItemsHTML = guideItems.map((item, index) => `
-            <div class="gallery-item" data-id="${item.id || index}">
+            <div class="gallery-item" data-id="${index}" data-guid="${item.id || ''}">
                 <img src="${item.imageDataUrl || ''}" alt="가이드 ${index + 1}" loading="lazy">
                 <p>가이드 ${index + 1}</p>
             </div>
         `).join('');
 
-  // 데이터 JSON (이미지 + 설명만, title 없음!)
-  // ✅ 2025-11-25: id에 실제 guideId(UUID) 저장 (parseGuidesFromHtml 정상화)
+  // 데이터 JSON (이미지 + 설명)
+  // ✅ 2025-11-26: id는 인덱스 (클릭 핸들러용), guid는 UUID (parseGuidesFromHtml용)
   const dataJSON = JSON.stringify(guideItems.map((item, index) => ({
-    id: item.id || index,
+    id: index,
+    guid: item.id || '',
     imageDataUrl: item.imageDataUrl || '',
     description: item.description || ''
   })));

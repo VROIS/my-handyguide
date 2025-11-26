@@ -88,15 +88,19 @@ export function parseGuidesFromHtml(
   }
   
   // 방법 2: gallery-item 태그 파싱 (regenerateFeaturedHtml로 생성된 경우)
+  // ✅ 2025-11-26: data-guid 속성 우선 사용 (UUID), data-id는 인덱스용
   console.log('📦 gallery-item 파싱 시도...');
-  const galleryItemRegex = /<div[^>]*class="gallery-item"[^>]*data-id="([^"]*)"[^>]*>\s*<img[^>]*src="([^"]*)"[^>]*>\s*<p>([^<]*)<\/p>/g;
+  // data-guid가 있으면 사용, 없으면 data-id 사용 (하위 호환성)
+  const galleryItemRegex = /<div[^>]*class="gallery-item"[^>]*data-id="([^"]*)"(?:[^>]*data-guid="([^"]*)")?[^>]*>\s*<img[^>]*src="([^"]*)"[^>]*>\s*<p>([^<]*)<\/p>/g;
   let match;
   const parsedGuides: ParsedGuide[] = [];
   
   while ((match = galleryItemRegex.exec(htmlContent)) !== null) {
-    const [, dataId, imgSrc, title] = match;
+    const [, dataId, dataGuid, imgSrc, title] = match;
+    // data-guid가 있으면 우선 사용 (UUID), 없으면 data-id 사용 (하위 호환)
+    const guideId = dataGuid || dataId || `guide-${Date.now()}-${parsedGuides.length}`;
     parsedGuides.push({
-      id: dataId || `guide-${Date.now()}-${parsedGuides.length}`,
+      id: guideId,
       userId: fallback.userId,
       title: title.trim(),
       description: '',
