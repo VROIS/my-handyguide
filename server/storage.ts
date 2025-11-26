@@ -55,6 +55,7 @@ export interface IStorage {
   getGuidesByIds(ids: string[]): Promise<Guide[]>;
   updateGuide(id: string, updates: Partial<InsertGuide>): Promise<Guide>;
   deleteGuide(id: string): Promise<void>;
+  deleteAllGuides(): Promise<number>;
   incrementGuideViews(id: string): Promise<void>;
   searchGuides(filters: {
     tags?: string[];
@@ -199,6 +200,11 @@ export class DatabaseStorage implements IStorage {
 
   async deleteGuide(id: string): Promise<void> {
     await db.delete(guides).where(eq(guides.id, id));
+  }
+
+  async deleteAllGuides(): Promise<number> {
+    const result = await db.delete(guides).returning();
+    return result.length;
   }
 
   async incrementGuideViews(id: string): Promise<void> {

@@ -2632,6 +2632,23 @@ self.addEventListener('fetch', (event) => {
   });
 
   /**
+   * 🗑️ DELETE /api/admin/guides/delete-all - 모든 가이드 삭제
+   */
+  app.delete('/api/admin/guides/delete-all', requireAdmin, async (req, res) => {
+    try {
+      const deletedCount = await storage.deleteAllGuides();
+      res.json({ 
+        success: true, 
+        message: `${deletedCount}개의 상세페이지가 삭제되었습니다.`,
+        deletedCount 
+      });
+    } catch (error) {
+      console.error('전체 가이드 삭제 오류:', error);
+      res.status(500).json({ error: '전체 삭제에 실패했습니다.' });
+    }
+  });
+
+  /**
    * 📄 POST /api/admin/create-share-from-guides - 선택한 가이드들로 공유 페이지 생성
    * 
    * Body:
