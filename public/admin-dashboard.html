@@ -74,10 +74,10 @@
                     요약
                 </button>
                 <button onclick="showTab('content')" id="tab-content" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
-                    콘텐츠
+                    공유페이지
                 </button>
                 <button onclick="showTab('guides')" id="tab-guides" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
-                    🔍 가이드 관리
+                    상세페이지
                 </button>
                 <button onclick="showTab('revenue')" id="tab-revenue" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
                     수익
@@ -137,10 +137,10 @@
 
         <!-- 콘텐츠 탭 (from index.html Featured 갤러리 관리) -->
         <div id="content-content" class="hidden">
-            <!-- ⭐ Featured 갤러리 관리 (관리자 전용) -->
+            <!-- 추천 모음 관리 (관리자 전용) -->
             <div class="bg-white p-6 rounded-lg shadow-sm border-l-4 border-yellow-500">
                 <div class="flex items-center justify-between mb-3">
-                    <h2 class="text-lg font-semibold text-gray-800">⭐ Featured 갤러리 관리</h2>
+                    <h2 class="text-lg font-semibold text-gray-800">⭐ 추천 모음 관리</h2>
                     <span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">관리자 전용</span>
                 </div>
                 <p class="text-sm text-gray-500 mb-4">추천 갤러리에 표시할 공유 페이지를 검색하세요 (최대 3개)</p>
@@ -173,10 +173,10 @@
                 </div>
             </div>
 
-            <!-- 전체 공유 관리 -->
+            <!-- 전체목록 -->
             <div class="bg-white rounded-lg p-6 shadow-sm mt-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-lg font-semibold text-gray-900">전체 공유 관리</h2>
+                    <h2 class="text-lg font-semibold text-gray-900">전체목록</h2>
                     <div class="flex gap-3">
                         <button onclick="migrateToV2()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition flex items-center gap-2">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
