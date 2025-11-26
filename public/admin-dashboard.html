@@ -554,22 +554,22 @@
                 document.getElementById('editLocation').value = page.location || '미지정';
                 document.getElementById('editDate').value = page.date || new Date(page.createdAt).toISOString().split('T')[0];
                 
-                // 3. 모바일 친화적 가이드 리스트 생성 (위/아래 버튼)
+                // 3. 드래그 앤 드롭 가이드 리스트 생성 (모바일 터치 + PC 마우스)
                 const guideListHtml = guides.map((guide, index) => {
                     const imgSrc = guide.imageUrl || '';
-                    const isFirst = index === 0;
-                    const isLast = index === guides.length - 1;
                     return `
-                        <div class="guide-item flex items-center gap-2 p-3 bg-white rounded-lg border-2 border-gray-300 mb-2" data-guide-id="${guide.id}">
+                        <div class="guide-item flex items-center gap-3 p-3 bg-white rounded-lg border-2 border-gray-300 mb-2 cursor-grab active:cursor-grabbing select-none transition-all" 
+                             data-guide-id="${guide.id}"
+                             draggable="true">
+                            <div class="drag-handle text-gray-400 text-2xl px-1" style="touch-action: none;">☰</div>
                             <img src="${imgSrc}" alt="가이드 ${index + 1}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; flex-shrink: 0;">
-                            <span class="font-medium text-gray-700 flex-1">가이드 ${index + 1}</span>
-                            <div class="flex flex-col gap-1">
-                                <button onclick="moveGuideUp(this)" ${isFirst ? 'disabled' : ''} class="px-3 py-1 bg-blue-500 text-white rounded disabled:bg-gray-300 disabled:cursor-not-allowed text-lg font-bold" style="min-width: 40px; min-height: 36px;">▲</button>
-                                <button onclick="moveGuideDown(this)" ${isLast ? 'disabled' : ''} class="px-3 py-1 bg-blue-500 text-white rounded disabled:bg-gray-300 disabled:cursor-not-allowed text-lg font-bold" style="min-width: 40px; min-height: 36px;">▼</button>
-                            </div>
+                            <span class="guide-number font-medium text-gray-700 flex-1">가이드 ${index + 1}</span>
                         </div>
                     `;
                 }).join('');
+                
+                // 드래그 앤 드롭 이벤트 설정
+                setTimeout(() => initDragAndDrop(), 100);
                 
                 document.getElementById('guideList').innerHTML = guideListHtml;
                 
@@ -651,21 +651,125 @@
             }
         };
 
-        // 가이드 번호 및 버튼 상태 업데이트
+        // 가이드 번호 업데이트
         function updateGuideNumbers() {
             const items = document.querySelectorAll('.guide-item');
             items.forEach((item, index) => {
-                // 번호 업데이트
-                const label = item.querySelector('span.font-medium');
+                const label = item.querySelector('.guide-number');
                 if (label) label.textContent = `가이드 ${index + 1}`;
-                
-                // 버튼 상태 업데이트
-                const upBtn = item.querySelector('button:first-of-type');
-                const downBtn = item.querySelector('button:last-of-type');
-                
-                upBtn.disabled = (index === 0);
-                downBtn.disabled = (index === items.length - 1);
             });
+        }
+
+        // ═══════════════════════════════════════════════════
+        // 드래그 앤 드롭 (모바일 터치 + PC 마우스)
+        // ═══════════════════════════════════════════════════
+        let draggedItem = null;
+        let touchStartY = 0;
+        let touchCurrentY = 0;
+        let placeholder = null;
+
+        function initDragAndDrop() {
+            const guideList = document.getElementById('guideList');
+            if (!guideList) return;
+
+            const items = guideList.querySelectorAll('.guide-item');
+            
+            items.forEach(item => {
+                // PC: 마우스 드래그
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragend', handleDragEnd);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('drop', handleDrop);
+                
+                // 모바일: 터치 드래그
+                item.addEventListener('touchstart', handleTouchStart, { passive: false });
+                item.addEventListener('touchmove', handleTouchMove, { passive: false });
+                item.addEventListener('touchend', handleTouchEnd);
+            });
+        }
+
+        // PC 드래그 이벤트
+        function handleDragStart(e) {
+            draggedItem = this;
+            this.style.opacity = '0.5';
+            this.style.border = '2px dashed #4285F4';
+            e.dataTransfer.effectAllowed = 'move';
+        }
+
+        function handleDragEnd(e) {
+            this.style.opacity = '1';
+            this.style.border = '2px solid #d1d5db';
+            draggedItem = null;
+            updateGuideNumbers();
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            
+            if (draggedItem && draggedItem !== this) {
+                const rect = this.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                
+                if (e.clientY < midY) {
+                    this.parentNode.insertBefore(draggedItem, this);
+                } else {
+                    this.parentNode.insertBefore(draggedItem, this.nextSibling);
+                }
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            updateGuideNumbers();
+        }
+
+        // 모바일 터치 이벤트
+        function handleTouchStart(e) {
+            if (e.target.closest('.drag-handle')) {
+                e.preventDefault();
+                draggedItem = this;
+                touchStartY = e.touches[0].clientY;
+                
+                this.style.opacity = '0.7';
+                this.style.transform = 'scale(1.02)';
+                this.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+                this.style.zIndex = '1000';
+            }
+        }
+
+        function handleTouchMove(e) {
+            if (!draggedItem) return;
+            e.preventDefault();
+            
+            touchCurrentY = e.touches[0].clientY;
+            const guideList = document.getElementById('guideList');
+            const items = Array.from(guideList.querySelectorAll('.guide-item'));
+            
+            items.forEach(item => {
+                if (item === draggedItem) return;
+                
+                const rect = item.getBoundingClientRect();
+                const midY = rect.top + rect.height / 2;
+                
+                if (touchCurrentY < midY && touchCurrentY > rect.top) {
+                    guideList.insertBefore(draggedItem, item);
+                } else if (touchCurrentY > midY && touchCurrentY < rect.bottom) {
+                    guideList.insertBefore(draggedItem, item.nextSibling);
+                }
+            });
+        }
+
+        function handleTouchEnd(e) {
+            if (!draggedItem) return;
+            
+            draggedItem.style.opacity = '1';
+            draggedItem.style.transform = '';
+            draggedItem.style.boxShadow = '';
+            draggedItem.style.zIndex = '';
+            
+            draggedItem = null;
+            updateGuideNumbers();
         }
 
         // ═══════════════════════════════════════════════════
