@@ -742,17 +742,17 @@ function handleItemSelect(id) {
 
 #### 📋 Phase 1: 기반 설정 (승인 후 진행)
 
-- [ ] **1.1 Stripe 통합 설정**
-  - Replit Integration으로 Stripe Sandbox 연동
-  - API 키 환경변수 설정
-  - 테스트 환경 확인
+- [ㅇ] **1.1 Stripe 통합 설정**
+  - Replit Integration으로 Stripe Sandbox 연동 ㅇ
+  - API 키 환경변수 설정 ㅇ
+  - 테스트 환경 확인 ㅇ
 
 - [ ] **1.2 DB 스키마 확인 (이미 준비됨)**
   - users.credits 필드 확인 (기본값 0)
   - creditTransactions 테이블 확인
-  - 신규 필드 필요 시 추가
+  - 신규 필드 필요 시 추가  추가된부분 명시
 
-- [ ] **1.3 실시간 환율 API 연동**
+- [ㅇ ] **1.3 실시간 환율 API 연동**
   - EUR → KRW 변환 API 선정 (무료 API)
   - 결제 금액 원화 표시 로직
 
