@@ -157,6 +157,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/auth/user', { credentials: 'include' });
             if (response.ok) {
                 const data = await response.json();
+                // 서버가 200 OK + 사용자 객체를 반환하면 인증된 것
+                if (data && (data.id || data.email)) {
+                    console.log('✅ 인증된 사용자:', data.email || data.id);
+                    return data;
+                }
+                // 또는 authenticated 필드가 있는 경우
                 return data.authenticated ? data.user : null;
             }
             return null;
