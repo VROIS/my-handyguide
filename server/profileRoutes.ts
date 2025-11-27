@@ -15,6 +15,7 @@ import { Router, Request, Response } from 'express';
 import { creditService, CREDIT_CONFIG } from './creditService';
 import { getEURtoKRW, convertEURtoKRW, formatKRW } from './exchangeRate';
 import { getUncachableStripeClient, getStripePublishableKey } from './stripeClient';
+import { storage } from './storage';
 
 const router = Router();
 
@@ -109,6 +110,7 @@ router.get('/profile/exchange-rate', async (req: Request, res: Response) => {
     res.json({
       rate,
       priceEUR: CREDIT_CONFIG.PRICE_EUR,
+      krwPrice: priceKRW,
       priceKRW,
       formattedPrice,
       credits: CREDIT_CONFIG.PURCHASE_CREDITS,
@@ -231,6 +233,71 @@ router.post('/profile/checkout', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Checkout error:', error);
     res.status(500).json({ error: 'Failed to create checkout session' });
+  }
+});
+
+router.get('/profile/pages', async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId((req as any).user);
+    
+    if (!userId) {
+      return res.json({ detailPages: [], sharePages: [], isGuest: true });
+    }
+
+    const guides = await storage.getUserGuides(userId);
+    const sharePages = await storage.getUserSharedHtmlPages(userId);
+
+    const detailPages = guides.map((g: any) => ({
+      id: g.id,
+      title: g.description?.slice(0, 30) || g.locationName || '상세페이지',
+      thumbnail: g.imageUrl?.slice(0, 100),
+      createdAt: g.createdAt,
+    }));
+
+    const sharePagesFormatted = sharePages.map((p: any) => ({
+      id: p.id,
+      name: p.name || '공유 링크',
+      createdAt: p.createdAt,
+    }));
+
+    res.json({ detailPages, sharePages: sharePagesFormatted, isGuest: false });
+  } catch (error: any) {
+    console.error('Pages fetch error:', error);
+    res.status(500).json({ error: 'Failed to fetch pages' });
+  }
+});
+
+router.delete('/profile/pages/detail/:id', async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId((req as any).user);
+    
+    if (!userId) {
+      return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+
+    const id = req.params.id;
+    await storage.deleteGuide(id);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete detail page error:', error);
+    res.status(500).json({ error: 'Failed to delete page' });
+  }
+});
+
+router.delete('/profile/pages/share/:id', async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId((req as any).user);
+    
+    if (!userId) {
+      return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+
+    const id = req.params.id;
+    await storage.permanentDeleteSharedHtmlPage(id);
+    res.json({ success: true });
+  } catch (error: any) {
+    console.error('Delete share page error:', error);
+    res.status(500).json({ error: 'Failed to delete page' });
   }
 });
 
