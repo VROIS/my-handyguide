@@ -211,7 +211,7 @@ router.post('/profile/checkout', async (req: Request, res: Response) => {
           price_data: {
             currency: 'eur',
             product_data: {
-              name: '내손가이드 크레딧 충전',
+              name: '손안에 가이드 크레딧 충전',
               description: `${CREDIT_CONFIG.PURCHASE_CREDITS} 크레딧 (100 기본 + 40 보너스)`,
             },
             unit_amount: CREDIT_CONFIG.PRICE_EUR * 100,
@@ -250,14 +250,25 @@ router.get('/profile/pages', async (req: Request, res: Response) => {
     const detailPages = guides.map((g: any) => ({
       id: g.id,
       title: g.description?.slice(0, 30) || g.locationName || '상세페이지',
-      thumbnail: g.imageUrl?.slice(0, 100),
+      thumbnail: g.imageUrl || '',
       createdAt: g.createdAt,
     }));
 
-    const sharePagesFormatted = sharePages.map((p: any) => ({
-      id: p.id,
-      name: p.name || '공유 링크',
-      createdAt: p.createdAt,
+    const sharePagesFormatted = await Promise.all(sharePages.map(async (p: any) => {
+      let thumbnail = '';
+      if (p.guideIds && p.guideIds.length > 0) {
+        const firstGuideId = p.guideIds[0];
+        const firstGuide = await storage.getGuide(firstGuideId);
+        if (firstGuide && firstGuide.imageUrl) {
+          thumbnail = firstGuide.imageUrl;
+        }
+      }
+      return {
+        id: p.id,
+        name: p.name || '공유 링크',
+        thumbnail,
+        createdAt: p.createdAt,
+      };
     }));
 
     res.json({ detailPages, sharePages: sharePagesFormatted, isGuest: false });

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>프로필 - 내손가이드</title>
+    <title>프로필 - 손안에 가이드</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234285F4'><path d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/></svg>">
     <meta name="theme-color" content="#4285F4"/>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -163,12 +163,8 @@
             </section>
 
             <section class="card">
-                <button id="chargeBtn" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-4 px-6 rounded-xl hover:from-blue-600 hover:to-blue-700 transition shadow-lg flex items-center justify-center gap-3" data-testid="button-charge">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"/>
-                    </svg>
-                    <span id="chargeBtnText">10 EUR 충전하기</span>
-                    <span id="chargeBtnPrice" class="opacity-80"></span>
+                <button id="chargeBtn" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-4 px-4 rounded-xl hover:from-blue-600 hover:to-blue-700 transition shadow-lg" data-testid="button-charge">
+                    <span id="chargeBtnText" class="text-base whitespace-nowrap">10 EUR 충전하기 (약 ₩15,000)</span>
                 </button>
             </section>
 
@@ -219,7 +215,7 @@
                     <div class="plan-card" data-plan="free">
                         <div class="flex items-center justify-between">
                             <div class="text-left">
-                                <p class="font-bold text-gray-900">무료</p>
+                                <p class="font-bold text-gray-900">무료체험</p>
                                 <p class="text-xs text-gray-500">신규 가입</p>
                             </div>
                             <div class="text-right">
@@ -227,7 +223,7 @@
                             </div>
                         </div>
                         <div class="mt-3 pt-3 border-t border-gray-200 text-left">
-                            <p class="text-sm plan-benefit text-gray-600">상세페이지 17회 또는 공유페이지 7회 생성</p>
+                            <p class="text-sm plan-benefit text-gray-600">상세페이지 10회 + 공유페이지 3회</p>
                         </div>
                     </div>
                     <div class="plan-card" data-plan="standard">
@@ -242,7 +238,7 @@
                             </div>
                         </div>
                         <div class="mt-3 pt-3 border-t border-gray-200 text-left">
-                            <p class="text-sm plan-benefit text-gray-600">상세페이지 70회 또는 공유페이지 28회 생성</p>
+                            <p class="text-sm plan-benefit text-gray-600">100 기본 + 40 보너스</p>
                         </div>
                     </div>
                     <div class="plan-card" data-plan="pro">
@@ -256,7 +252,7 @@
                             </div>
                         </div>
                         <div class="mt-3 pt-3 border-t border-gray-200 text-left flex items-center justify-between">
-                            <p class="text-sm plan-benefit text-gray-600">무제한 크레딧 + 우선 지원</p>
+                            <p class="text-sm plan-benefit text-gray-600">대용량 크레딧 + 맞춤 기능</p>
                             <button id="contactProBtn" class="text-sm text-blue-600 font-medium hover:underline" data-testid="button-contact-pro">문의</button>
                         </div>
                     </div>
@@ -363,10 +359,14 @@
                         <p class="text-xs text-gray-500 mb-2">공유페이지 (${data.sharePages.length})</p>
                         ${data.sharePages.map(page => `
                             <div class="item-row" data-id="${page.id}" data-type="share">
-                                <div class="w-10 h-10 rounded-lg bg-blue-100 mr-3 flex items-center justify-center flex-shrink-0">
-                                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/>
-                                    </svg>
+                                <div class="w-10 h-10 rounded-lg bg-gray-200 mr-3 overflow-hidden flex-shrink-0">
+                                    ${page.thumbnail ? `<img src="${page.thumbnail}" class="w-full h-full object-cover">` : `
+                                        <div class="w-full h-full bg-blue-100 flex items-center justify-center">
+                                            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/>
+                                            </svg>
+                                        </div>
+                                    `}
                                 </div>
                                 <div class="flex-1 min-w-0">
                                     <p class="text-sm font-medium text-gray-900 truncate">${page.name || '공유 링크'}</p>
@@ -451,7 +451,7 @@
                 if (data.krwPrice) {
                     const krwFormatted = new Intl.NumberFormat('ko-KR').format(Math.round(data.krwPrice));
                     document.getElementById('standardPrice').textContent = `10 EUR (약 ₩${krwFormatted})`;
-                    document.getElementById('chargeBtnPrice').textContent = `(약 ₩${krwFormatted})`;
+                    document.getElementById('chargeBtnText').textContent = `10 EUR 충전하기 (약 ₩${krwFormatted})`;
                 }
             } catch (error) {
                 console.error('Pricing load error:', error);
@@ -516,7 +516,7 @@
         });
 
         document.getElementById('contactProBtn')?.addEventListener('click', () => {
-            window.location.href = 'mailto:dbstour1@gmail.com?subject=[내손가이드] 프로플랜 문의';
+            window.location.href = 'mailto:dbstour1@gmail.com?subject=[손안에 가이드] 프로플랜 문의';
         });
 
         const urlParams = new URLSearchParams(window.location.search);
