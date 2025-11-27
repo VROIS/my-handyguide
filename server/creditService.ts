@@ -140,11 +140,26 @@ export class CreditService {
   }
 
   async getTransactionHistory(userId: string, limit: number = 20): Promise<any[]> {
-    return await db.select()
+    const transactions = await db.select()
       .from(creditTransactions)
       .where(eq(creditTransactions.userId, userId))
       .orderBy(desc(creditTransactions.createdAt))
       .limit(limit);
+
+    // 현재 잔액에서 역순으로 balance 계산
+    const currentBalance = await this.getBalance(userId);
+    let runningBalance = currentBalance;
+    
+    // 최신순으로 정렬되어 있으므로, 최신 거래의 balance는 currentBalance
+    // 그 이전 거래의 balance는 해당 거래 amount를 빼서 계산
+    const transactionsWithBalance = transactions.map((tx, index) => {
+      const balance = runningBalance;
+      // 다음 (더 오래된) 거래의 balance 계산을 위해 현재 거래 amount 차감
+      runningBalance = runningBalance - tx.amount;
+      return { ...tx, balance };
+    });
+
+    return transactionsWithBalance;
   }
 
   async getUsageStats(userId: string): Promise<{ detailPages: number; sharePages: number }> {

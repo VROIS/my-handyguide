@@ -16,6 +16,7 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import type { Express } from "express";
 import { storage } from "./storage";
+import { creditService } from "./creditService";
 
 export async function setupGoogleAuth(app: Express) {
   const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim();
@@ -70,6 +71,13 @@ export async function setupGoogleAuth(app: Express) {
             profileImageUrl: profileImageUrl,
             provider: 'google',
           });
+
+          // 신규 가입 보너스 지급 (이미 받은 경우 무시됨)
+          try {
+            await creditService.grantSignupBonus(userId);
+          } catch (bonusError) {
+            console.error('가입 보너스 지급 오류:', bonusError);
+          }
 
           const user = {
             id: userId,
