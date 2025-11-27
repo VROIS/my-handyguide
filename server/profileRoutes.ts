@@ -101,6 +101,48 @@ router.get('/profile/transactions', async (req: Request, res: Response) => {
   }
 });
 
+// 🔒 크레딧 사용 (상세페이지/공유페이지 생성 시)
+router.post('/profile/use-credits', async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId((req as any).user);
+    
+    if (!userId) {
+      return res.status(401).json({ error: '로그인이 필요합니다.', success: false });
+    }
+
+    const { amount, description } = req.body;
+    
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ error: '올바른 크레딧 양을 입력하세요.', success: false });
+    }
+
+    const balance = await creditService.getBalance(userId);
+    
+    if (balance < amount) {
+      return res.status(400).json({ 
+        error: '크레딧이 부족합니다.', 
+        success: false,
+        balance,
+        required: amount
+      });
+    }
+
+    // 크레딧 차감
+    await creditService.useCredits(userId, amount, description || 'AI 기능 사용');
+    const newBalance = await creditService.getBalance(userId);
+
+    res.json({ 
+      success: true, 
+      balance: newBalance,
+      used: amount,
+      description 
+    });
+  } catch (error: any) {
+    console.error('Use credits error:', error);
+    res.status(500).json({ error: 'Failed to use credits', success: false });
+  }
+});
+
 router.get('/profile/exchange-rate', async (req: Request, res: Response) => {
   try {
     const rate = await getEURtoKRW();

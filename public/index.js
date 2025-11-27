@@ -123,6 +123,159 @@ document.addEventListener('DOMContentLoaded', () => {
     // App State
     let currentContent = { imageDataUrl: null, description: '' };
     let isSelectionMode = false;
+
+    // ═══════════════════════════════════════════════════════════════
+    // 🔒 사용량 제한 시스템 (2025-11-27)
+    // 목적: 비가입자 횟수 제한 + 가입자 크레딧 체크
+    // ═══════════════════════════════════════════════════════════════
+    const USAGE_LIMITS = {
+        GUEST_DETAIL_LIMIT: 3,      // 비가입자 상세페이지 생성 제한
+        GUEST_SHARE_LIMIT: 2,       // 비가입자 공유페이지 생성 제한
+        DETAIL_CREDIT_COST: 2,      // 상세페이지 크레딧 비용
+        SHARE_CREDIT_COST: 5        // 공유페이지 크레딧 비용
+    };
+
+    function getGuestUsage() {
+        return {
+            detail: parseInt(localStorage.getItem('guestDetailUsage') || '0'),
+            share: parseInt(localStorage.getItem('guestShareUsage') || '0')
+        };
+    }
+
+    function incrementGuestUsage(type) {
+        const key = type === 'detail' ? 'guestDetailUsage' : 'guestShareUsage';
+        const current = parseInt(localStorage.getItem(key) || '0');
+        localStorage.setItem(key, (current + 1).toString());
+    }
+
+    function isAdmin() {
+        return localStorage.getItem('adminAuthenticated') === 'true';
+    }
+
+    async function checkUserAuth() {
+        try {
+            const response = await fetch('/api/auth/user', { credentials: 'include' });
+            if (response.ok) {
+                const data = await response.json();
+                return data.authenticated ? data.user : null;
+            }
+            return null;
+        } catch (error) {
+            console.error('Auth check error:', error);
+            return null;
+        }
+    }
+
+    async function checkCredits() {
+        try {
+            const response = await fetch('/api/profile/credits', { credentials: 'include' });
+            if (response.ok) {
+                const data = await response.json();
+                return data.credits || 0;
+            }
+            return 0;
+        } catch (error) {
+            console.error('Credits check error:', error);
+            return 0;
+        }
+    }
+
+    function showAuthModalForUsage() {
+        const authModal = document.getElementById('authModal');
+        if (authModal) {
+            authModal.classList.remove('hidden');
+            authModal.classList.remove('pointer-events-none');
+            authModal.classList.add('pointer-events-auto');
+        }
+        showToast('무료 체험이 끝났습니다. 로그인하면 35 크레딧을 드려요!');
+    }
+
+    function showChargeModal() {
+        showToast('크레딧이 부족합니다. 프로필에서 충전해주세요.');
+        setTimeout(() => {
+            window.open('/profile.html', '_blank');
+        }, 1500);
+    }
+
+    /**
+     * 사용량 제한 체크 (AI 호출 전 필수)
+     * @param {string} type - 'detail' | 'share'
+     * @returns {Promise<boolean>} - true: 진행 가능, false: 차단
+     */
+    async function checkUsageLimit(type = 'detail') {
+        // 1. 관리자는 무제한
+        if (isAdmin()) {
+            console.log('🔓 관리자 모드: 사용량 제한 없음');
+            return true;
+        }
+
+        // 2. 사용자 인증 상태 확인
+        const user = await checkUserAuth();
+
+        if (!user) {
+            // 3. 비가입자: localStorage 횟수 체크
+            const usage = getGuestUsage();
+            const limit = type === 'detail' ? USAGE_LIMITS.GUEST_DETAIL_LIMIT : USAGE_LIMITS.GUEST_SHARE_LIMIT;
+            const current = type === 'detail' ? usage.detail : usage.share;
+
+            if (current >= limit) {
+                console.log(`🔒 비가입자 ${type} 제한 초과: ${current}/${limit}`);
+                showAuthModalForUsage();
+                return false;
+            }
+
+            // 횟수 증가는 AI 호출 성공 후에 해야 하므로 여기서는 안 함
+            console.log(`✅ 비가입자 ${type} 허용: ${current + 1}/${limit}`);
+            return true;
+        }
+
+        // 4. 가입자: 크레딧 체크
+        const credits = await checkCredits();
+        const cost = type === 'detail' ? USAGE_LIMITS.DETAIL_CREDIT_COST : USAGE_LIMITS.SHARE_CREDIT_COST;
+
+        if (credits < cost) {
+            console.log(`🔒 크레딧 부족: ${credits}/${cost}`);
+            showChargeModal();
+            return false;
+        }
+
+        console.log(`✅ 크레딧 충분: ${credits} (필요: ${cost})`);
+        return true;
+    }
+
+    /**
+     * AI 호출 후 사용량 차감
+     * @param {string} type - 'detail' | 'share'
+     */
+    async function deductUsage(type = 'detail') {
+        // 관리자는 차감 안 함
+        if (isAdmin()) return;
+
+        const user = await checkUserAuth();
+
+        if (!user) {
+            // 비가입자: 횟수 증가
+            incrementGuestUsage(type);
+            const usage = getGuestUsage();
+            console.log(`📊 비가입자 사용량 업데이트: detail=${usage.detail}, share=${usage.share}`);
+        } else {
+            // 가입자: 크레딧 차감 (서버에서 처리)
+            try {
+                const cost = type === 'detail' ? USAGE_LIMITS.DETAIL_CREDIT_COST : USAGE_LIMITS.SHARE_CREDIT_COST;
+                const description = type === 'detail' ? '상세페이지 생성' : '공유페이지 생성';
+                
+                await fetch('/api/profile/use-credits', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ amount: cost, description })
+                });
+                console.log(`💳 크레딧 차감: -${cost} (${description})`);
+            } catch (error) {
+                console.error('크레딧 차감 오류:', error);
+            }
+        }
+    }
     let selectedItemIds = []; // ✅ Array로 변경 (클릭 순서 보존!)
     
     // ═══════════════════════════════════════════════════════════════
@@ -1302,8 +1455,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function capturePhoto() {
+    async function capturePhoto() {
         if (!video.videoWidth || !video.videoHeight) return;
+        
+        // 🔒 사용량 제한 체크 (AI 호출 전)
+        const canProceed = await checkUsageLimit('detail');
+        if (!canProceed) return;
+        
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const context = canvas.getContext('2d');
@@ -1377,6 +1535,12 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleFileSelect(event) {
         const file = event.target.files?.[0];
         if (file) {
+            // 🔒 사용량 제한 체크 (AI 호출 전)
+            const canProceed = await checkUsageLimit('detail');
+            if (!canProceed) {
+                event.target.value = '';
+                return;
+            }
             // 📸 Step 1: GPS EXIF 데이터 추출 (exifr 라이브러리)
             try {
                 if (window.exifr) {
@@ -1505,6 +1669,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 descriptionText.appendChild(span);
                 queueForSpeech(sentence, span);
             }
+            
+            // 🔒 AI 호출 성공 후 사용량 차감
+            await deductUsage('detail');
 
         } catch (err) {
             console.error("분석 오류:", err);
@@ -1520,9 +1687,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    function handleMicButtonClick() {
+    async function handleMicButtonClick() {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
         if (isRecognizing) return recognition.stop();
+        
+        // 🔒 사용량 제한 체크 (AI 호출 전)
+        const canProceed = await checkUsageLimit('detail');
+        if (!canProceed) return;
         
         isRecognizing = true;
         micBtn.classList.add('mic-listening');
