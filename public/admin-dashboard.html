@@ -191,6 +191,9 @@
                 <button onclick="showTab('stats')" id="tab-stats" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
                     통계
                 </button>
+                <button onclick="showTab('cashback')" id="tab-cashback" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
+                    💰 캐시백
+                </button>
             </div>
         </div>
 
@@ -428,6 +431,52 @@
                 </div>
             </div>
         </div>
+
+        <!-- 캐시백 탭 (2025-11-28 리워드 시스템) -->
+        <div id="content-cashback" class="hidden">
+            <div class="space-y-6">
+                <!-- 캐시백 통계 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="stat-card bg-white rounded-lg p-6 shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">대기 중인 요청</h3>
+                        <p id="pendingCashback" class="text-3xl font-bold text-amber-600">-</p>
+                    </div>
+                    <div class="stat-card bg-white rounded-lg p-6 shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">승인된 요청</h3>
+                        <p id="approvedCashback" class="text-3xl font-bold text-green-600">-</p>
+                    </div>
+                    <div class="stat-card bg-white rounded-lg p-6 shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">총 지급액</h3>
+                        <p id="totalCashbackAmount" class="text-3xl font-bold text-blue-600">-</p>
+                    </div>
+                </div>
+                
+                <!-- 캐시백 요청 목록 -->
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">캐시백 요청 목록</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b bg-gray-50">
+                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">상태</th>
+                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">사용자</th>
+                                    <th class="text-center py-3 px-4 text-sm font-medium text-gray-500">크레딧</th>
+                                    <th class="text-center py-3 px-4 text-sm font-medium text-gray-500">금액</th>
+                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">결제수단</th>
+                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">신청일</th>
+                                    <th class="text-center py-3 px-4 text-sm font-medium text-gray-500">액션</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cashbackList">
+                                <tr>
+                                    <td colspan="7" class="text-center py-8 text-gray-400">로딩 중...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -458,7 +507,7 @@
             currentTab = tab;
             
             // 모든 탭 숨기기
-            ['overview', 'content', 'guides', 'revenue', 'stats'].forEach(t => {
+            ['overview', 'content', 'guides', 'revenue', 'stats', 'cashback'].forEach(t => {
                 document.getElementById(`content-${t}`).classList.add('hidden');
                 document.getElementById(`tab-${t}`).classList.remove('active');
                 document.getElementById(`tab-${t}`).classList.add('text-gray-500');
@@ -479,6 +528,8 @@
                 loadCurrentFeatured();
             } else if (tab === 'stats') {
                 loadStats();
+            } else if (tab === 'cashback') {
+                loadCashbackRequests();
             }
         }
 
@@ -1743,6 +1794,124 @@
                 });
             });
         });
+
+        // ═══════════════════════════════════════════════════
+        // 💰 캐시백 관리 함수들 (2025-11-28 리워드 시스템)
+        // ═══════════════════════════════════════════════════
+        
+        async function loadCashbackRequests() {
+            try {
+                const res = await fetch('/api/admin/cashback');
+                const data = await res.json();
+                
+                if (!data.requests) {
+                    document.getElementById('cashbackList').innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">캐시백 요청이 없습니다.</td></tr>';
+                    return;
+                }
+                
+                const pending = data.requests.filter(r => r.status === 'pending').length;
+                const approved = data.requests.filter(r => r.status === 'approved').length;
+                const totalAmount = data.requests
+                    .filter(r => r.status === 'approved')
+                    .reduce((sum, r) => sum + (r.cashAmount || 0), 0);
+                
+                document.getElementById('pendingCashback').textContent = pending;
+                document.getElementById('approvedCashback').textContent = approved;
+                document.getElementById('totalCashbackAmount').textContent = `€${(totalAmount / 100).toFixed(2)}`;
+                
+                if (data.requests.length === 0) {
+                    document.getElementById('cashbackList').innerHTML = '<tr><td colspan="7" class="text-center py-8 text-gray-400">캐시백 요청이 없습니다.</td></tr>';
+                    return;
+                }
+                
+                document.getElementById('cashbackList').innerHTML = data.requests.map(req => {
+                    const statusBadge = {
+                        'pending': '<span class="px-2 py-1 bg-amber-100 text-amber-800 text-xs rounded-full">⏳ 대기</span>',
+                        'approved': '<span class="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full">✅ 승인</span>',
+                        'rejected': '<span class="px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">❌ 거절</span>'
+                    }[req.status] || req.status;
+                    
+                    const methodText = {
+                        'kakaopay': '카카오페이',
+                        'bank_transfer': '계좌이체'
+                    }[req.paymentMethod] || req.paymentMethod;
+                    
+                    const actionBtns = req.status === 'pending' ? `
+                        <div class="flex gap-2">
+                            <button onclick="approveCashback('${req.id}')" class="px-3 py-1 bg-green-500 hover:bg-green-600 text-white text-xs rounded-lg transition">승인</button>
+                            <button onclick="rejectCashback('${req.id}')" class="px-3 py-1 bg-red-500 hover:bg-red-600 text-white text-xs rounded-lg transition">거절</button>
+                        </div>
+                    ` : req.adminNote ? `<span class="text-xs text-gray-500">${req.adminNote}</span>` : '-';
+                    
+                    return `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="py-3 px-4">${statusBadge}</td>
+                            <td class="py-3 px-4 text-sm">${req.userId?.substring(0, 8) || '-'}...</td>
+                            <td class="py-3 px-4 text-sm text-center font-medium">${req.creditsAmount}</td>
+                            <td class="py-3 px-4 text-sm text-center font-medium text-green-600">€${(req.cashAmount / 100).toFixed(0)}</td>
+                            <td class="py-3 px-4 text-sm">${methodText}<br><span class="text-xs text-gray-500">${req.paymentInfo || ''}</span></td>
+                            <td class="py-3 px-4 text-sm">${formatDateTime(req.createdAt)}</td>
+                            <td class="py-3 px-4">${actionBtns}</td>
+                        </tr>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('캐시백 목록 로드 오류:', error);
+                document.getElementById('cashbackList').innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-400">오류가 발생했습니다.</td></tr>';
+            }
+        }
+        
+        async function approveCashback(id) {
+            const adminNote = prompt('승인 메모 (선택사항):');
+            
+            try {
+                const res = await fetch(`/api/admin/cashback/${id}/approve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adminNote: adminNote || '승인됨' })
+                });
+                
+                const result = await res.json();
+                
+                if (result.success) {
+                    alert('캐시백이 승인되었습니다.');
+                    loadCashbackRequests();
+                } else {
+                    alert('오류: ' + (result.error || '승인 실패'));
+                }
+            } catch (error) {
+                alert('오류: ' + error.message);
+            }
+        }
+        
+        async function rejectCashback(id) {
+            const adminNote = prompt('거절 사유 (필수):');
+            
+            if (!adminNote) {
+                alert('거절 사유를 입력해주세요.');
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/admin/cashback/${id}/reject`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ adminNote })
+                });
+                
+                const result = await res.json();
+                
+                if (result.success) {
+                    alert('캐시백이 거절되었습니다.');
+                    loadCashbackRequests();
+                } else {
+                    alert('오류: ' + (result.error || '거절 실패'));
+                }
+            } catch (error) {
+                alert('오류: ' + error.message);
+            }
+        }
 
         // 초기화
         init();
