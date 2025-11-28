@@ -313,13 +313,33 @@
             return date.toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' });
         }
 
+        function isAdmin() {
+            return localStorage.getItem('adminAuthenticated') === 'true';
+        }
+
         async function loadProfile() {
+            const adminMode = isAdmin();
+            
             try {
                 const response = await fetch('/api/profile', { credentials: 'include' });
                 const data = await response.json();
 
                 document.getElementById('profileLoading').classList.add('hidden');
                 document.getElementById('profileContent').classList.remove('hidden');
+
+                // 관리자 모드 UI 적용
+                if (adminMode) {
+                    document.getElementById('creditsAmount').textContent = '∞';
+                    document.getElementById('chargeBtn').classList.add('hidden');
+                    document.getElementById('pricingSection').classList.add('hidden');
+                    
+                    // 관리자 배지 추가 (userName 옆에)
+                    const userNameEl = document.getElementById('userName');
+                    if (userNameEl && !document.getElementById('adminBadge')) {
+                        userNameEl.insertAdjacentHTML('afterend', 
+                            '<span id="adminBadge" class="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full">관리자</span>');
+                    }
+                }
 
                 if (data.authenticated && data.user) {
                     document.getElementById('guestView').classList.add('hidden');
@@ -335,7 +355,11 @@
                     document.getElementById('userName').textContent = 
                         [data.user.firstName, data.user.lastName].filter(Boolean).join(' ') || '사용자';
                     document.getElementById('userEmail').textContent = data.user.email || '';
-                    document.getElementById('creditsAmount').textContent = data.credits || 0;
+                    
+                    // 관리자가 아닐 때만 크레딧 숫자 표시
+                    if (!adminMode) {
+                        document.getElementById('creditsAmount').textContent = data.credits || 0;
+                    }
 
                     highlightCurrentPlan(data.credits || 0);
                 } else {
