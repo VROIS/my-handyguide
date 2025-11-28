@@ -229,8 +229,10 @@ export async function setupGoogleAuth(app: Express) {
                       window.close();
                     }, 300);
                   } else {
-                    // opener 없으면 보관함으로 이동
-                    window.location.href = '/#archive';
+                    // sessionStorage에서 리다이렉트 URL 확인
+                    const redirectUrl = sessionStorage.getItem('authRedirect') || '/#archive';
+                    sessionStorage.removeItem('authRedirect');
+                    window.location.href = redirectUrl;
                   }
                 };
 
