@@ -1636,6 +1636,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ═══════════════════════════════════════════════════════════════
+  // 💰 캐시백 관리 API (2025-11-28 리워드 시스템)
+  // ═══════════════════════════════════════════════════════════════
+  
+  // GET /api/admin/cashback - 모든 캐시백 요청 목록
+  app.get('/api/admin/cashback', requireAdmin, async (req: any, res) => {
+    try {
+      const requests = await storage.getAllCashbackRequests();
+      res.json({ requests });
+    } catch (error) {
+      console.error('캐시백 목록 조회 오류:', error);
+      res.status(500).json({ error: '캐시백 목록 조회 실패' });
+    }
+  });
+  
+  // POST /api/admin/cashback/:id/approve - 캐시백 승인
+  app.post('/api/admin/cashback/:id/approve', requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { adminNote } = req.body;
+      
+      const request = await storage.approveCashbackRequest(id, adminNote);
+      res.json({ success: true, request });
+    } catch (error: any) {
+      console.error('캐시백 승인 오류:', error);
+      res.status(400).json({ error: error.message || '캐시백 승인 실패' });
+    }
+  });
+  
+  // POST /api/admin/cashback/:id/reject - 캐시백 거절
+  app.post('/api/admin/cashback/:id/reject', requireAdmin, async (req: any, res) => {
+    try {
+      const { id } = req.params;
+      const { adminNote } = req.body;
+      
+      if (!adminNote) {
+        return res.status(400).json({ error: '거절 사유를 입력해주세요.' });
+      }
+      
+      const request = await storage.rejectCashbackRequest(id, adminNote);
+      res.json({ success: true, request });
+    } catch (error: any) {
+      console.error('캐시백 거절 오류:', error);
+      res.status(400).json({ error: error.message || '캐시백 거절 실패' });
+    }
+  });
+
   // GET /api/admin/featured/:id/data - Featured 편집용 데이터 조회
   app.get('/api/admin/featured/:id/data', requireAdmin, async (req: any, res) => {
     try {

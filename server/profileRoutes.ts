@@ -431,4 +431,71 @@ router.delete('/profile/pages/share/:id', async (req: Request, res: Response) =>
   }
 });
 
+// ═══════════════════════════════════════════════════════════════
+// 💰 캐시백 요청 API (2025-11-28 리워드 시스템)
+// ═══════════════════════════════════════════════════════════════
+
+// 캐시백 신청
+router.post('/profile/cashback/request', async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId((req as any).user);
+    
+    if (!userId) {
+      return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+
+    const { paymentMethod, paymentInfo } = req.body;
+    
+    if (!paymentMethod || !paymentInfo) {
+      return res.status(400).json({ error: '결제 방법과 결제 정보를 입력해주세요.' });
+    }
+
+    const request = await storage.createCashbackRequest(userId, {
+      creditsAmount: 200,
+      cashAmount: 2000, // 20 EUR in cents
+      paymentMethod,
+      paymentInfo
+    });
+
+    res.json({ success: true, request });
+  } catch (error: any) {
+    console.error('Cashback request error:', error);
+    res.status(400).json({ error: error.message || '캐시백 신청 실패' });
+  }
+});
+
+// 내 캐시백 요청 목록
+router.get('/profile/cashback/history', async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId((req as any).user);
+    
+    if (!userId) {
+      return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+
+    const requests = await storage.getUserCashbackRequests(userId);
+    res.json({ requests });
+  } catch (error: any) {
+    console.error('Cashback history error:', error);
+    res.status(500).json({ error: '캐시백 내역 조회 실패' });
+  }
+});
+
+// 추천 코드 가져오기
+router.get('/profile/referral-code', async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId((req as any).user);
+    
+    if (!userId) {
+      return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+
+    const code = await storage.generateReferralCode(userId);
+    res.json({ referralCode: code });
+  } catch (error: any) {
+    console.error('Referral code error:', error);
+    res.status(500).json({ error: '추천 코드 생성 실패' });
+  }
+});
+
 export default router;
