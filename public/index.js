@@ -129,10 +129,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 목적: 비가입자 횟수 제한 + 가입자 크레딧 체크
     // ═══════════════════════════════════════════════════════════════
     const USAGE_LIMITS = {
-        GUEST_DETAIL_LIMIT: 3,      // 비가입자 상세페이지 생성 제한
-        GUEST_SHARE_LIMIT: 2,       // 비가입자 공유페이지 생성 제한
-        DETAIL_CREDIT_COST: 2,      // 상세페이지 크레딧 비용
-        SHARE_CREDIT_COST: 5        // 공유페이지 크레딧 비용
+        GUEST_DETAIL_LIMIT: 3,      // 비가입자 AI 응답 생성 제한
+        GUEST_SHARE_LIMIT: 999999,  // 공유페이지 무제한 (홍보 채널)
+        DETAIL_CREDIT_COST: 2,      // AI 응답 크레딧 비용
+        SHARE_CREDIT_COST: 0        // 공유페이지 무료
     };
 
     function getGuestUsage() {
@@ -268,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 가입자: 크레딧 차감 (서버에서 처리)
             try {
                 const cost = type === 'detail' ? USAGE_LIMITS.DETAIL_CREDIT_COST : USAGE_LIMITS.SHARE_CREDIT_COST;
-                const description = type === 'detail' ? '상세페이지 생성' : '공유페이지 생성';
+                const description = type === 'detail' ? 'AI 응답 생성' : '공유페이지 생성';
                 
                 await fetch('/api/profile/use-credits', {
                     method: 'POST',
