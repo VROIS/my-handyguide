@@ -64,3 +64,68 @@ A RESTful API built with Express features shared TypeScript schemas, robust erro
 -   **TypeScript**: Language for type safety.
 -   **PostCSS**: CSS transformation tool.
 -   **TSX**: TypeScript execution.
+
+# Reusable Components
+
+## Guide Detail Page Component (`public/components/guideDetailPage.js`)
+
+**⚠️ 2025-11-28 확보된 로직 - 절대 수정 금지!**
+
+풀스크린 상세페이지 컴포넌트. 이미지 배경 + 음성 자동재생 + 문장별 하이라이트.
+
+### 기능
+- 풀스크린 이미지 배경 (투명 오버레이)
+- 흰색 텍스트 (그림자 없음)
+- 음성 자동재생 (Microsoft Heami TTS)
+- 문장별 파란 하이라이트 `rgba(66, 133, 244, 0.3)`
+- 자동 스크롤 (현재 문장 따라감)
+- 위치 정보 표시 (흰색 박스)
+- play/pause 아이콘 토글
+- 뒤로가기 = 음성 정지
+
+### 사용법
+
+**1. HTML에 삽입:**
+```html
+<script src="/components/guideDetailPage.js"></script>
+<style>
+    /* 컴포넌트 CSS 추가 (guideDetailPage.getCSS() 내용 복사) */
+</style>
+```
+
+**2. HTML 템플릿 추가:**
+```javascript
+document.body.insertAdjacentHTML('beforeend', guideDetailPage.getHTML());
+```
+
+**3. 초기화:**
+```javascript
+guideDetailPage.init({
+    onClose: () => console.log('닫힘')
+});
+```
+
+**4. 열기:**
+```javascript
+// API로 가이드 데이터 가져오기
+guideDetailPage.open(guideId);
+
+// 또는 직접 데이터 전달
+guideDetailPage.openWithData({
+    imageUrl: 'https://...',
+    description: '설명 텍스트',
+    locationName: '위치 이름'
+});
+```
+
+### 필수 CSS 변수
+```css
+:root {
+    --gemini-blue: #4285F4;
+}
+```
+
+### 주의사항
+- `text-shadow` 사용 금지 (투명 오버레이 깨짐)
+- `justify-content: flex-end` 사용 금지 (텍스트 시작 위치 깨짐)
+- Microsoft Heami 음성은 Windows에서만 지원
