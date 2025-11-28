@@ -29,6 +29,38 @@ Replit Auth and Google OAuth 2.0 (via `passport-google-oauth20`) are integrated 
 ## API Design
 A RESTful API built with Express features shared TypeScript schemas, robust error handling, and authentication middleware. A short URL system is implemented for share links.
 
+## 💰 Referral & Reward System (2025-11-28)
+
+바이럴 성장을 위한 추천인 리워드 시스템:
+
+### 리워드 구조
+- **신규가입**: 추천링크로 가입 시 → 신규 +10, 추천인 +10 크레딧
+- **충전**: 피추천인 충전 시 → 추천인 +20 보너스 크레딧 (매번!)
+- **캐시백**: 200 크레딧 → 20 EUR 현금 환급 (카카오페이/계좌이체)
+
+### 추적 시스템
+1. 공유페이지 `?ref=코드` 파라미터 → 30일 쿠키 저장
+2. 회원가입 시 쿠키 확인 → `users.referredBy` 저장
+3. 충전 시 `processCashbackReward()` 호출 → 추천인 보너스 지급
+
+### 중복 방지
+- 이미 가입된 사용자는 referral 무시
+- 자기추천 방지 (쿠키 vs userId 비교)
+- 캐시백 대기 중 중복 신청 방지
+
+### DB 스키마
+- `users.referredBy`: 추천인 userId
+- `users.referralCode`: 본인 추천코드
+- `cashbackRequests`: 캐시백 신청 테이블 (status: pending/approved/rejected)
+
+### API 엔드포인트
+- `GET /api/profile/referral-code`: 내 추천코드 조회
+- `POST /api/profile/cashback/request`: 캐시백 신청
+- `GET /api/profile/cashback/history`: 캐시백 내역
+- `GET /api/admin/cashback`: 관리자 - 모든 요청 조회
+- `POST /api/admin/cashback/:id/approve`: 관리자 - 승인
+- `POST /api/admin/cashback/:id/reject`: 관리자 - 거절
+
 ## System Design Choices
 -   **UI/UX:** Mobile-first, responsive design with camera/GPS integration.
 -   **Performance:** Optimized AI response times (target 2-2.5 seconds) through model selection and image compression. Featured Gallery caching is implemented for instant display.
