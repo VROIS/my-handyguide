@@ -339,6 +339,23 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
     <script id="app-data" type="application/json">${dataJSON}</script>
     
     <script>
+        // ═══════════════════════════════════════════════════════════════
+        // 🎯 리워드 시스템: Referral 쿠키 저장 (2025-11-28)
+        // URL의 ?ref=XXXX 파라미터를 감지하여 30일간 쿠키에 저장
+        // 나중에 회원가입 시 서버에서 쿠키 확인하여 추천인 연결
+        // ═══════════════════════════════════════════════════════════════
+        (function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref');
+            if (refCode) {
+                // 30일간 쿠키 저장
+                const expires = new Date();
+                expires.setDate(expires.getDate() + 30);
+                document.cookie = 'referralCode=' + encodeURIComponent(refCode) + ';expires=' + expires.toUTCString() + ';path=/;SameSite=Lax';
+                console.log('🎁 Referral code saved:', refCode);
+            }
+        })();
+        
         // 데이터 로드
         const appData = JSON.parse(document.getElementById('app-data').textContent);
         const galleryView = document.getElementById('gallery-view');
