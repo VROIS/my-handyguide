@@ -139,6 +139,19 @@
         </div>
     </div>
 
+    <div id="detailModal" class="fixed inset-0 z-[9998] bg-gray-900/80 backdrop-blur-sm flex items-center justify-center hidden">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
+                <h2 id="detailModalTitle" class="text-lg font-bold text-gray-800 truncate">AI 응답</h2>
+                <button id="closeDetailModalBtn" class="p-2 text-gray-500 hover:text-gray-800 text-2xl leading-none">&times;</button>
+            </div>
+            <div class="flex-1 overflow-y-auto">
+                <img id="detailModalImage" src="" alt="" class="w-full object-contain max-h-64 bg-gray-100">
+                <div id="detailModalContent" class="p-4 text-sm text-gray-700 whitespace-pre-wrap"></div>
+            </div>
+        </div>
+    </div>
+
     <div class="min-h-screen pb-8">
         <header class="bg-white/95 backdrop-blur-sm sticky top-0 z-50 border-b border-gray-200/80">
             <div class="max-w-lg mx-auto px-4 py-3 flex items-center">
@@ -393,7 +406,7 @@
                     detailContainer.innerHTML = `
                         <p class="text-xs text-gray-500 mb-2">AI 응답 (${data.detailPages.length})</p>
                         ${data.detailPages.map(page => `
-                            <div class="item-row" data-id="${page.id}" data-type="detail">
+                            <div class="item-row cursor-pointer hover:bg-gray-100 transition" data-id="${page.id}" data-type="detail" onclick="viewGuideDetail('${page.id}')">
                                 <div class="w-10 h-10 rounded-lg bg-gray-200 mr-3 overflow-hidden flex-shrink-0">
                                     ${page.thumbnail ? `<img src="${page.thumbnail}" class="w-full h-full object-cover">` : ''}
                                 </div>
@@ -401,7 +414,7 @@
                                     <p class="text-sm font-medium text-gray-900 truncate">${page.title || '제목 없음'}</p>
                                     <p class="text-xs text-gray-500">${formatDate(page.createdAt)}</p>
                                 </div>
-                                <button class="delete-btn p-2 text-gray-400 hover:text-red-500" onclick="deletePage('${page.id}', 'detail')">
+                                <button class="delete-btn p-2 text-gray-400 hover:text-red-500" onclick="event.stopPropagation(); deletePage('${page.id}', 'detail')">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
                                         <path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/>
                                     </svg>
@@ -601,6 +614,42 @@
 
         document.getElementById('contactProBtn')?.addEventListener('click', () => {
             window.location.href = 'mailto:dbstour1@gmail.com?subject=[손안에 가이드] 프로플랜 문의';
+        });
+
+        // 상세보기 모달 기능
+        function showDetailModal() {
+            const modal = document.getElementById('detailModal');
+            modal.classList.remove('hidden');
+        }
+
+        function hideDetailModal() {
+            const modal = document.getElementById('detailModal');
+            modal.classList.add('hidden');
+        }
+
+        async function viewGuideDetail(guideId) {
+            try {
+                showDetailModal();
+                document.getElementById('detailModalContent').textContent = '불러오는 중...';
+                document.getElementById('detailModalImage').src = '';
+
+                const response = await fetch(`/api/guides/${guideId}`, { credentials: 'include' });
+                if (!response.ok) throw new Error('가이드를 불러올 수 없습니다.');
+                
+                const guide = await response.json();
+                
+                document.getElementById('detailModalTitle').textContent = guide.locationName || guide.title || 'AI 응답';
+                document.getElementById('detailModalImage').src = guide.imageUrl || '';
+                document.getElementById('detailModalContent').textContent = guide.description || '내용 없음';
+            } catch (error) {
+                console.error('Guide detail error:', error);
+                document.getElementById('detailModalContent').textContent = '불러오기 실패';
+            }
+        }
+
+        document.getElementById('closeDetailModalBtn').addEventListener('click', hideDetailModal);
+        document.getElementById('detailModal').addEventListener('click', (e) => {
+            if (e.target.id === 'detailModal') hideDetailModal();
         });
 
         const urlParams = new URLSearchParams(window.location.search);
