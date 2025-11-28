@@ -20,6 +20,8 @@
             min-height: 100vh;
             background-color: #FFFEFA;
             font-family: 'MaruBuri', 'Pretendard', sans-serif;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
         .card {
             background: white;
@@ -255,7 +257,7 @@
                             </div>
                         </div>
                         <div class="mt-3 pt-3 border-t border-gray-200 text-left">
-                            <p class="text-sm plan-benefit text-gray-600">상세페이지 10회 + 공유페이지 3회</p>
+                            <p class="text-sm plan-benefit text-gray-600">AI 응답 10회 + 공유페이지 3회</p>
                         </div>
                     </div>
                     <div class="plan-card" data-plan="standard">
@@ -389,7 +391,7 @@
                 if (data.detailPages && data.detailPages.length > 0) {
                     hasContent = true;
                     detailContainer.innerHTML = `
-                        <p class="text-xs text-gray-500 mb-2">상세페이지 (${data.detailPages.length})</p>
+                        <p class="text-xs text-gray-500 mb-2">AI 응답 (${data.detailPages.length})</p>
                         ${data.detailPages.map(page => `
                             <div class="item-row" data-id="${page.id}" data-type="detail">
                                 <div class="w-10 h-10 rounded-lg bg-gray-200 mr-3 overflow-hidden flex-shrink-0">
