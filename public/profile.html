@@ -103,63 +103,70 @@
         @media (hover: none) {
             .delete-btn { opacity: 0.6; }
         }
-        /* 풀 화면 상세보기 스타일 (보관함 Detail Page 복사) */
+        /* ⚠️ 원본 index.html 스타일 그대로 복사 (2025-11-28) */
         #guideDetailPage {
             position: fixed;
-            inset: 0;
-            z-index: 9998;
-            display: flex;
-            flex-direction: column;
-            background-color: #000;
-        }
-        #guideDetailPage .full-screen-bg {
-            position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
+            z-index: 9998;
+            display: flex;
+            flex-direction: column;
+        }
+        #guideDetailPage .full-screen-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
             object-fit: cover;
-            z-index: 0;
+            z-index: 1;
         }
         #guideDetailPage .header-safe-area {
-            position: relative;
-            z-index: 10;
-            padding: 1rem;
-            padding-top: max(1rem, env(safe-area-inset-top));
+            width: 100%;
+            height: 80px;
+            flex-shrink: 0;
+            z-index: 30;
             display: flex;
             align-items: center;
             justify-content: center;
-            min-height: 60px;
+            padding: 0 1rem;
+            position: relative;
         }
         #guideDetailPage .content-safe-area {
-            position: relative;
-            z-index: 10;
             flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            background: transparent;
+            z-index: 20;
             display: flex;
             flex-direction: column;
             justify-content: flex-end;
-            padding: 1rem;
-            padding-bottom: 0;
-            overflow-y: auto;
         }
         #guideDetailPage .text-content {
-            background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.6) 50%, transparent 100%);
-            padding: 2rem 1rem 1rem;
-            margin: 0 -1rem;
-            border-radius: 1rem 1rem 0 0;
+            padding: 2rem 1.5rem;
+            line-height: 1.8;
+            word-break: keep-all;
+            overflow-wrap: break-word;
+            background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.4) 70%, transparent 100%);
+            max-height: 60vh;
+            overflow-y: auto;
         }
         #guideDetailPage .readable-on-image {
             color: white;
             text-shadow: 0px 2px 8px rgba(0, 0, 0, 0.95);
         }
         #guideDetailPage .footer-safe-area {
-            position: relative;
-            z-index: 10;
-            padding: 1rem;
-            padding-bottom: max(1rem, env(safe-area-inset-bottom));
+            width: 100%;
+            height: 100px;
+            flex-shrink: 0;
+            z-index: 30;
             display: flex;
             justify-content: center;
+            align-items: center;
             gap: 1.5rem;
+            padding: 0 1rem;
             background: transparent;
         }
         #guideDetailPage .interactive-btn {
@@ -793,19 +800,25 @@
                 updateAudioButtonIcon(true);
             };
             
-            // 단어 경계마다 하이라이트
+            // 단어 경계마다 하이라이트 + 자동 스크롤
             currentUtterance.onboundary = (event) => {
                 if (event.name === 'sentence') {
                     // 현재 문장 하이라이트
                     const highlightedHTML = sentences.map((sentence, idx) => {
                         if (idx === currentSentenceIndex) {
-                            return '<span style="background-color: rgba(66, 133, 244, 0.3); font-weight: 600;">' + sentence + '</span>';
+                            return '<span class="current-sentence" style="background-color: rgba(66, 133, 244, 0.3); font-weight: 600;">' + sentence + '</span>';
                         }
                         return sentence;
                     }).join('');
                     
                     guideDetailDescription.innerHTML = highlightedHTML;
                     currentSentenceIndex++;
+                    
+                    // ⚠️ 자동 스크롤 - 현재 문장이 보이도록
+                    const currentSpan = guideDetailDescription.querySelector('.current-sentence');
+                    if (currentSpan) {
+                        currentSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
                 }
             };
             
