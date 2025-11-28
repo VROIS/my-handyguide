@@ -396,6 +396,11 @@
         </main>
     </div>
 
+    <!-- 공유 모달 (index.js 2회차 성공 모달과 동일) -->
+    <div id="shareModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div id="shareModalContent" class="bg-white rounded-2xl max-w-md w-full shadow-2xl"></div>
+    </div>
+
     <script>
         const toastContainer = document.getElementById('toastContainer');
         
@@ -876,46 +881,91 @@
             speechSynthesis.onvoiceschanged = populateVoiceList;
         }
 
-        // 공유 기능
+        // 공유 기능 (index.js 2회차 성공 모달과 동일)
+        const shareModal = document.getElementById('shareModal');
+        const shareModalContent = document.getElementById('shareModalContent');
+
         async function sharePage(pageId, pageName) {
             const shareUrl = `${window.location.origin}/s/${pageId}`;
             
-            if (navigator.share) {
-                try {
-                    await navigator.share({
-                        title: pageName || '손안에 가이드',
-                        text: `${pageName || '손안에 가이드'} - AI 여행 가이드`,
-                        url: shareUrl
-                    });
-                } catch (err) {
-                    if (err.name !== 'AbortError') {
-                        await copyToClipboard(shareUrl);
-                    }
-                }
-            } else {
-                await copyToClipboard(shareUrl);
-            }
-        }
-
-        async function copyToClipboard(text) {
+            // 📋 클립보드에 복사 시도
+            let copySuccess = false;
             try {
-                await navigator.clipboard.writeText(text);
-                showToast('링크가 복사되었습니다!');
+                await navigator.clipboard.writeText(shareUrl);
+                copySuccess = true;
             } catch (err) {
-                const textArea = document.createElement('textarea');
-                textArea.value = text;
-                textArea.style.position = 'fixed';
-                textArea.style.left = '-9999px';
-                document.body.appendChild(textArea);
-                textArea.select();
+                // fallback 시도
                 try {
+                    const textArea = document.createElement('textarea');
+                    textArea.value = shareUrl;
+                    textArea.style.position = 'fixed';
+                    textArea.style.left = '-9999px';
+                    document.body.appendChild(textArea);
+                    textArea.select();
                     document.execCommand('copy');
-                    showToast('링크가 복사되었습니다!');
+                    document.body.removeChild(textArea);
+                    copySuccess = true;
                 } catch (e) {
-                    showToast('복사 실패. 링크: ' + text);
+                    console.warn('클립보드 복사 실패:', e);
                 }
-                document.body.removeChild(textArea);
             }
+
+            // ✅ 공유 모달 2번째 팝업 표시 (성공 메시지) - index.js와 동일
+            shareModalContent.innerHTML = `
+                <div class="p-8 text-center">
+                    <div class="w-20 h-20 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
+                        <svg class="w-12 h-12 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">링크 복사 완료!</h3>
+                    ${copySuccess ? `
+                        <p class="text-lg text-gray-700 mb-3">✅ 링크가 클립보드에 복사되었습니다</p>
+                        <p class="text-base text-gray-600">카카오톡, 문자, 메신저 등<br>원하는 곳에 붙여넣기 하세요!</p>
+                    ` : `
+                        <p class="text-base text-gray-700 mb-4">아래 링크를 복사해서 공유하세요:</p>
+                        <div class="bg-gray-100 p-4 rounded-lg mb-3">
+                            <p class="text-sm font-mono text-gray-800 break-all">${shareUrl}</p>
+                        </div>
+                        <button id="manualCopyBtn" data-url="${shareUrl}"
+                                class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                            링크 복사하기
+                        </button>
+                    `}
+                </div>
+            `;
+            
+            shareModal.classList.remove('hidden');
+
+            // 수동 복사 버튼 이벤트 리스너 (클립보드 실패 시)
+            if (!copySuccess) {
+                const manualBtn = document.getElementById('manualCopyBtn');
+                if (manualBtn) {
+                    manualBtn.onclick = async () => {
+                        try {
+                            await navigator.clipboard.writeText(shareUrl);
+                            manualBtn.textContent = '복사 완료!';
+                            setTimeout(() => {
+                                shareModal.classList.add('hidden');
+                            }, 1000);
+                        } catch (err) {
+                            showToast('복사 실패: ' + err.message);
+                        }
+                    };
+                }
+            }
+
+            // 3초 후 자동으로 모달 닫기
+            setTimeout(() => {
+                shareModal.classList.add('hidden');
+            }, 3000);
+
+            // 모달 배경 클릭 시 닫기
+            shareModal.onclick = (e) => {
+                if (e.target === shareModal) {
+                    shareModal.classList.add('hidden');
+                }
+            };
         }
 
         const urlParams = new URLSearchParams(window.location.search);
