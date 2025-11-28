@@ -465,6 +465,13 @@ export class DatabaseStorage implements IStorage {
       .limit(limit);
   }
 
+  async getCreditTransactionByReference(referenceId: string): Promise<CreditTransaction | null> {
+    const result = await db.query.creditTransactions.findFirst({
+      where: eq(creditTransactions.referenceId, referenceId)
+    });
+    return result || null;
+  }
+
   async awardSignupBonus(userId: string, referrerCode: string): Promise<{ bonusAwarded: boolean, newBalance: number, message?: string }> {
     // 이미 보너스를 받았는지 확인
     const existingBonus = await db.query.creditTransactions.findFirst({

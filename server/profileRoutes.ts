@@ -262,7 +262,7 @@ router.post('/profile/checkout', async (req: Request, res: Response) => {
         },
       ],
       mode: 'payment',
-      success_url: `${baseUrl}/profile.html?payment=success`,
+      success_url: `${baseUrl}/profile.html?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/profile.html?payment=cancel`,
       customer_email: user?.email || undefined,
       metadata: {
@@ -275,6 +275,83 @@ router.post('/profile/checkout', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Checkout error:', error);
     res.status(500).json({ error: 'Failed to create checkout session' });
+  }
+});
+
+// 💳 결제 확인 및 크레딧 충전
+router.post('/profile/verify-payment', async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId((req as any).user);
+    
+    if (!userId) {
+      return res.status(401).json({ error: '로그인이 필요합니다.', success: false });
+    }
+
+    const { sessionId } = req.body;
+    
+    if (!sessionId) {
+      return res.status(400).json({ error: 'Session ID가 필요합니다.', success: false });
+    }
+
+    const stripe = await getUncachableStripeClient();
+    
+    // Stripe에서 세션 정보 조회
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    
+    console.log('💳 Verifying payment:', { 
+      sessionId, 
+      userId,
+      paymentStatus: session.payment_status,
+      metadata: session.metadata 
+    });
+
+    // 결제 완료 확인
+    if (session.payment_status !== 'paid') {
+      return res.status(400).json({ 
+        error: '결제가 완료되지 않았습니다.', 
+        success: false,
+        status: session.payment_status 
+      });
+    }
+
+    // 이미 처리된 결제인지 확인 (중복 방지)
+    const existingTransaction = await storage.getCreditTransactionByReference(sessionId);
+    if (existingTransaction) {
+      console.log('⚠️ Payment already processed:', sessionId);
+      const balance = await creditService.getBalance(userId);
+      return res.json({ 
+        success: true, 
+        credits: balance,
+        message: '이미 처리된 결제입니다.' 
+      });
+    }
+
+    // metadata에서 크레딧 정보 확인
+    const credits = parseInt(session.metadata?.credits || CREDIT_CONFIG.PURCHASE_CREDITS.toString());
+    
+    // 크레딧 추가
+    const user = await storage.addCredits(
+      userId,
+      credits,
+      'purchase',
+      `크레딧 구매: ${credits}개 (€${CREDIT_CONFIG.PRICE_EUR})`,
+      sessionId
+    );
+
+    console.log('✅ Credits added:', { userId, credits, newBalance: user.credits });
+
+    // 추천인 킥백 처리
+    await storage.processCashbackReward(CREDIT_CONFIG.PRICE_EUR * 100, userId);
+
+    res.json({ 
+      success: true, 
+      credits: user.credits,
+      added: credits,
+      message: `${credits} 크레딧이 충전되었습니다!` 
+    });
+  } catch (error: any) {
+    console.error('Payment verification error:', error);
+    res.status(500).json({ error: '결제 확인 중 오류가 발생했습니다.', success: false });
   }
 });
 
