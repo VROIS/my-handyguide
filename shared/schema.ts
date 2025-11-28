@@ -93,6 +93,20 @@ export const creditTransactions = pgTable("credit_transactions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Cashback requests table for reward system
+export const cashbackRequests = pgTable("cashback_requests", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  creditsAmount: integer("credits_amount").notNull(), // 200 크레딧
+  cashAmount: integer("cash_amount").notNull(), // 20 EUR (센트 단위로 저장: 2000)
+  paymentMethod: varchar("payment_method").notNull(), // 'kakaopay' | 'bank_transfer'
+  paymentInfo: text("payment_info").notNull(), // 카카오페이 ID 또는 계좌번호
+  status: varchar("status").notNull().default('pending'), // 'pending' | 'approved' | 'rejected'
+  adminNote: text("admin_note"), // 관리자 메모
+  processedAt: timestamp("processed_at"), // 처리 시간
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // API call logs for cost tracking and performance monitoring
 export const apiLogs = pgTable("api_logs", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -230,6 +244,14 @@ export const insertUserActivityLogSchema = createInsertSchema(userActivityLogs).
   createdAt: true,
 });
 
+export const insertCashbackRequestSchema = createInsertSchema(cashbackRequests).omit({
+  id: true,
+  status: true,
+  adminNote: true,
+  processedAt: true,
+  createdAt: true,
+});
+
 // Types
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
@@ -245,3 +267,5 @@ export type InsertApiLog = z.infer<typeof insertApiLogSchema>;
 export type ApiLog = typeof apiLogs.$inferSelect;
 export type InsertUserActivityLog = z.infer<typeof insertUserActivityLogSchema>;
 export type UserActivityLog = typeof userActivityLogs.$inferSelect;
+export type InsertCashbackRequest = z.infer<typeof insertCashbackRequestSchema>;
+export type CashbackRequest = typeof cashbackRequests.$inferSelect;
