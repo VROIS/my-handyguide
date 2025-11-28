@@ -173,3 +173,35 @@ guideDetailPage.openWithData({
 3. **음성 재생 로직 수정 금지** (Microsoft Heami TTS)
 4. **카카오톡 리다이렉트 로직 수정 금지**
 5. **guides 테이블 백업 로직 수정 금지** (parseGuidesFromHtml)
+
+## HTML Parser (`server/html-parser.ts`)
+
+**✅ 2025-11-28 버그 수정 완료**
+
+### 버그 원인 및 해결
+
+**문제:** 공유페이지 생성 후 원본 상세페이지 description 손실
+- `parseGuidesFromHtml()`이 `const shareData` 변수만 찾음
+- `standard-template.ts`는 `#app-data` 스크립트 태그 생성
+- 변수명 불일치 → 파싱 실패 → gallery-item fallback → description 빈 값
+- `onConflictDoUpdate`로 원본 DB 덮어쓰기 → description 손실!
+
+**해결:** 파싱 우선순위 변경
+1. **#app-data 스크립트 태그** (standard-template.ts) ⭐ 최우선
+2. shareData JSON (레거시)
+3. gallery-item 태그 (fallback, description 없음!)
+
+### 파일 연관 관계
+
+```
+standard-template.ts        html-parser.ts              storage.ts
+─────────────────────       ──────────────              ──────────
+<script id="app-data">  →   parseGuidesFromHtml()   →   onConflictDoUpdate
+  [{guid, description}]       ↓ description 추출          ↓ guides DB 저장
+</script>
+```
+
+### ⚠️ 주의사항
+
+- `#app-data` 스크립트 태그 ID 변경 금지!
+- dataJSON 구조 변경 시 html-parser.ts도 동기화 필요
