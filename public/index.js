@@ -3293,7 +3293,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ✅ 2025.11.28: 프로필 버튼 - 프로필 페이지로 이동
     profileBtn?.addEventListener('click', () => {
-        window.location.href = '/profile.html';
+        window.open('/profile.html', '_blank');
     });
     // ✅ 공유 버튼 간편 로직 - 2025.10.02 구현 완료 (디바운스 추가)
     // 핵심: 1회 클릭 → 선택 모드 활성화 / 2회 클릭 (선택 후) → 공유 모달
