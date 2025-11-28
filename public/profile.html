@@ -338,6 +338,54 @@
                 <p id="noTransactions" class="text-center text-gray-400 py-4 hidden">아직 내역이 없습니다</p>
             </section>
 
+            <section id="cashbackSection" class="card">
+                <div class="flex items-center gap-2 mb-4">
+                    <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <h2 class="font-bold text-gray-900">친구 추천 & 캐시백</h2>
+                </div>
+                
+                <div id="referralCodeBox" class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 mb-4">
+                    <p class="text-sm text-gray-600 mb-2">내 추천 링크 공유하기</p>
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="referralLink" readonly 
+                            class="flex-1 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono truncate"
+                            data-testid="input-referral-link"/>
+                        <button id="copyReferralBtn" class="flex-shrink-0 bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                            data-testid="button-copy-referral">복사</button>
+                    </div>
+                    <div class="mt-3 text-xs text-gray-500 space-y-1">
+                        <p>🎁 친구 가입 시: 나 +10, 친구 +10 크레딧</p>
+                        <p>💳 친구 충전 시: 나 +20 보너스 크레딧 (매번!)</p>
+                    </div>
+                </div>
+                
+                <div id="cashbackRequestBox" class="bg-amber-50 rounded-xl p-4 mb-4">
+                    <p class="text-sm font-medium text-amber-800 mb-2">💰 캐시백 신청 (200 크레딧 → 20 EUR)</p>
+                    <p id="cashbackEligible" class="text-xs text-gray-600 mb-3">현재 크레딧: <span id="cashbackCredits">-</span></p>
+                    <div id="cashbackForm" class="hidden space-y-3">
+                        <select id="paymentMethod" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                            data-testid="select-payment-method">
+                            <option value="">결제 방법 선택</option>
+                            <option value="kakaopay">카카오페이</option>
+                            <option value="bank_transfer">계좌이체</option>
+                        </select>
+                        <input type="text" id="paymentInfo" placeholder="카카오페이 ID 또는 계좌정보 (은행/계좌번호/예금주)"
+                            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"
+                            data-testid="input-payment-info"/>
+                        <button id="requestCashbackBtn" class="w-full bg-amber-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-amber-700 transition"
+                            data-testid="button-request-cashback">캐시백 신청하기</button>
+                    </div>
+                    <p id="cashbackNotEligible" class="text-xs text-amber-700 hidden">200 크레딧 이상 보유 시 신청 가능합니다.</p>
+                </div>
+                
+                <div id="cashbackHistory" class="hidden">
+                    <p class="text-sm font-medium text-gray-700 mb-2">캐시백 신청 내역</p>
+                    <div id="cashbackHistoryList" class="space-y-2"></div>
+                </div>
+            </section>
+
             <section id="pricingSection" class="card">
                 <div class="flex items-center gap-2 mb-4">
                     <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
@@ -1001,21 +1049,149 @@
             window.history.replaceState({}, document.title, '/profile.html');
         }
 
+        // ═══════════════════════════════════════════════════════════════
+        // 💰 캐시백 & 추천 시스템 (2025-11-28 리워드 시스템)
+        // ═══════════════════════════════════════════════════════════════
+        
+        async function loadReferralCode() {
+            try {
+                const response = await fetch('/api/profile/referral-code', { credentials: 'include' });
+                const data = await response.json();
+                
+                if (data.referralCode) {
+                    const baseUrl = window.location.origin;
+                    const referralLink = `${baseUrl}/?ref=${data.referralCode}`;
+                    document.getElementById('referralLink').value = referralLink;
+                }
+            } catch (error) {
+                console.error('Referral code load error:', error);
+            }
+        }
+        
+        async function loadCashbackInfo() {
+            try {
+                const [profileRes, historyRes] = await Promise.all([
+                    fetch('/api/profile', { credentials: 'include' }),
+                    fetch('/api/profile/cashback/history', { credentials: 'include' })
+                ]);
+                
+                const profileData = await profileRes.json();
+                const historyData = await historyRes.json();
+                
+                const credits = profileData.credits || 0;
+                document.getElementById('cashbackCredits').textContent = credits;
+                
+                if (credits >= 200) {
+                    document.getElementById('cashbackForm').classList.remove('hidden');
+                    document.getElementById('cashbackNotEligible').classList.add('hidden');
+                } else {
+                    document.getElementById('cashbackForm').classList.add('hidden');
+                    document.getElementById('cashbackNotEligible').classList.remove('hidden');
+                }
+                
+                // 캐시백 내역 표시
+                if (historyData.requests && historyData.requests.length > 0) {
+                    document.getElementById('cashbackHistory').classList.remove('hidden');
+                    document.getElementById('cashbackHistoryList').innerHTML = historyData.requests.map(req => {
+                        const statusText = {
+                            'pending': '⏳ 대기중',
+                            'approved': '✅ 승인',
+                            'rejected': '❌ 거절'
+                        }[req.status] || req.status;
+                        
+                        return `
+                            <div class="bg-gray-50 rounded-lg p-3">
+                                <div class="flex items-center justify-between mb-1">
+                                    <span class="text-sm font-medium">${req.creditsAmount} 크레딧 → ${(req.cashAmount / 100).toFixed(0)} EUR</span>
+                                    <span class="text-xs">${statusText}</span>
+                                </div>
+                                <p class="text-xs text-gray-500">${new Date(req.createdAt).toLocaleDateString('ko-KR')}</p>
+                                ${req.adminNote ? `<p class="text-xs text-gray-600 mt-1">${req.adminNote}</p>` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                }
+            } catch (error) {
+                console.error('Cashback info load error:', error);
+            }
+        }
+        
+        // 추천 링크 복사
+        document.getElementById('copyReferralBtn').onclick = async () => {
+            const link = document.getElementById('referralLink').value;
+            if (!link) return;
+            
+            try {
+                await navigator.clipboard.writeText(link);
+                showToast('추천 링크가 복사되었습니다!');
+                document.getElementById('copyReferralBtn').textContent = '복사됨!';
+                setTimeout(() => {
+                    document.getElementById('copyReferralBtn').textContent = '복사';
+                }, 2000);
+            } catch (error) {
+                showToast('복사 실패: ' + error.message);
+            }
+        };
+        
+        // 캐시백 신청
+        document.getElementById('requestCashbackBtn').onclick = async () => {
+            const paymentMethod = document.getElementById('paymentMethod').value;
+            const paymentInfo = document.getElementById('paymentInfo').value;
+            
+            if (!paymentMethod) {
+                showToast('결제 방법을 선택해주세요.');
+                return;
+            }
+            if (!paymentInfo) {
+                showToast('결제 정보를 입력해주세요.');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/profile/cashback/request', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ paymentMethod, paymentInfo })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast('캐시백 신청이 완료되었습니다!');
+                    document.getElementById('paymentMethod').value = '';
+                    document.getElementById('paymentInfo').value = '';
+                    loadCashbackInfo();
+                    loadTransactions();
+                    loadProfile();
+                } else {
+                    showToast(result.error || '캐시백 신청 실패');
+                }
+            } catch (error) {
+                console.error('Cashback request error:', error);
+                showToast('캐시백 신청 중 오류가 발생했습니다.');
+            }
+        };
+
         loadProfile();
         loadPages();
         loadTransactions();
         loadPricing();
+        loadReferralCode();
+        loadCashbackInfo();
 
         // ✅ 2025-11-28: 탭 포커스 시 인증/크레딧 상태 실시간 갱신
         // 메인앱 ↔ 프로필 페이지 간 세션 연동
         window.addEventListener('focus', () => {
             loadProfile();
             loadTransactions();
+            loadCashbackInfo();
         });
         window.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
                 loadProfile();
                 loadTransactions();
+                loadCashbackInfo();
             }
         });
     </script>
