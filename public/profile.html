@@ -720,9 +720,17 @@
         const guideDetailTextToggleBtn = document.getElementById('guideDetailTextToggleBtn');
         const guideDetailBackBtn = document.getElementById('guideDetailBackBtn');
         
+        // ⚠️ 원본 index.js 로직 그대로 복사 (2025-11-28)
+        // 음성 자동재생, 문장별 하이라이트, Microsoft Heami TTS
         let isTextVisible = true;
-        let isSpeaking = false;
         const synth = window.speechSynthesis;
+        let voices = [];
+        let currentUtterance = null;
+        let originalText = '';
+
+        function populateVoiceList() {
+            voices = synth.getVoices().filter(v => v.lang.startsWith('ko'));
+        }
 
         function showGuideDetailPage() {
             guideDetailPage.classList.remove('hidden');
@@ -740,12 +748,14 @@
                 synth.pause();
                 synth.cancel();
             }
-            isSpeaking = false;
-            updateAudioButtonIcon();
+            updateAudioButtonIcon(false);
+            if (originalText) {
+                guideDetailDescription.textContent = originalText;
+            }
         }
 
-        function updateAudioButtonIcon() {
-            guideDetailAudioBtn.innerHTML = isSpeaking ? `
+        function updateAudioButtonIcon(isPlaying) {
+            guideDetailAudioBtn.innerHTML = isPlaying ? `
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
                     <path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z" clip-rule="evenodd" />
                 </svg>
@@ -756,29 +766,66 @@
             `;
         }
 
+        // ⚠️ 원본 playAudio 로직 그대로 복사 (문장별 하이라이트 + Microsoft Heami)
+        function playAudio(text) {
+            stopAudio();
+            
+            // ⚠️ **핵심 로직 - 절대 수정 금지!** (2025-10-03 치명적 버그 해결)
+            const cleanText = text.replace(new RegExp('<br\\s*/?>', 'gi'), ' ');
+            
+            // 문장 분리 및 하이라이트 준비
+            const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
+            
+            // 원본 텍스트 저장
+            originalText = cleanText;
+            
+            currentUtterance = new SpeechSynthesisUtterance(cleanText);
+            
+            // ⚠️ 오프라인 최적화 - Microsoft Heami 음성 강제 지정 (현장 테스트 완료)
+            const targetVoice = voices.find(v => v.name === 'Microsoft Heami - Korean (Korea)');
+            currentUtterance.voice = targetVoice;
+            currentUtterance.lang = 'ko-KR';
+            currentUtterance.rate = 1.0;
+            
+            let currentSentenceIndex = 0;
+            
+            currentUtterance.onstart = () => {
+                updateAudioButtonIcon(true);
+            };
+            
+            // 단어 경계마다 하이라이트
+            currentUtterance.onboundary = (event) => {
+                if (event.name === 'sentence') {
+                    // 현재 문장 하이라이트
+                    const highlightedHTML = sentences.map((sentence, idx) => {
+                        if (idx === currentSentenceIndex) {
+                            return '<span style="background-color: rgba(66, 133, 244, 0.3); font-weight: 600;">' + sentence + '</span>';
+                        }
+                        return sentence;
+                    }).join('');
+                    
+                    guideDetailDescription.innerHTML = highlightedHTML;
+                    currentSentenceIndex++;
+                }
+            };
+            
+            currentUtterance.onend = () => {
+                updateAudioButtonIcon(false);
+                // 하이라이트 제거, 원본 복원
+                guideDetailDescription.textContent = originalText;
+            };
+            
+            synth.speak(currentUtterance);
+        }
+
         function toggleAudio() {
             const text = guideDetailDescription.textContent;
-            if (!text) return;
+            if (!text || text === '불러오는 중...') return;
 
-            if (isSpeaking) {
+            if (synth.speaking) {
                 stopAudio();
             } else {
-                const utterance = new SpeechSynthesisUtterance(text);
-                utterance.lang = 'ko-KR';
-                utterance.rate = 0.9;
-                
-                const voices = synth.getVoices();
-                const heamiVoice = voices.find(v => v.name.includes('Heami') || v.name.includes('Microsoft'));
-                if (heamiVoice) utterance.voice = heamiVoice;
-                
-                utterance.onend = () => {
-                    isSpeaking = false;
-                    updateAudioButtonIcon();
-                };
-                
-                synth.speak(utterance);
-                isSpeaking = true;
-                updateAudioButtonIcon();
+                playAudio(text);
             }
         }
 
@@ -806,6 +853,11 @@
                     guideDetailLocationName.textContent = guide.locationName;
                     guideDetailLocationInfo.classList.remove('hidden');
                 }
+
+                // ⚠️ 음성 자동 재생 (원본 로직)
+                if (guide.description) {
+                    playAudio(guide.description);
+                }
             } catch (error) {
                 console.error('Guide detail error:', error);
                 guideDetailDescription.textContent = '불러오기 실패';
@@ -816,8 +868,10 @@
         guideDetailAudioBtn.addEventListener('click', toggleAudio);
         guideDetailTextToggleBtn.addEventListener('click', toggleText);
         
+        // 음성 목록 로드
+        populateVoiceList();
         if (speechSynthesis.onvoiceschanged !== undefined) {
-            speechSynthesis.onvoiceschanged = () => synth.getVoices();
+            speechSynthesis.onvoiceschanged = populateVoiceList;
         }
 
         // 공유 기능
