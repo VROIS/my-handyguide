@@ -3291,10 +3291,9 @@ document.addEventListener('DOMContentLoaded', () => {
     saveBtn?.addEventListener('click', () => debounceClick('save', handleSaveClick, 500));
     textToggleBtn?.addEventListener('click', () => textOverlay.classList.toggle('hidden'));
 
-    // ✅ 2025.11.22: 프로필 버튼 - 기능 일시 중지 (나중에 프로필 페이지 연결 예정)
+    // ✅ 2025.11.28: 프로필 버튼 - 프로필 페이지로 이동
     profileBtn?.addEventListener('click', () => {
-        console.log('👤 프로필 버튼 클릭됨 (기능 일시 중지)');
-        // TODO: 프로필 페이지 또는 사용자 정보 표시 기능 추가 예정
+        window.location.href = '/profile.html';
     });
     // ✅ 공유 버튼 간편 로직 - 2025.10.02 구현 완료 (디바운스 추가)
     // 핵심: 1회 클릭 → 선택 모드 활성화 / 2회 클릭 (선택 후) → 공유 모달
