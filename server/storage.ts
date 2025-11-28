@@ -21,6 +21,7 @@ import {
   shareLinks,
   creditTransactions,
   sharedHtmlPages,
+  cashbackRequests,
   type User,
   type UpsertUser,
   type Guide,
@@ -30,7 +31,9 @@ import {
   type CreditTransaction,
   type InsertCreditTransaction,
   type SharedHtmlPage,
-  type InsertSharedHtmlPage
+  type InsertSharedHtmlPage,
+  type CashbackRequest,
+  type InsertCashbackRequest
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, inArray, and, or, isNull, sql, like } from "drizzle-orm";
@@ -87,6 +90,14 @@ export interface IStorage {
   generateReferralCode(userId: string): Promise<string>;
   processReferralReward(referralCode: string, newUserId: string): Promise<void>;
   processCashbackReward(paymentAmount: number, userId: string): Promise<void>;
+  
+  // Cashback request operations
+  createCashbackRequest(userId: string, data: { creditsAmount: number; cashAmount: number; paymentMethod: string; paymentInfo: string }): Promise<CashbackRequest>;
+  getUserCashbackRequests(userId: string): Promise<CashbackRequest[]>;
+  getAllCashbackRequests(): Promise<(CashbackRequest & { user: User | null })[]>;
+  approveCashbackRequest(id: string, adminNote?: string): Promise<CashbackRequest>;
+  rejectCashbackRequest(id: string, adminNote: string): Promise<CashbackRequest>;
+  getUserByReferralCode(referralCode: string): Promise<User | undefined>;
   
   // Shared HTML page operations
   createSharedHtmlPage(userId: string, page: InsertSharedHtmlPage): Promise<SharedHtmlPage>;
@@ -502,11 +513,11 @@ export class DatabaseStorage implements IStorage {
       return { bonusAwarded: false, newBalance: currentCredits, message: 'Cannot refer yourself' };
     }
     
-    // 새 사용자에게 2크레딧 지급
-    const user = await this.addCredits(userId, 2, 'referral_signup_bonus', `${referrerCode}님의 추천으로 가입 보너스`, referrer.id);
+    // 🎁 신규 사용자에게 10크레딧 지급 (2025-11-28 리워드 시스템)
+    const user = await this.addCredits(userId, 10, 'referral_signup_bonus', `${referrerCode}님의 추천으로 가입 보너스 🎁`, referrer.id);
     
-    // 추천인에게도 1크레딧 지급
-    await this.addCredits(referrer.id, 1, 'referral_reward', `${userId} 추천 성공 보상`, userId);
+    // 🎁 추천인에게도 10크레딧 지급 (2025-11-28 리워드 시스템)
+    await this.addCredits(referrer.id, 10, 'referral_reward', `신규 가입자 추천 보상 🎁`, userId);
     
     // 사용자의 추천인 정보 업데이트
     await db.update(users)
@@ -543,24 +554,27 @@ export class DatabaseStorage implements IStorage {
     
     if (!referrer) return;
     
+    // 자기 추천 방지
+    if (referrer.id === newUserId) return;
+    
     // Set referredBy for new user
     await db
       .update(users)
       .set({ referredBy: referrer.id, updatedAt: new Date() })
       .where(eq(users.id, newUserId));
     
-    // 🎁 향상된 추천 보상: 추천인 5 크레딧, 신규 2 크레딧
+    // 🎁 2025-11-28 리워드 시스템: 추천인 10 크레딧, 신규 10 크레딧
     await this.addCredits(
       referrer.id, 
-      5, 
+      10, 
       'referral_bonus', 
-      `추천 보상: ${newUserId}`, 
+      `신규 가입자 추천 보상 🎁`, 
       newUserId
     );
     
     await this.addCredits(
       newUserId,
-      2,
+      10,
       'referral_bonus',
       `추천 가입 보너스`,
       referrer.id
@@ -571,25 +585,117 @@ export class DatabaseStorage implements IStorage {
     const user = await this.getUser(userId);
     if (!user?.referredBy) return;
     
-    // 💰 현금 킥백: 결제 금액의 30%를 추천인에게
-    const cashbackAmount = Math.round(paymentAmount * 0.3);
+    // 🎁 2025-11-28 리워드 시스템: 추천인에게 충전 보너스 20크레딧 고정
+    const bonusAmount = 20;
     
     await this.addCredits(
       user.referredBy,
-      cashbackAmount,
-      'cashback_reward',
-      `현금 킥백: $${(paymentAmount/100).toFixed(2)}의 30%`,
+      bonusAmount,
+      'recharge_bonus',
+      `추천인 충전 보너스 🎁 (${user.email || '회원'})`,
       userId
     );
+  }
+  
+  // ═══════════════════════════════════════════════════════════════
+  // 💰 캐시백 요청 관리 (2025-11-28 리워드 시스템)
+  // ═══════════════════════════════════════════════════════════════
+  
+  async createCashbackRequest(userId: string, data: { creditsAmount: number; cashAmount: number; paymentMethod: string; paymentInfo: string }): Promise<CashbackRequest> {
+    // 1000 크레딧 이상 체크
+    const userCredits = await this.getUserCredits(userId);
+    if (userCredits < 1000) {
+      throw new Error('캐시백 신청은 1000 크레딧 이상 보유 시 가능합니다.');
+    }
     
-    // 📊 킥백 지급 기록
-    await db.insert(creditTransactions).values({
-      userId: user.referredBy,
-      type: 'cashback_reward',
-      amount: cashbackAmount,
-      description: `💰 현금 킥백: ${user.email || userId}님 결제 $${(paymentAmount/100).toFixed(2)}`,
-      referenceId: userId,
+    // 기존 대기중인 요청이 있는지 확인
+    const pendingRequest = await db.query.cashbackRequests.findFirst({
+      where: and(
+        eq(cashbackRequests.userId, userId),
+        eq(cashbackRequests.status, 'pending')
+      )
     });
+    
+    if (pendingRequest) {
+      throw new Error('이미 대기 중인 캐시백 요청이 있습니다.');
+    }
+    
+    const [request] = await db.insert(cashbackRequests).values({
+      userId,
+      creditsAmount: data.creditsAmount,
+      cashAmount: data.cashAmount,
+      paymentMethod: data.paymentMethod,
+      paymentInfo: data.paymentInfo,
+      status: 'pending'
+    }).returning();
+    
+    return request;
+  }
+  
+  async getUserCashbackRequests(userId: string): Promise<CashbackRequest[]> {
+    return db.select().from(cashbackRequests)
+      .where(eq(cashbackRequests.userId, userId))
+      .orderBy(desc(cashbackRequests.createdAt));
+  }
+  
+  async getAllCashbackRequests(): Promise<(CashbackRequest & { user: User | null })[]> {
+    const requests = await db.select().from(cashbackRequests)
+      .orderBy(desc(cashbackRequests.createdAt));
+    
+    // 각 요청에 대한 사용자 정보 조회
+    const result = await Promise.all(requests.map(async (request) => {
+      const [user] = await db.select().from(users).where(eq(users.id, request.userId));
+      return { ...request, user: user || null };
+    }));
+    
+    return result;
+  }
+  
+  async approveCashbackRequest(id: string, adminNote?: string): Promise<CashbackRequest> {
+    const [request] = await db.select().from(cashbackRequests).where(eq(cashbackRequests.id, id));
+    if (!request) throw new Error('캐시백 요청을 찾을 수 없습니다.');
+    if (request.status !== 'pending') throw new Error('이미 처리된 요청입니다.');
+    
+    // 크레딧 차감
+    const deducted = await this.deductCredits(
+      request.userId, 
+      request.creditsAmount, 
+      `캐시백 환급 (${request.cashAmount / 100} EUR)`
+    );
+    
+    if (!deducted) {
+      throw new Error('크레딧이 부족합니다.');
+    }
+    
+    // 상태 업데이트
+    const [updated] = await db.update(cashbackRequests)
+      .set({
+        status: 'approved',
+        adminNote: adminNote || '승인 완료',
+        processedAt: new Date()
+      })
+      .where(eq(cashbackRequests.id, id))
+      .returning();
+    
+    return updated;
+  }
+  
+  async rejectCashbackRequest(id: string, adminNote: string): Promise<CashbackRequest> {
+    const [updated] = await db.update(cashbackRequests)
+      .set({
+        status: 'rejected',
+        adminNote,
+        processedAt: new Date()
+      })
+      .where(eq(cashbackRequests.id, id))
+      .returning();
+    
+    return updated;
+  }
+  
+  async getUserByReferralCode(referralCode: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.referralCode, referralCode));
+    return user;
   }
 
   // ╔═══════════════════════════════════════════════════════════════════════════════╗

@@ -79,6 +79,11 @@ export async function setupGoogleAuth(app: Express) {
             console.error('가입 보너스 지급 오류:', bonusError);
           }
 
+          // 🎁 리워드 시스템: referral 처리는 콜백에서 수행 (쿠키 접근 필요)
+          // done 콜백에서 user 객체에 isNewUser 플래그 추가
+          const existingUser = await storage.getUser(userId);
+          const isNewUser = !existingUser?.referredBy; // referredBy가 없으면 신규
+          
           const user = {
             id: userId,
             email: email,
@@ -86,6 +91,7 @@ export async function setupGoogleAuth(app: Express) {
             lastName: lastName,
             profileImageUrl: profileImageUrl,
             provider: 'google',
+            isNewUser: isNewUser,
           };
 
           done(null, user);
@@ -119,10 +125,25 @@ export async function setupGoogleAuth(app: Express) {
         }
         
         // 로그인 처리
-        req.logIn(user, (loginErr) => {
+        req.logIn(user, async (loginErr) => {
           if (loginErr) {
             console.error('구글 로그인 오류:', loginErr);
             return res.redirect("/archive?auth=failed");
+          }
+          
+          // 🎁 리워드 시스템: referralCode 쿠키 확인 및 처리 (2025-11-28)
+          try {
+            if (user.isNewUser) {
+              const referralCode = req.cookies?.referralCode;
+              if (referralCode) {
+                console.log('🎁 Referral code found:', referralCode);
+                await storage.processReferralReward(referralCode, user.id);
+                // 쿠키 삭제 (사용 완료)
+                res.clearCookie('referralCode');
+              }
+            }
+          } catch (refError) {
+            console.error('Referral 처리 오류:', refError);
           }
           
           // ⚠️ 2025.11.12: 공유페이지와 100% 동일한 디자인
