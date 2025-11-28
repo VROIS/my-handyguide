@@ -220,6 +220,14 @@ export async function setupGoogleAuth(app: Express) {
                 };
 
                 const closeWindow = () => {
+                  // sessionStorage에서 리다이렉트 URL 먼저 확인 (프로필 페이지 등에서 직접 로그인한 경우)
+                  const redirectUrl = sessionStorage.getItem('authRedirect');
+                  if (redirectUrl) {
+                    sessionStorage.removeItem('authRedirect');
+                    window.location.href = redirectUrl;
+                    return;
+                  }
+                  
                   if (window.opener && !window.opener.closed) {
                     // 부모 창에 메시지 전달
                     window.opener.postMessage({ type: 'oauth_success' }, window.location.origin);
@@ -229,10 +237,8 @@ export async function setupGoogleAuth(app: Express) {
                       window.close();
                     }, 300);
                   } else {
-                    // sessionStorage에서 리다이렉트 URL 확인
-                    const redirectUrl = sessionStorage.getItem('authRedirect') || '/#archive';
-                    sessionStorage.removeItem('authRedirect');
-                    window.location.href = redirectUrl;
+                    // 기본 리다이렉트
+                    window.location.href = '/#archive';
                   }
                 };
 
