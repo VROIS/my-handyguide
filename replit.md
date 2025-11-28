@@ -129,3 +129,47 @@ guideDetailPage.openWithData({
 - `text-shadow` 사용 금지 (투명 오버레이 깨짐)
 - `justify-content: flex-end` 사용 금지 (텍스트 시작 위치 깨짐)
 - Microsoft Heami 음성은 Windows에서만 지원
+
+## V2 공유페이지 템플릿 시스템
+
+**⚠️ 2025-11-28 1달간 최적화 완료 - 절대 수정 금지!**
+
+공유페이지는 앱의 **핵심 영업 채널**입니다. V2 마이그레이션 시 guides DB 90% 손실 경험 있음.
+
+### 파일 구조
+
+| 파일 | 역할 | 수정 가능 |
+|------|------|----------|
+| `server/standard-template.ts` | HTML 생성 (548줄) | ❌ 금지 |
+| `public/shared-template/v2.js` | 클라이언트 JS (179줄) | ❌ 금지 |
+| `public/shared-template/v2.css` | 클라이언트 CSS (168줄) | ❌ 금지 |
+
+### 생성 흐름
+
+```
+1. 사용자가 상세페이지 선택 (최대 20개)
+2. index.js의 generateShareHTML() → 완전한 HTML 생성
+3. /api/share/create → 서버 호출
+4. storage.ts의 createSharedHtmlPage() → DB 저장
+5. /s/{8자ID} URL로 접근 가능
+```
+
+### DB 저장 구조 (sharedHtmlPages 테이블)
+
+| 필드 | 설명 |
+|------|------|
+| `id` | 8자 짧은 ID (base64url, 예: `abc12345`) |
+| `htmlContent` | 완전한 HTML 문서 (DB 직접 저장) |
+| `guideIds` | 포함된 상세페이지 ID 배열 (1-20개) |
+| `thumbnail` | 첫 번째 이미지 |
+| `name`, `sender`, `location` | 메타데이터 |
+| `downloadCount` | 조회수 |
+| `featured` | 추천 여부 |
+
+### ⚠️ 절대 금지 사항
+
+1. **CSS 인라인 → 외부 파일 분리 시도 금지** (기존 페이지 깨짐)
+2. **템플릿 구조 변경 금지** (갤러리 뷰 ↔ 상세 뷰 전환 로직)
+3. **음성 재생 로직 수정 금지** (Microsoft Heami TTS)
+4. **카카오톡 리다이렉트 로직 수정 금지**
+5. **guides 테이블 백업 로직 수정 금지** (parseGuidesFromHtml)
