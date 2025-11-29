@@ -360,9 +360,114 @@
 
         <!-- 수익 탭 -->
         <div id="content-revenue" class="hidden">
-            <div class="bg-white rounded-lg p-12 shadow-sm text-center">
-                <h2 class="text-xl font-semibold text-gray-900 mb-4">준비 중</h2>
-                <p class="text-gray-500">Phase 2에서 크레딧 및 결제 기능이 추가될 예정입니다.</p>
+            <div class="space-y-6">
+                <!-- 수익 요약 카드 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white rounded-lg p-6 shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">총 수입</h3>
+                        <p id="revenue-total" class="text-3xl font-bold text-green-600">-</p>
+                        <p class="text-xs text-gray-400 mt-1">EUR (10 EUR = 140 크레딧)</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-6 shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">AI 비용 (추정)</h3>
+                        <p id="revenue-ai-cost" class="text-3xl font-bold text-orange-500">-</p>
+                        <p class="text-xs text-gray-400 mt-1">EUR (Gemini 2.5 Flash)</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-6 shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">고정비</h3>
+                        <p id="revenue-fixed-cost" class="text-3xl font-bold text-gray-600">300 EUR</p>
+                        <p class="text-xs text-gray-400 mt-1">월간 서버/서비스 비용</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-6 shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">순수익</h3>
+                        <p id="revenue-net" class="text-3xl font-bold">-</p>
+                        <p class="text-xs text-gray-400 mt-1">총수입 - AI비용 - 고정비</p>
+                    </div>
+                </div>
+
+                <!-- 추가 지표 -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-white rounded-lg p-6 shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">ARPU (결제자당 평균수익)</h3>
+                        <p id="revenue-arpu" class="text-2xl font-bold text-blue-600">-</p>
+                        <p class="text-xs text-gray-400 mt-1" id="revenue-payers">결제자: -명</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-6 shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">총 결제 건수</h3>
+                        <p id="revenue-transactions" class="text-2xl font-bold text-purple-600">-</p>
+                        <p class="text-xs text-gray-400 mt-1">Stripe 결제</p>
+                    </div>
+                    <div class="bg-white rounded-lg p-6 shadow-sm">
+                        <h3 class="text-sm font-medium text-gray-500 mb-2">총 AI 호출</h3>
+                        <p id="revenue-ai-calls" class="text-2xl font-bold text-indigo-600">-</p>
+                        <p class="text-xs text-gray-400 mt-1">상세페이지 생성</p>
+                    </div>
+                </div>
+
+                <!-- 크레딧 현황 -->
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">크레딧 현황</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div class="text-center p-4 bg-green-50 rounded-lg">
+                            <p class="text-sm text-gray-500">판매 크레딧</p>
+                            <p id="credit-sold" class="text-2xl font-bold text-green-600">-</p>
+                        </div>
+                        <div class="text-center p-4 bg-red-50 rounded-lg">
+                            <p class="text-sm text-gray-500">사용된 크레딧</p>
+                            <p id="credit-used" class="text-2xl font-bold text-red-600">-</p>
+                        </div>
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <p class="text-sm text-gray-500">보너스 지급</p>
+                            <p id="credit-bonus" class="text-2xl font-bold text-blue-600">-</p>
+                        </div>
+                        <div class="text-center p-4 bg-purple-50 rounded-lg">
+                            <p class="text-sm text-gray-500">유저 잔여 크레딧</p>
+                            <p id="credit-remaining" class="text-2xl font-bold text-purple-600">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 월별 추이 -->
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">월별 수익 추이 (최근 6개월)</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b">
+                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">월</th>
+                                    <th class="text-right py-3 px-4 text-sm font-medium text-gray-500">수입 (EUR)</th>
+                                    <th class="text-right py-3 px-4 text-sm font-medium text-gray-500">AI 비용 (EUR)</th>
+                                    <th class="text-center py-3 px-4 text-sm font-medium text-gray-500">결제 건수</th>
+                                    <th class="text-center py-3 px-4 text-sm font-medium text-gray-500">AI 호출</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthlyTrendTable">
+                                <!-- 동적 생성 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 최근 결제 내역 -->
+                <div class="bg-white rounded-lg p-6 shadow-sm">
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">최근 결제 내역</h2>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="border-b">
+                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">날짜</th>
+                                    <th class="text-left py-3 px-4 text-sm font-medium text-gray-500">사용자 ID</th>
+                                    <th class="text-right py-3 px-4 text-sm font-medium text-gray-500">크레딧</th>
+                                    <th class="text-right py-3 px-4 text-sm font-medium text-gray-500">금액 (EUR)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentTransactionsTable">
+                                <!-- 동적 생성 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    <p id="no-transactions" class="text-center text-gray-500 py-8 hidden">결제 내역이 없습니다.</p>
+                </div>
             </div>
         </div>
 
@@ -526,10 +631,89 @@
             } else if (tab === 'guides') {
                 searchGuides();
                 loadCurrentFeatured();
+            } else if (tab === 'revenue') {
+                loadRevenueData();
             } else if (tab === 'stats') {
                 loadStats();
             } else if (tab === 'cashback') {
                 loadCashbackRequests();
+            }
+        }
+
+        // ═══════════════════════════════════════════════════
+        // 💰 수익 대시보드 함수
+        // ═══════════════════════════════════════════════════
+        async function loadRevenueData() {
+            try {
+                const response = await fetch('/api/admin/revenue', {
+                    credentials: 'include'
+                });
+                
+                if (!response.ok) throw new Error('수익 데이터 로드 실패');
+                
+                const data = await response.json();
+                
+                // 요약 카드 업데이트
+                document.getElementById('revenue-total').textContent = `${data.summary.totalRevenue} EUR`;
+                document.getElementById('revenue-ai-cost').textContent = `${data.summary.totalAICost} EUR`;
+                document.getElementById('revenue-fixed-cost').textContent = `${data.summary.fixedCost} EUR`;
+                
+                // 순수익 색상 설정
+                const netEl = document.getElementById('revenue-net');
+                netEl.textContent = `${data.summary.netProfit} EUR`;
+                if (data.summary.netProfit >= 0) {
+                    netEl.classList.remove('text-red-600');
+                    netEl.classList.add('text-green-600');
+                } else {
+                    netEl.classList.remove('text-green-600');
+                    netEl.classList.add('text-red-600');
+                }
+                
+                // 추가 지표
+                document.getElementById('revenue-arpu').textContent = `${data.summary.arpu} EUR`;
+                document.getElementById('revenue-payers').textContent = `결제자: ${data.summary.uniquePayers}명`;
+                document.getElementById('revenue-transactions').textContent = data.summary.totalTransactions;
+                document.getElementById('revenue-ai-calls').textContent = data.summary.totalAICalls;
+                
+                // 크레딧 현황
+                document.getElementById('credit-sold').textContent = data.creditStats.sold.toLocaleString();
+                document.getElementById('credit-used').textContent = data.creditStats.used.toLocaleString();
+                document.getElementById('credit-bonus').textContent = data.creditStats.bonusGiven.toLocaleString();
+                document.getElementById('credit-remaining').textContent = data.creditStats.remaining.toLocaleString();
+                
+                // 월별 추이 테이블
+                const trendTable = document.getElementById('monthlyTrendTable');
+                trendTable.innerHTML = data.monthlyTrend.map(m => `
+                    <tr class="border-b hover:bg-gray-50">
+                        <td class="py-3 px-4 font-medium">${m.month}</td>
+                        <td class="py-3 px-4 text-right text-green-600">${m.revenue} EUR</td>
+                        <td class="py-3 px-4 text-right text-orange-500">${m.aiCost} EUR</td>
+                        <td class="py-3 px-4 text-center">${m.transactions}</td>
+                        <td class="py-3 px-4 text-center">${m.aiCalls}</td>
+                    </tr>
+                `).join('');
+                
+                // 최근 결제 내역 테이블
+                const txTable = document.getElementById('recentTransactionsTable');
+                const noTxMsg = document.getElementById('no-transactions');
+                
+                if (data.recentTransactions.length === 0) {
+                    txTable.innerHTML = '';
+                    noTxMsg.classList.remove('hidden');
+                } else {
+                    noTxMsg.classList.add('hidden');
+                    txTable.innerHTML = data.recentTransactions.map(tx => `
+                        <tr class="border-b hover:bg-gray-50">
+                            <td class="py-3 px-4">${formatDateTime(tx.createdAt)}</td>
+                            <td class="py-3 px-4 text-sm text-gray-600">${tx.userId.substring(0, 20)}...</td>
+                            <td class="py-3 px-4 text-right font-medium text-green-600">+${tx.amount}</td>
+                            <td class="py-3 px-4 text-right font-medium">${tx.amountEUR} EUR</td>
+                        </tr>
+                    `).join('');
+                }
+                
+            } catch (error) {
+                console.error('수익 데이터 로드 오류:', error);
             }
         }
 
