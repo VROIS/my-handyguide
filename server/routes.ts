@@ -2,12 +2,12 @@ import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
-import { sql } from "drizzle-orm";
+import { sql, desc } from "drizzle-orm";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupGoogleAuth } from "./googleAuth";
 import { setupKakaoAuth } from "./kakaoAuth";
 import { generateLocationBasedContent, getLocationName, generateShareLinkDescription, generateCinematicPrompt, optimizeAudioScript, type GuideContent, type DreamShotPrompt } from "./gemini";
-import { insertGuideSchema, insertShareLinkSchema, insertSharedHtmlPageSchema } from "@shared/schema";
+import { insertGuideSchema, insertShareLinkSchema, insertSharedHtmlPageSchema, creditTransactions, users } from "@shared/schema";
 import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
 import path from "path";
@@ -2768,6 +2768,126 @@ self.addEventListener('fetch', (event) => {
     } catch (error) {
       console.error('공유 페이지 생성 오류:', error);
       res.status(500).json({ error: '공유 페이지 생성에 실패했습니다.' });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // 💰 수익 대시보드 API (2025-11-29)
+  // ═══════════════════════════════════════════════════════════════
+  
+  /**
+   * 📊 GET /api/admin/revenue - 수익 대시보드 데이터
+   * 
+   * 반환값:
+   * - summary: 총수입, AI비용, 순수익, ARPU
+   * - monthlyTrend: 월별 수익 추이 (최근 6개월)
+   * - recentTransactions: 최근 결제 내역
+   * - creditStats: 크레딧 현황 (판매/사용/잔여)
+   */
+  app.get('/api/admin/revenue', requireAdmin, async (req, res) => {
+    try {
+      // credit_transactions에서 데이터 집계
+      const allTransactions = await db.select().from(creditTransactions).orderBy(desc(creditTransactions.createdAt));
+      
+      // 타입별 집계
+      const purchases = allTransactions.filter(t => t.type === 'purchase');
+      const usages = allTransactions.filter(t => t.type === 'usage');
+      const signupBonuses = allTransactions.filter(t => t.type === 'signup_bonus');
+      const referralBonuses = allTransactions.filter(t => t.type === 'referral_bonus' || t.type === 'referral_signup_bonus');
+      
+      // 총 수입 계산 (purchase 크레딧 / 14 = EUR)
+      const totalCreditsCharged = purchases.reduce((sum, t) => sum + (t.amount || 0), 0);
+      const totalRevenueEUR = totalCreditsCharged / 14;
+      
+      // AI 호출 수 (usage 건수)
+      const totalAICalls = usages.length;
+      // Gemini 2.5 Flash 비용 추정: 호출당 ~$0.015 (이미지+텍스트)
+      const estimatedAICostUSD = totalAICalls * 0.015;
+      const estimatedAICostEUR = estimatedAICostUSD * 0.92; // USD to EUR
+      
+      // 고정비 (월 300 EUR)
+      const fixedCostEUR = 300;
+      
+      // 순수익 계산
+      const netProfitEUR = totalRevenueEUR - estimatedAICostEUR - fixedCostEUR;
+      
+      // ARPU 계산 (결제한 유저 수)
+      const uniquePayers = new Set(purchases.map(t => t.userId)).size;
+      const arpu = uniquePayers > 0 ? totalRevenueEUR / uniquePayers : 0;
+      
+      // 월별 추이 (최근 6개월)
+      const now = new Date();
+      const monthlyTrend = [];
+      for (let i = 5; i >= 0; i--) {
+        const targetMonth = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+        
+        const monthPurchases = purchases.filter(t => {
+          const d = new Date(t.createdAt!);
+          return d >= targetMonth && d < nextMonth;
+        });
+        const monthUsages = usages.filter(t => {
+          const d = new Date(t.createdAt!);
+          return d >= targetMonth && d < nextMonth;
+        });
+        
+        const monthCredits = monthPurchases.reduce((sum, t) => sum + (t.amount || 0), 0);
+        const monthRevenue = monthCredits / 14;
+        const monthAICost = monthUsages.length * 0.015 * 0.92;
+        
+        monthlyTrend.push({
+          month: targetMonth.toLocaleDateString('ko-KR', { year: 'numeric', month: 'short' }),
+          revenue: Math.round(monthRevenue * 100) / 100,
+          aiCost: Math.round(monthAICost * 100) / 100,
+          transactions: monthPurchases.length,
+          aiCalls: monthUsages.length
+        });
+      }
+      
+      // 크레딧 현황
+      const totalCreditsSold = totalCreditsCharged;
+      const totalCreditsUsed = Math.abs(usages.reduce((sum, t) => sum + (t.amount || 0), 0));
+      const totalBonusGiven = signupBonuses.reduce((sum, t) => sum + (t.amount || 0), 0) +
+                              referralBonuses.reduce((sum, t) => sum + (t.amount || 0), 0);
+      
+      // 유저 잔여 크레딧 총합
+      const allUsers = await db.select({ credits: users.credits }).from(users);
+      const totalCreditsRemaining = allUsers.reduce((sum, u) => sum + (u.credits || 0), 0);
+      
+      // 최근 결제 내역 (purchase만, 최근 20건)
+      const recentTransactions = purchases.slice(0, 20).map(t => ({
+        id: t.id,
+        userId: t.userId,
+        amount: t.amount,
+        amountEUR: Math.round((t.amount || 0) / 14 * 100) / 100,
+        description: t.description,
+        createdAt: t.createdAt
+      }));
+      
+      res.json({
+        summary: {
+          totalRevenue: Math.round(totalRevenueEUR * 100) / 100,
+          totalAICost: Math.round(estimatedAICostEUR * 100) / 100,
+          fixedCost: fixedCostEUR,
+          netProfit: Math.round(netProfitEUR * 100) / 100,
+          arpu: Math.round(arpu * 100) / 100,
+          totalTransactions: purchases.length,
+          totalAICalls,
+          uniquePayers
+        },
+        monthlyTrend,
+        creditStats: {
+          sold: totalCreditsSold,
+          used: totalCreditsUsed,
+          bonusGiven: totalBonusGiven,
+          remaining: totalCreditsRemaining
+        },
+        recentTransactions
+      });
+      
+    } catch (error) {
+      console.error('수익 데이터 조회 오류:', error);
+      res.status(500).json({ error: '수익 데이터 조회에 실패했습니다.' });
     }
   });
 
