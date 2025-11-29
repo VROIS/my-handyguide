@@ -37,7 +37,8 @@ export default defineConfig({
           'generate-standalone.js',
           'tailwind.css',
           'admin-dashboard.html',
-          'user-guide.html'
+          'user-guide.html',
+          'profile.html'
         ];
         
         filesToCopy.forEach(file => {
