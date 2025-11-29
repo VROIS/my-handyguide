@@ -81,23 +81,34 @@ app.get('/s/:id', async (req, res) => {
       log(`[SHARE] ⚠️ Could not get creator referralCode: ${refError}`);
     }
     
-    // HTML에 referralCode 주입 함수
-    const injectReferralCode = (html: string): string => {
-      if (!creatorReferralCode) return html;
+    // HTML에 referralCode 주입 + 버튼 문구 통일 함수
+    const injectReferralAndUpdateButton = (html: string): string => {
+      let result = html;
       
-      // href="https://My-handyguide1.replit.app" → href="https://My-handyguide1.replit.app?ref=코드"
-      // href="https://My-handyguide1.replit.app/" → href="https://My-handyguide1.replit.app/?ref=코드"
-      return html
-        .replace(/href="(https:\/\/My-handyguide1\.replit\.app)(\/?)"/g, 
-          `href="$1$2?ref=${creatorReferralCode}"`)
-        .replace(/href='(https:\/\/My-handyguide1\.replit\.app)(\/?)'/g, 
-          `href='$1$2?ref=${creatorReferralCode}'`);
+      // 1. 버튼 문구 통일: 다양한 기존 문구 → "나도 만들어보기"
+      // (이모지 제거, 모든 기존 페이지에 적용)
+      result = result
+        .replace(/손안에 가이드 시작하기/g, '나도 만들어보기')
+        .replace(/나도 만들어보기\s*✨/g, '나도 만들어보기')
+        .replace(/나도 만들어보기\s*\*/g, '나도 만들어보기');
+      
+      // 2. referralCode 주입 (생성자 코드가 있을 때만)
+      if (creatorReferralCode) {
+        // href="https://My-handyguide1.replit.app" → href="https://My-handyguide1.replit.app?ref=코드"
+        result = result
+          .replace(/href="(https:\/\/My-handyguide1\.replit\.app)(\/?)"/g, 
+            `href="$1$2?ref=${creatorReferralCode}"`)
+          .replace(/href='(https:\/\/My-handyguide1\.replit\.app)(\/?)'/g, 
+            `href='$1$2?ref=${creatorReferralCode}'`);
+      }
+      
+      return result;
     };
     
     // 1. DB htmlContent 우선 (신규 데이터)
     if (page.htmlContent) {
       log(`[SHARE] ✅ Serving from DB (htmlContent)`);
-      return res.send(injectReferralCode(page.htmlContent));
+      return res.send(injectReferralAndUpdateButton(page.htmlContent));
     }
     
     // 2. htmlFilePath fallback (구 데이터 호환성)
@@ -108,7 +119,7 @@ app.get('/s/:id', async (req, res) => {
       if (fs.existsSync(fullPath)) {
         const htmlContent = fs.readFileSync(fullPath, 'utf8');
         log(`[SHARE] ⚠️ Serving from file (legacy): ${relativePath}`);
-        return res.send(injectReferralCode(htmlContent));
+        return res.send(injectReferralAndUpdateButton(htmlContent));
       } else {
         log(`[SHARE] ❌ File not found: ${fullPath}`);
       }

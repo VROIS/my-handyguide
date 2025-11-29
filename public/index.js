@@ -3291,9 +3291,9 @@ document.addEventListener('DOMContentLoaded', () => {
     saveBtn?.addEventListener('click', () => debounceClick('save', handleSaveClick, 500));
     textToggleBtn?.addEventListener('click', () => textOverlay.classList.toggle('hidden'));
 
-    // ✅ 2025.11.28: 프로필 버튼 - 프로필 페이지로 이동
+    // ✅ 2025.11.28: 프로필 버튼 - 프로필 페이지로 이동 (대시보드와 동일 방식)
     profileBtn?.addEventListener('click', () => {
-        window.open('/profile.html', '_blank');
+        window.open('./profile.html');
     });
     // ✅ 공유 버튼 간편 로직 - 2025.10.02 구현 완료 (디바운스 추가)
     // 핵심: 1회 클릭 → 선택 모드 활성화 / 2회 클릭 (선택 후) → 공유 모달
