@@ -184,6 +184,28 @@ app.get('/s/:id', async (req, res) => {
     res.sendFile('share.html', { root: publicDir });
   });
   
+  // 🔧 명시적 HTML 파일 라우트 (SPA Fallback 우회)
+  app.get('/profile.html', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.sendFile('profile.html', { root: publicDir });
+  });
+  
+  app.get('/admin-dashboard.html', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.sendFile('admin-dashboard.html', { root: publicDir });
+  });
+  
+  app.get('/user-guide.html', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.sendFile('user-guide.html', { root: publicDir });
+  });
+  
   // 🔧 [공유링크 임시 비활성화] SEO 친화적 URL은 추후 구현 예정
 
   const server = await registerRoutes(app);
