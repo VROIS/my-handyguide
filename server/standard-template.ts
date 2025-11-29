@@ -18,6 +18,7 @@ export interface StandardTemplateData {
   guideItems: GuideItem[];
   appOrigin: string;
   isFeatured?: boolean;
+  creatorReferralCode?: string;
 }
 
 export interface GuideItem {
@@ -27,7 +28,7 @@ export interface GuideItem {
 }
 
 export function generateStandardShareHTML(data: StandardTemplateData): string {
-  const { title, sender, location, date, guideItems, isFeatured = false } = data;
+  const { title, sender, location, date, guideItems, isFeatured = false, creatorReferralCode = '' } = data;
   
   // ⚠️ 2025-11-23: appOrigin 하드코딩 (개발본/배포본 동일 작동 보장)
   // 홈 버튼 2개 (메인 하단 "손안에 가이드 시작하기", 가이드 페이지 하단)에서 사용
@@ -289,11 +290,11 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             ${galleryItemsHTML}
         </div>
         <div class="gallery-footer">
-            <a href="${appOrigin}" class="app-button" id="home-button">
+            <a href="${appOrigin}${creatorReferralCode ? `?ref=${creatorReferralCode}` : ''}" class="app-button" id="home-button">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px;">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
-                손안에 가이드 시작하기
+                나도 만들어보기 ✨
             </a>
         </div>
     </div>
