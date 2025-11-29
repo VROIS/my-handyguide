@@ -205,6 +205,61 @@
         </div>
     </div>
 
+    <!-- 💰 캐시백 신청 모달 -->
+    <div id="cashbackModal" class="fixed inset-0 z-[9999] bg-gray-900/60 backdrop-blur-sm flex items-center justify-center hidden pointer-events-none">
+        <div id="cashbackModalContent" class="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 transition-transform transform pointer-events-auto">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-gray-800">💰 캐시백 신청</h2>
+                <button id="closeCashbackModalBtn" data-testid="button-close-cashback-modal" onclick="closeCashbackModal()" class="p-2 text-gray-500 hover:text-gray-800 text-3xl leading-none">&times;</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <!-- 현재 크레딧 상태 -->
+                <div class="bg-blue-50 rounded-xl p-4">
+                    <p class="text-sm text-gray-600">현재 보유 크레딧</p>
+                    <p class="text-3xl font-bold text-blue-600"><span id="cashbackCredits">0</span></p>
+                </div>
+                
+                <!-- 캐시백 조건 안내 -->
+                <div id="cashbackNotEligible" class="bg-amber-50 rounded-xl p-4 hidden">
+                    <div class="flex items-center gap-2 text-amber-700">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                        </svg>
+                        <span class="font-medium">200 크레딧 이상 보유 시 신청 가능합니다</span>
+                    </div>
+                </div>
+                
+                <!-- 캐시백 신청 폼 -->
+                <div id="cashbackForm" class="hidden space-y-4">
+                    <div class="bg-green-50 rounded-xl p-4">
+                        <div class="flex items-center gap-2 text-green-700 mb-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <span class="font-bold">캐시백 가능!</span>
+                        </div>
+                        <p class="text-sm text-gray-600">200 크레딧 → <span class="font-bold text-green-700">20 EUR 현금 환급</span></p>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">결제 수단 (카카오페이 or 계좌번호)</label>
+                        <input type="text" id="cashbackPaymentMethod" class="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="예: 카카오페이 01012345678" data-testid="input-payment-method">
+                    </div>
+                    
+                    <button id="requestCashbackBtn" class="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-4 px-6 rounded-xl hover:from-green-600 hover:to-emerald-700 transition shadow-lg" data-testid="button-request-cashback">
+                        캐시백 신청하기
+                    </button>
+                </div>
+                
+                <!-- 캐시백 내역 -->
+                <div id="cashbackHistory" class="hidden">
+                    <h3 class="text-sm font-bold text-gray-700 mb-2">신청 내역</h3>
+                    <div id="cashbackHistoryList" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 풀 화면 상세보기 (보관함 Detail Page 구조 복사) -->
     <div id="guideDetailPage" class="hidden">
         <img id="guideDetailImage" src="" alt="상세페이지 이미지" class="full-screen-bg">
@@ -297,9 +352,19 @@
                 </div>
             </section>
 
-            <section class="card">
+            <section class="card space-y-3">
                 <button id="chargeBtn" class="w-full bg-gradient-to-r from-blue-500 to-blue-600 text-white font-bold py-4 px-4 rounded-xl hover:from-blue-600 hover:to-blue-700 transition shadow-lg" data-testid="button-charge">
                     <span id="chargeBtnText" class="text-base whitespace-nowrap">10 EUR 충전하기 (약 ₩15,000)</span>
+                </button>
+                
+                <!-- 💰 캐시백 신청 버튼 (200+ 크레딧일 때만 표시) -->
+                <button id="cashbackBtn" class="hidden w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold py-3 px-4 rounded-xl hover:from-green-600 hover:to-emerald-700 transition shadow-md" data-testid="button-cashback" onclick="openCashbackModal()">
+                    <div class="flex items-center justify-center gap-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"/>
+                        </svg>
+                        <span>캐시백 신청 (200 크레딧 → 20 EUR)</span>
+                    </div>
                 </button>
             </section>
 
@@ -1003,21 +1068,32 @@
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // 💰 캐시백 & 추천 시스템 (2025-11-28 리워드 시스템)
+        // 💰 캐시백 모달 제어 (2025-11-29 간소화)
         // ═══════════════════════════════════════════════════════════════
         
-        async function loadReferralCode() {
-            try {
-                const response = await fetch('/api/profile/referral-code', { credentials: 'include' });
-                const data = await response.json();
-                
-                if (data.referralCode) {
-                    const baseUrl = window.location.origin;
-                    const referralLink = `${baseUrl}/?ref=${data.referralCode}`;
-                    document.getElementById('referralLink').value = referralLink;
-                }
-            } catch (error) {
-                console.error('Referral code load error:', error);
+        function openCashbackModal() {
+            const modal = document.getElementById('cashbackModal');
+            modal.classList.remove('hidden', 'pointer-events-none');
+            loadCashbackInfo();
+        }
+        
+        function closeCashbackModal() {
+            const modal = document.getElementById('cashbackModal');
+            modal.classList.add('hidden', 'pointer-events-none');
+        }
+        
+        // 모달 외부 클릭 시 닫기
+        document.getElementById('cashbackModal').addEventListener('click', (e) => {
+            if (e.target.id === 'cashbackModal') closeCashbackModal();
+        });
+        
+        // 캐시백 버튼 표시/숨김 (크레딧 200 이상일 때만 표시)
+        function updateCashbackButtonVisibility(credits) {
+            const cashbackBtn = document.getElementById('cashbackBtn');
+            if (credits >= 200) {
+                cashbackBtn.classList.remove('hidden');
+            } else {
+                cashbackBtn.classList.add('hidden');
             }
         }
         
@@ -1033,6 +1109,9 @@
                 
                 const credits = profileData.credits || 0;
                 document.getElementById('cashbackCredits').textContent = credits;
+                
+                // 캐시백 버튼 표시 업데이트
+                updateCashbackButtonVisibility(credits);
                 
                 if (credits >= 200) {
                     document.getElementById('cashbackForm').classList.remove('hidden');
@@ -1063,40 +1142,20 @@
                             </div>
                         `;
                     }).join('');
+                } else {
+                    document.getElementById('cashbackHistory').classList.add('hidden');
                 }
             } catch (error) {
                 console.error('Cashback info load error:', error);
             }
         }
         
-        // 추천 링크 복사
-        document.getElementById('copyReferralBtn').onclick = async () => {
-            const link = document.getElementById('referralLink').value;
-            if (!link) return;
-            
-            try {
-                await navigator.clipboard.writeText(link);
-                showToast('추천 링크가 복사되었습니다!');
-                document.getElementById('copyReferralBtn').textContent = '복사됨!';
-                setTimeout(() => {
-                    document.getElementById('copyReferralBtn').textContent = '복사';
-                }, 2000);
-            } catch (error) {
-                showToast('복사 실패: ' + error.message);
-            }
-        };
-        
         // 캐시백 신청
         document.getElementById('requestCashbackBtn').onclick = async () => {
-            const paymentMethod = document.getElementById('paymentMethod').value;
-            const paymentInfo = document.getElementById('paymentInfo').value;
+            const paymentMethod = document.getElementById('cashbackPaymentMethod').value.trim();
             
             if (!paymentMethod) {
-                showToast('결제 방법을 선택해주세요.');
-                return;
-            }
-            if (!paymentInfo) {
-                showToast('결제 정보를 입력해주세요.');
+                showToast('결제 수단 정보를 입력해주세요.');
                 return;
             }
             
@@ -1105,15 +1164,15 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     credentials: 'include',
-                    body: JSON.stringify({ paymentMethod, paymentInfo })
+                    body: JSON.stringify({ paymentMethod, paymentInfo: paymentMethod })
                 });
                 
                 const result = await response.json();
                 
                 if (result.success) {
                     showToast('캐시백 신청이 완료되었습니다!');
-                    document.getElementById('paymentMethod').value = '';
-                    document.getElementById('paymentInfo').value = '';
+                    document.getElementById('cashbackPaymentMethod').value = '';
+                    closeCashbackModal();
                     loadCashbackInfo();
                     loadTransactions();
                     loadProfile();
@@ -1130,7 +1189,6 @@
         loadPages();
         loadTransactions();
         loadPricing();
-        loadReferralCode();
         loadCashbackInfo();
 
         // ✅ 2025-11-28: 탭 포커스 시 인증/크레딧 상태 실시간 갱신
