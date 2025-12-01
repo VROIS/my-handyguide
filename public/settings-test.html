@@ -360,9 +360,6 @@
             
             console.log('Language selected:', selectedLang);
             
-            // localStorage에 언어 저장 (AI 프롬프트에서 사용)
-            localStorage.setItem('selectedLanguage', selectedLang);
-            
             // Google Translate 쿠키 설정
             const domain = window.location.hostname;
             document.cookie = `googtrans=/ko/${selectedLang}; path=/; domain=${domain}`;

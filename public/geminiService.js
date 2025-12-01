@@ -106,53 +106,18 @@ async function* streamResponseFromServer(body) {
 
 
 /**
- * 현재 선택한 언어 가져오기 (쿠키 또는 localStorage에서)
- */
-export function getSelectedLanguage() {
-    // localStorage 확인 (설정 페이지에서 저장)
-    const savedLang = localStorage.getItem('selectedLanguage');
-    if (savedLang) return savedLang;
-    
-    // Google Translate 쿠키에서 언어 추출
-    const googtrans = document.cookie.split('; ').find(row => row.startsWith('googtrans='));
-    if (googtrans) {
-        const lang = googtrans.split('/').pop();
-        if (lang && lang !== 'ko') return lang;
-    }
-    
-    return 'ko'; // 기본값
-}
-
-/**
  * 이미지를 분석하고 설명을 생성하기 위해 Netlify 함수를 호출합니다.
  * @param {string} base64Image - Base64로 인코딩된 이미지 데이터
  * @returns {AsyncGenerator&lt;object, void, unknown&gt;} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
  */
 export function generateDescriptionStream(base64Image) {
     const systemInstruction = localStorage.getItem('customImagePrompt') || DEFAULT_IMAGE_PROMPT;
-    const selectedLang = getSelectedLanguage();
-    
-    // 언어별 프롬프트 추가
-    const langMap = {
-        'en': 'English',
-        'ja': 'Japanese',
-        'zh-CN': 'Simplified Chinese',
-        'fr': 'French',
-        'de': 'German',
-        'es': 'Spanish',
-        'ko': 'Korean'
-    };
-    
-    const targetLang = langMap[selectedLang] || 'Korean';
-    const languageInstruction = selectedLang === 'ko' ? '' : `\n\n[언어 설정] 모든 응답을 ${targetLang}로 작성하세요. 한국어는 사용하지 마세요.`;
-    
     console.log('🔍 [프롬프트확인] 사용중인 이미지 프롬프트:', systemInstruction.substring(0, 50) + '...');
-    console.log('🌐 [언어설정]', selectedLang, '-', targetLang);
     
     const requestBody = {
         base64Image,
-        prompt: `이 이미지를 분석하고 ${targetLang}로 생생하게 설명해주세요.`,
-        systemInstruction: systemInstruction + languageInstruction
+        prompt: "이 이미지를 분석하고 한국어로 생생하게 설명해주세요.",
+        systemInstruction
     };
     
     return streamResponseFromServer(requestBody);
@@ -165,28 +130,11 @@ export function generateDescriptionStream(base64Image) {
  */
 export function generateTextStream(prompt) {
     const systemInstruction = localStorage.getItem('customTextPrompt') || DEFAULT_TEXT_PROMPT;
-    const selectedLang = getSelectedLanguage();
-    
-    // 언어별 프롬프트 추가
-    const langMap = {
-        'en': 'English',
-        'ja': 'Japanese',
-        'zh-CN': 'Simplified Chinese',
-        'fr': 'French',
-        'de': 'German',
-        'es': 'Spanish',
-        'ko': 'Korean'
-    };
-    
-    const targetLang = langMap[selectedLang] || 'Korean';
-    const languageInstruction = selectedLang === 'ko' ? '' : `\n\n[언어 설정] 모든 응답을 ${targetLang}로 작성하세요. 한국어는 사용하지 마세요.`;
-    
     console.log('🔍 [프롬프트확인] 사용중인 텍스트 프롬프트:', systemInstruction.substring(0, 50) + '...');
-    console.log('🌐 [언어설정]', selectedLang, '-', targetLang);
     
     const requestBody = {
         prompt,
-        systemInstruction: systemInstruction + languageInstruction
+        systemInstruction
     };
     
     return streamResponseFromServer(requestBody);
