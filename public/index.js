@@ -2784,9 +2784,35 @@ document.addEventListener('DOMContentLoaded', () => {
         currentlySpeakingElement = element;
         
         const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'ko-KR';
+        
+        // 선택 언어에 맞는 음성 자동 선택
+        const userLang = localStorage.getItem('appLanguage') || 'ko';
+        const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
+        const langCode = langCodeMap[userLang] || 'ko-KR';
+        
+        // Microsoft 음성 우선
+        const msVoices = {
+            'ko-KR': 'Microsoft Heami - Korean (Korea)',
+            'en-US': 'Microsoft Zira - English (United States)',
+            'ja-JP': 'Microsoft Haruka - Japanese (Japan)',
+            'zh-CN': 'Microsoft Huihui - Chinese (Simplified, PRC)',
+            'fr-FR': 'Microsoft Hortense - French (France)',
+            'de-DE': 'Microsoft Hedda - German (Germany)',
+            'es-ES': 'Microsoft Helena - Spanish (Spain)'
+        };
+        
+        const allVoices = synth.getVoices();
+        let targetVoice = allVoices.find(v => v.name === msVoices[langCode]);
+        if (!targetVoice) {
+            targetVoice = allVoices.find(v => v.lang.startsWith(langCode.substring(0, 2)));
+        }
+        
+        utterance.voice = targetVoice || null;
+        utterance.lang = langCode;
         utterance.rate = 0.9;
         utterance.pitch = 1.0;
+        
+        console.log('[TTS] 언어:', langCode, '음성:', targetVoice?.name || 'default');
         
         utterance.onend = () => {
             element.classList.remove('speaking');
