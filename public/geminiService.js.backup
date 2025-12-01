@@ -106,48 +106,17 @@ async function* streamResponseFromServer(body) {
 
 
 /**
- * 사용자 선택 언어에 따른 언어 지시어 생성
- * @returns {string} - 언어 지시어 (한국어면 빈 문자열)
- */
-function getLanguageInstruction() {
-    const userLang = localStorage.getItem('appLanguage') || 'ko';
-    
-    if (userLang === 'ko') return '';
-    
-    const langNames = {
-        'en': 'English',
-        'ja': '日本語 (Japanese)',
-        'zh-CN': '中文 (Chinese)',
-        'fr': 'Français (French)',
-        'de': 'Deutsch (German)',
-        'es': 'Español (Spanish)'
-    };
-    
-    const langName = langNames[userLang] || 'English';
-    console.log('🌐 [언어설정] 선택된 언어:', langName);
-    
-    return `\n\n[중요: 반드시 ${langName} 언어로만 응답하세요. 한국어를 사용하지 마세요.]`;
-}
-
-/**
  * 이미지를 분석하고 설명을 생성하기 위해 Netlify 함수를 호출합니다.
  * @param {string} base64Image - Base64로 인코딩된 이미지 데이터
  * @returns {AsyncGenerator&lt;object, void, unknown&gt;} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
  */
 export function generateDescriptionStream(base64Image) {
-    const baseInstruction = localStorage.getItem('customImagePrompt') || DEFAULT_IMAGE_PROMPT;
-    const langInstruction = getLanguageInstruction();
-    const systemInstruction = baseInstruction + langInstruction;
-    
-    const userLang = localStorage.getItem('appLanguage') || 'ko';
-    console.log('🔍 [프롬프트확인] 사용중인 이미지 프롬프트:', baseInstruction.substring(0, 50) + '...');
-    console.log('🌐 [언어지시] 추가됨:', langInstruction ? '예' : '아니오 (한국어)');
+    const systemInstruction = localStorage.getItem('customImagePrompt') || DEFAULT_IMAGE_PROMPT;
+    console.log('🔍 [프롬프트확인] 사용중인 이미지 프롬프트:', systemInstruction.substring(0, 50) + '...');
     
     const requestBody = {
         base64Image,
-        prompt: userLang === 'ko' 
-            ? "이 이미지를 분석하고 한국어로 생생하게 설명해주세요."
-            : "Analyze this image and describe it vividly.",
+        prompt: "이 이미지를 분석하고 한국어로 생생하게 설명해주세요.",
         systemInstruction
     };
     
@@ -160,12 +129,8 @@ export function generateDescriptionStream(base64Image) {
  * @returns {AsyncGenerator&lt;object, void, unknown&gt;} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
  */
 export function generateTextStream(prompt) {
-    const baseInstruction = localStorage.getItem('customTextPrompt') || DEFAULT_TEXT_PROMPT;
-    const langInstruction = getLanguageInstruction();
-    const systemInstruction = baseInstruction + langInstruction;
-    
-    console.log('🔍 [프롬프트확인] 사용중인 텍스트 프롬프트:', baseInstruction.substring(0, 50) + '...');
-    console.log('🌐 [언어지시] 추가됨:', langInstruction ? '예' : '아니오 (한국어)');
+    const systemInstruction = localStorage.getItem('customTextPrompt') || DEFAULT_TEXT_PROMPT;
+    console.log('🔍 [프롬프트확인] 사용중인 텍스트 프롬프트:', systemInstruction.substring(0, 50) + '...');
     
     const requestBody = {
         prompt,
