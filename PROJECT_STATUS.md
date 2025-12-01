@@ -58,6 +58,42 @@
 
 ## 🎯 오늘 완료 (2025-12-01)
 
+### ✅ 다국어 환율 시스템 구축 + TTS 음성 자동 선택
+**작업 시간:** 2시간  
+**배경:** 7개국어 지원 앱에서 언어별 가격 표시 및 음성 재생 필요
+
+**완료 작업:**
+1. **Frankfurter API 환율 조회**
+   - EUR → KRW/USD/CNY/JPY 실시간 환율 조회
+   - `/api/profile/exchange-rate` API에서 모든 통화 반환
+
+2. **프로필 페이지 언어별 통화 표시**
+   - 한국어(ko) → ₩ (KRW)
+   - 영어(en) → $ (USD)
+   - 중국어(zh-CN) → ¥ (CNY)
+   - 일본어(ja) → ¥ (JPY)
+   - 기타 → € (EUR)
+
+3. **Service Worker 무한 루프 버그 수정**
+   - 원인: `sw-share.js` 파일 미존재 → 무한 요청
+   - 해결: `public/sw-share.js` 파일 생성
+
+4. **Google Translate 충돌 방지**
+   - 가격 요소에 `notranslate` 클래스 추가
+   - MutationObserver로 텍스트 변경 감지 및 복원
+
+5. **한국어 TTS 정상 작동 확인**
+   - 시스템 기본 음성 사용 (Windows/iOS/Android 각각)
+
+**수정 파일:**
+- `server/exchangeRate.ts` - getAllExchangeRates() 함수
+- `server/profileRoutes.ts` - /profile/exchange-rate API
+- `public/profile.html` - 언어별 통화 자동 선택
+- `public/sw-share.js` - 신규 생성
+- `public/index.js` - speakNext 함수 TTS 로직
+
+---
+
 ### ✅ 서버 성능 최적화 - Gzip 압축 + 캐싱 헤더
 **작업 시간:** 10분  
 **배경:** Replit 로딩 속도 개선 (3-5초 → 2.5-4초)
@@ -699,6 +735,111 @@ function handleItemSelect(id) {
 
 **주의사항:**
 - Set이 아니라 Array 사용 (순서 보존 필수)
+
+---
+
+### 11. 🔥 TTS 다국어 음성 자동 선택 (2025-12-01)
+**위치:** `public/index.js` - speakNext 함수 (약 2766줄)  
+**중요도:** CRITICAL (7개국어 TTS)  
+**영향:** 한국어/영어/프랑스어/중국어/일본어 등 음성 자동 선택
+
+**로직:**
+```javascript
+// public/index.js - speakNext() 함수
+function speakNext() {
+    const utterance = new SpeechSynthesisUtterance(currentSentence);
+    
+    // 한국어는 시스템 기본 음성 사용 (가장 안정적)
+    utterance.lang = 'ko-KR';
+    // voice 지정 안 함 → 시스템 기본 음성 사용
+    
+    // 다른 언어는 플랫폼별 음성 우선순위
+    // Windows: Microsoft → iOS: Apple → Android: Google
+    
+    speechSynthesis.speak(utterance);
+}
+```
+
+**주의사항:**
+- 한국어: `utterance.lang = 'ko-KR'` 고정, voice 선택 안 함
+- voice를 직접 선택하면 일부 기기에서 무음 버그 발생
+- 시스템 기본 음성이 가장 안정적
+
+---
+
+### 12. 🔥 프로필 언어별 통화 자동 전환 (2025-12-01)
+**위치:** `public/profile.html` - loadPricing 함수  
+**중요도:** CRITICAL (결제 UX)  
+**영향:** 7개국어 지원 시 결제 화면 통화 표시
+
+**로직:**
+```javascript
+// public/profile.html - loadPricing() 함수
+const appLang = localStorage.getItem('appLanguage') || 'ko';
+
+// 언어별 통화 매핑
+const currencyMap = {
+    'ko': { currency: 'KRW', symbol: '₩' },
+    'en': { currency: 'USD', symbol: '$' },
+    'ja': { currency: 'JPY', symbol: '¥' },
+    'zh-CN': { currency: 'CNY', symbol: '¥' },
+    'default': { currency: 'EUR', symbol: '€' }
+};
+
+// API 응답에서 해당 통화 가격 선택
+const price = data.prices[currency]; // 예: 16998 (KRW)
+priceText = `${symbol}${price.toLocaleString()}`; // "₩16,998"
+```
+
+**API 응답 예시:**
+```json
+{
+    "eur": 10,
+    "prices": {
+        "KRW": 16998,
+        "USD": 10.52,
+        "JPY": 1587,
+        "CNY": 75.42
+    }
+}
+```
+
+**주의사항:**
+- `localStorage.getItem('appLanguage')` 키 사용 (짧은 형식: ko, en, fr)
+- Google Translate와 충돌 방지: `notranslate` 클래스 필수
+- MutationObserver로 가격 텍스트 변경 감지 및 복원
+
+---
+
+### 13. ⚠️ sw-share.js 공유페이지 Service Worker (2025-12-01)
+**위치:** `public/sw-share.js`  
+**중요도:** HIGH (공유페이지 오프라인 지원)
+
+**로직:**
+```javascript
+// public/sw-share.js
+const CACHE_NAME = 'share-cache-v2';
+
+self.addEventListener('fetch', event => {
+    // 공유 페이지 (/s/*) - Cache First 전략
+    if (url.pathname.startsWith('/s/')) {
+        event.respondWith(caches.open(CACHE_NAME).then(cache => {
+            return cache.match(event.request).then(cached => {
+                if (cached) return cached;
+                return fetch(event.request).then(response => {
+                    cache.put(event.request, response.clone());
+                    return response;
+                });
+            });
+        }));
+    }
+});
+```
+
+**주의사항:**
+- 이 파일이 없으면 Service Worker 무한 루프 발생
+- 공유 HTML 템플릿에서 `/sw-share.js` 등록함
+- 삭제 금지!
 
 ---
 
