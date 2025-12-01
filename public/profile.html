@@ -1210,6 +1210,18 @@
     <!-- Google Translate Widget (숨김) -->
     <div id="google_translate_element" style="display:none;"></div>
 
+    <!-- 저장된 언어 자동 적용 -->
+    <script>
+        (function() {
+            const savedLang = localStorage.getItem('appLanguage') || 'ko';
+            if (savedLang !== 'ko') {
+                const domain = window.location.hostname;
+                document.cookie = `googtrans=/ko/${savedLang}; path=/; domain=${domain}`;
+                document.cookie = `googtrans=/ko/${savedLang}; path=/`;
+            }
+        })();
+    </script>
+
     <!-- Google Translate Initialization -->
     <script type="text/javascript">
         function googleTranslateElementInit() {
