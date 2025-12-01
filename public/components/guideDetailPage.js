@@ -172,9 +172,27 @@ const guideDetailPage = {
         console.log('[GuideDetailPage] Initialized');
     },
 
-    // 음성 목록 로드
+    // 음성 목록 로드 (모든 언어)
     _populateVoiceList: function() {
-        this._state.voices = this._state.synth.getVoices().filter(v => v.lang.startsWith('ko'));
+        this._state.voices = this._state.synth.getVoices();
+    },
+    
+    // 언어별 음성 선택
+    _getVoiceForLanguage: function(userLang) {
+        const voiceMap = {
+            'ko-KR': 'Microsoft Heami - Korean (Korea)',
+            'en-US': 'Microsoft Zira - English (United States)',
+            'ja-JP': 'Microsoft Haruka - Japanese (Japan)',
+            'zh-CN': 'Microsoft Huihui - Chinese (Simplified, PRC)',
+            'fr-FR': 'Microsoft Hortense - French (France)',
+            'de-DE': 'Microsoft Hedda - German (Germany)',
+            'es-ES': 'Microsoft Helena - Spanish (Spain)'
+        };
+        
+        const targetVoiceName = voiceMap[userLang] || voiceMap['ko-KR']; // 기본: 한국어
+        const targetVoice = this._state.voices.find(v => v.name === targetVoiceName);
+        
+        return targetVoice || this._state.voices.find(v => v.lang.startsWith('ko')) || this._state.voices[0];
     },
 
     // 페이지 열기 (guideId로 API 호출)
@@ -251,10 +269,13 @@ const guideDetailPage = {
         
         this._state.currentUtterance = new SpeechSynthesisUtterance(cleanText);
         
-        // Microsoft Heami 음성
-        const targetVoice = this._state.voices.find(v => v.name === 'Microsoft Heami - Korean (Korea)');
+        // 현재 선택된 언어 가져오기
+        const userLang = localStorage.getItem('selectedLanguage') || 'ko-KR';
+        
+        // 언어별 음성 자동 선택
+        const targetVoice = this._getVoiceForLanguage(userLang);
         this._state.currentUtterance.voice = targetVoice;
-        this._state.currentUtterance.lang = 'ko-KR';
+        this._state.currentUtterance.lang = userLang;
         this._state.currentUtterance.rate = 1.0;
         
         let currentSentenceIndex = 0;
