@@ -6,7 +6,7 @@
  * 기능:
  * - 풀스크린 이미지 배경
  * - 흰색 텍스트 (그림자 없음, 투명 오버레이)
- * - 음성 자동재생 (Microsoft Heami TTS)
+ * - 음성 자동재생 (언어별 자동 선택)
  * - 문장별 파란 하이라이트
  * - 자동 스크롤 (현재 문장 따라감)
  * - 위치 정보 표시 (흰색 박스)
@@ -179,6 +179,19 @@ const guideDetailPage = {
     
     // 언어별 음성 선택
     _getVoiceForLanguage: function(userLang) {
+        // 짧은 형식 (ko, en) → 긴 형식 (ko-KR, en-US) 변환
+        const langMap = {
+            'ko': 'ko-KR',
+            'en': 'en-US',
+            'ja': 'ja-JP',
+            'zh-CN': 'zh-CN',
+            'fr': 'fr-FR',
+            'de': 'de-DE',
+            'es': 'es-ES'
+        };
+        
+        const fullLang = langMap[userLang] || 'ko-KR';
+        
         const voiceMap = {
             'ko-KR': 'Microsoft Heami - Korean (Korea)',
             'en-US': 'Microsoft Zira - English (United States)',
@@ -189,7 +202,7 @@ const guideDetailPage = {
             'es-ES': 'Microsoft Helena - Spanish (Spain)'
         };
         
-        const targetVoiceName = voiceMap[userLang] || voiceMap['ko-KR']; // 기본: 한국어
+        const targetVoiceName = voiceMap[fullLang] || voiceMap['ko-KR'];
         const targetVoice = this._state.voices.find(v => v.name === targetVoiceName);
         
         return targetVoice || this._state.voices.find(v => v.lang.startsWith('ko')) || this._state.voices[0];
@@ -269,13 +282,18 @@ const guideDetailPage = {
         
         this._state.currentUtterance = new SpeechSynthesisUtterance(cleanText);
         
-        // 현재 선택된 언어 가져오기
-        const userLang = localStorage.getItem('selectedLanguage') || 'ko-KR';
+        // 현재 선택된 언어 가져오기 (appLanguage: ko, en, ja 등 짧은 형식)
+        const userLang = localStorage.getItem('appLanguage') || 'ko';
         
         // 언어별 음성 자동 선택
         const targetVoice = this._getVoiceForLanguage(userLang);
+        
+        // 언어 코드를 긴 형식으로 변환 (ko → ko-KR)
+        const langFullMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
+        const fullLang = langFullMap[userLang] || 'ko-KR';
+        
         this._state.currentUtterance.voice = targetVoice;
-        this._state.currentUtterance.lang = userLang;
+        this._state.currentUtterance.lang = fullLang;
         this._state.currentUtterance.rate = 1.0;
         
         let currentSentenceIndex = 0;
