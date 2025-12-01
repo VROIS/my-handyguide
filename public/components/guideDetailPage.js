@@ -191,6 +191,7 @@ const guideDetailPage = {
         };
         
         const fullLang = langMap[userLang] || 'ko-KR';
+        const langCode = fullLang.substring(0, 2);
         
         const voiceMap = {
             'ko-KR': 'Microsoft Heami - Korean (Korea)',
@@ -205,7 +206,7 @@ const guideDetailPage = {
         const targetVoiceName = voiceMap[fullLang] || voiceMap['ko-KR'];
         const targetVoice = this._state.voices.find(v => v.name === targetVoiceName);
         
-        return targetVoice || this._state.voices.find(v => v.lang.startsWith('ko')) || this._state.voices[0];
+        return targetVoice || this._state.voices.find(v => v.lang.startsWith(langCode)) || this._state.voices[0];
     },
 
     // 페이지 열기 (guideId로 API 호출)
