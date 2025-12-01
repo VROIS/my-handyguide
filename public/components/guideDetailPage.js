@@ -277,7 +277,7 @@ const guideDetailPage = {
     },
 
     // 음성 재생 (문장별 하이라이트 + 자동 스크롤)
-    _playAudio: function(text) {
+    _playAudio: async function(text) {
         const self = this;
         this._stopAudio();
         
@@ -295,8 +295,26 @@ const guideDetailPage = {
         // 현재 선택된 언어 가져오기 (appLanguage: ko, en, ja 등 짧은 형식)
         const userLang = localStorage.getItem('appLanguage') || 'ko';
         
-        // 🔴 매번 음성 다시 로드 (언어 변경 시 음성 적용)
-        this._state.voices = this._state.synth.getVoices();
+        // 🔴 음성 목록 로드 대기 (최대 1초)
+        let voices = this._state.synth.getVoices();
+        if (voices.length === 0) {
+            console.log('[TTS] Waiting for voices to load...');
+            await new Promise(resolve => {
+                const checkVoices = () => {
+                    voices = self._state.synth.getVoices();
+                    if (voices.length > 0) {
+                        resolve();
+                    } else {
+                        setTimeout(checkVoices, 100);
+                    }
+                };
+                setTimeout(checkVoices, 100);
+                setTimeout(resolve, 1000); // 최대 1초 대기
+            });
+            voices = this._state.synth.getVoices();
+        }
+        this._state.voices = voices;
+        console.log('[TTS] Voices loaded:', voices.length);
         
         // 언어별 음성 자동 선택
         const targetVoice = this._getVoiceForLanguage(userLang);
