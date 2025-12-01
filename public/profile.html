@@ -678,6 +678,9 @@
             }
         }
 
+        let cachedPriceText = '';
+        let cachedBtnText = '';
+        
         async function loadPricing() {
             try {
                 const response = await fetch('/api/profile/exchange-rate');
@@ -685,51 +688,62 @@
 
                 if (data.prices) {
                     const userLang = localStorage.getItem('appLanguage') || 'ko';
-                    let priceText = '';
-                    let btnText = '';
                     
                     // 언어별 통화 표시
                     switch(userLang) {
                         case 'ko':
                             const krwFormatted = new Intl.NumberFormat('ko-KR').format(data.prices.KRW);
-                            priceText = `10 EUR (약 ₩${krwFormatted})`;
-                            btnText = `10 EUR 충전하기 (약 ₩${krwFormatted})`;
+                            cachedPriceText = `10 EUR (약 ₩${krwFormatted})`;
+                            cachedBtnText = `10 EUR 충전하기 (약 ₩${krwFormatted})`;
                             break;
                         case 'en':
-                            priceText = `10 EUR (≈ $${data.prices.USD})`;
-                            btnText = `Charge 10 EUR (≈ $${data.prices.USD})`;
+                            cachedPriceText = `10 EUR (≈ $${data.prices.USD})`;
+                            cachedBtnText = `Charge 10 EUR (≈ $${data.prices.USD})`;
                             break;
                         case 'ja':
-                            priceText = `10 EUR (約 ¥${new Intl.NumberFormat('ja-JP').format(data.prices.JPY)})`;
-                            btnText = `10 EUR チャージ (約 ¥${new Intl.NumberFormat('ja-JP').format(data.prices.JPY)})`;
+                            cachedPriceText = `10 EUR (約 ¥${new Intl.NumberFormat('ja-JP').format(data.prices.JPY)})`;
+                            cachedBtnText = `10 EUR チャージ (約 ¥${new Intl.NumberFormat('ja-JP').format(data.prices.JPY)})`;
                             break;
                         case 'zh-CN':
-                            priceText = `10 EUR (约 ¥${data.prices.CNY})`;
-                            btnText = `充值 10 EUR (约 ¥${data.prices.CNY})`;
+                            cachedPriceText = `10 EUR (约 ¥${data.prices.CNY})`;
+                            cachedBtnText = `充值 10 EUR (约 ¥${data.prices.CNY})`;
                             break;
                         case 'fr':
-                            priceText = `10 EUR`;
-                            btnText = `Recharger 10 EUR`;
+                            cachedPriceText = `10 EUR`;
+                            cachedBtnText = `Recharger 10 EUR`;
                             break;
                         case 'de':
-                            priceText = `10 EUR`;
-                            btnText = `10 EUR aufladen`;
+                            cachedPriceText = `10 EUR`;
+                            cachedBtnText = `10 EUR aufladen`;
                             break;
                         case 'es':
-                            priceText = `10 EUR`;
-                            btnText = `Cargar 10 EUR`;
+                            cachedPriceText = `10 EUR`;
+                            cachedBtnText = `Cargar 10 EUR`;
                             break;
                         default:
                             const defaultKrw = new Intl.NumberFormat('ko-KR').format(data.prices.KRW);
-                            priceText = `10 EUR (약 ₩${defaultKrw})`;
-                            btnText = `10 EUR 충전하기 (약 ₩${defaultKrw})`;
+                            cachedPriceText = `10 EUR (약 ₩${defaultKrw})`;
+                            cachedBtnText = `10 EUR 충전하기 (약 ₩${defaultKrw})`;
                     }
                     
-                    document.getElementById('standardPrice').textContent = priceText;
-                    document.getElementById('chargeBtnText').textContent = btnText;
+                    applyPriceText();
+                    
+                    // Google Translate가 텍스트를 덮어쓰면 다시 복원
+                    setTimeout(applyPriceText, 500);
+                    setTimeout(applyPriceText, 1500);
+                    setTimeout(applyPriceText, 3000);
                 }
             } catch (error) {
                 console.error('Pricing load error:', error);
+            }
+        }
+        
+        function applyPriceText() {
+            if (cachedPriceText && cachedBtnText) {
+                const priceEl = document.getElementById('standardPrice');
+                const btnEl = document.getElementById('chargeBtnText');
+                if (priceEl) priceEl.textContent = cachedPriceText;
+                if (btnEl) btnEl.textContent = cachedBtnText;
             }
         }
 
