@@ -1,10 +1,15 @@
 import express, { type Request, Response, NextFunction } from "express";
+import compression from "compression";
 import { registerRoutes } from "./routes";
 import { storage } from "./storage";
 import fs from 'fs';
 import path from 'path';
 
 const app = express();
+
+// 🚀 Gzip 압축 - 모든 응답 자동 압축 (파일 크기 60-70% 감소)
+app.use(compression({ level: 6 }));
+
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: false, limit: '50mb' }));
 
@@ -153,16 +158,25 @@ app.get('/s/:id', async (req, res) => {
   const publicDir = process.env.NODE_ENV === 'production' ? 'dist/public' : 'public';
   
   // ⚠️ 2025.11.02: 스마트 캐시 전략 (업데이트 vs 성능 균형)
+  // 🚀 2025-12-01: 최적화된 캐시 헤더 - 재방문 즉시 로딩
   app.use(express.static(publicDir, {
-    setHeaders: (res, path) => {
+    maxAge: '1d',  // 기본 캐시: 24시간
+    etag: true,    // ETag 기반 유효성 검사
+    setHeaders: (res, filePath) => {
       // HTML/JS만 캐시 비활성화 (업데이트 즉시 반영)
-      // 이미지/CSS는 캐시 허용 (성능 향상)
-      if (path.endsWith('.html') || path.endsWith('.js')) {
+      // 이미지/CSS/폰트: 장기 캐시 (1일~30일)
+      if (filePath.endsWith('.html') || filePath.endsWith('.js')) {
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
+      } else if (filePath.endsWith('.css') || filePath.endsWith('.woff2') || filePath.endsWith('.woff')) {
+        // CSS/폰트: 30일 캐시 (거의 안 바뀜)
+        res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
+      } else if (filePath.match(/\.(png|jpg|jpeg|gif|svg|webp)$/i)) {
+        // 이미지: 7일 캐시 (해시값 기반 버전관리)
+        res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
       } else {
-        // 이미지, CSS 등: 1시간 캐시
+        // 기타: 1시간 캐시
         res.setHeader('Cache-Control', 'public, max-age=3600');
       }
     }
