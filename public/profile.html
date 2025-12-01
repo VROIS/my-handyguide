@@ -738,14 +738,42 @@
             }
         }
         
+        let isApplyingPrice = false;
+        
         function applyPriceText() {
-            if (cachedPriceText && cachedBtnText) {
-                const priceEl = document.getElementById('standardPrice');
-                const btnEl = document.getElementById('chargeBtnText');
-                if (priceEl) priceEl.textContent = cachedPriceText;
-                if (btnEl) btnEl.textContent = cachedBtnText;
+            if (isApplyingPrice || !cachedPriceText || !cachedBtnText) return;
+            
+            isApplyingPrice = true;
+            const priceEl = document.getElementById('standardPrice');
+            const btnEl = document.getElementById('chargeBtnText');
+            
+            if (priceEl && priceEl.textContent !== cachedPriceText) {
+                priceEl.textContent = cachedPriceText;
             }
+            if (btnEl && btnEl.textContent !== cachedBtnText) {
+                btnEl.textContent = cachedBtnText;
+            }
+            
+            setTimeout(() => { isApplyingPrice = false; }, 50);
         }
+        
+        // MutationObserver로 Google Translate 변경 감지 및 복원
+        const priceObserver = new MutationObserver(() => {
+            if (!isApplyingPrice) applyPriceText();
+        });
+        
+        // 페이지 로드 후 Observer 시작
+        document.addEventListener('DOMContentLoaded', () => {
+            const priceEl = document.getElementById('standardPrice');
+            const btnEl = document.getElementById('chargeBtnText');
+            
+            if (priceEl) {
+                priceObserver.observe(priceEl, { childList: true, characterData: true, subtree: true });
+            }
+            if (btnEl) {
+                priceObserver.observe(btnEl, { childList: true, characterData: true, subtree: true });
+            }
+        });
 
         function highlightCurrentPlan(credits) {
             const cards = document.querySelectorAll('.plan-card');
