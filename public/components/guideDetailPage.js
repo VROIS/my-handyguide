@@ -206,7 +206,16 @@ const guideDetailPage = {
         const targetVoiceName = voiceMap[fullLang];
         const targetVoice = targetVoiceName ? this._state.voices.find(v => v.name === targetVoiceName) : null;
         
-        return targetVoice || this._state.voices.find(v => v.lang.startsWith(langCode)) || this._state.voices[0];
+        // 디버깅 로그
+        console.log('[TTS] userLang:', userLang, 'fullLang:', fullLang, 'langCode:', langCode);
+        console.log('[TTS] Available voices:', this._state.voices.map(v => v.lang + ':' + v.name).slice(0, 10));
+        
+        const fallbackVoice = this._state.voices.find(v => v.lang.startsWith(langCode));
+        const selectedVoice = targetVoice || fallbackVoice || this._state.voices[0];
+        
+        console.log('[TTS] Selected voice:', selectedVoice?.name, selectedVoice?.lang);
+        
+        return selectedVoice;
     },
 
     // 페이지 열기 (guideId로 API 호출)
