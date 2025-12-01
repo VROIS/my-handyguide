@@ -13,7 +13,7 @@
 
 import { Router, Request, Response } from 'express';
 import { creditService, CREDIT_CONFIG } from './creditService';
-import { getEURtoKRW, convertEURtoKRW, formatKRW } from './exchangeRate';
+import { getEURtoKRW, convertEURtoKRW, formatKRW, getAllRates } from './exchangeRate';
 import { getUncachableStripeClient, getStripePublishableKey } from './stripeClient';
 import { storage } from './storage';
 
@@ -145,16 +145,25 @@ router.post('/profile/use-credits', async (req: Request, res: Response) => {
 
 router.get('/profile/exchange-rate', async (req: Request, res: Response) => {
   try {
-    const rate = await getEURtoKRW();
-    const priceKRW = await convertEURtoKRW(CREDIT_CONFIG.PRICE_EUR);
-    const formattedPrice = await formatKRW(CREDIT_CONFIG.PRICE_EUR);
+    const rates = await getAllRates();
+    const priceEUR = CREDIT_CONFIG.PRICE_EUR;
+    
+    // 각 통화로 환산된 가격
+    const prices = {
+      EUR: priceEUR,
+      KRW: Math.round(priceEUR * rates.KRW),
+      USD: Math.round(priceEUR * rates.USD * 100) / 100,
+      CNY: Math.round(priceEUR * rates.CNY * 10) / 10,
+      JPY: Math.round(priceEUR * rates.JPY)
+    };
 
     res.json({
-      rate,
-      priceEUR: CREDIT_CONFIG.PRICE_EUR,
-      krwPrice: priceKRW,
-      priceKRW,
-      formattedPrice,
+      rates,
+      priceEUR,
+      prices,
+      krwPrice: prices.KRW,
+      priceKRW: prices.KRW,
+      formattedPrice: `₩${new Intl.NumberFormat('ko-KR').format(prices.KRW)}`,
       credits: CREDIT_CONFIG.PURCHASE_CREDITS,
     });
   } catch (error: any) {
