@@ -854,27 +854,42 @@ document.addEventListener('DOMContentLoaded', () => {
             'es': 'es-ES'
         };
         
-        // 선택 언어에 맞는 음성 찾기
+        // 선택 언어에 맞는 음성 찾기 (플랫폼별 최적화)
         function getVoiceForLanguage(userLang, allVoices) {
             const langCode = langCodeMap[userLang] || 'ko-KR';
             
-            // Microsoft 음성 우선 (품질 좋음)
-            const msVoices = {
-                'ko-KR': 'Microsoft Heami - Korean (Korea)',
-                'en-US': 'Microsoft Zira - English (United States)',
-                'ja-JP': 'Microsoft Haruka - Japanese (Japan)',
-                'zh-CN': 'Microsoft Huihui - Chinese (Simplified, PRC)',
-                'fr-FR': 'Microsoft Hortense - French (France)',
-                'de-DE': 'Microsoft Hedda - German (Germany)',
-                'es-ES': 'Microsoft Helena - Spanish (Spain)'
+            // 플랫폼별 최적 음성 우선순위 (Windows → iOS → Android/Chrome)
+            const voicePriority = {
+                'ko-KR': ['Microsoft Heami', 'Yuna', 'Google 한국의'],
+                'en-US': ['Microsoft Zira', 'Samantha', 'Google US English'],
+                'ja-JP': ['Microsoft Haruka', 'Kyoko', 'Google 日本語'],
+                'zh-CN': ['Microsoft Huihui', 'Ting-Ting', 'Google 普通话'],
+                'fr-FR': ['Microsoft Hortense', 'Thomas', 'Google français'],
+                'de-DE': ['Microsoft Hedda', 'Anna', 'Google Deutsch'],
+                'es-ES': ['Microsoft Helena', 'Monica', 'Google español']
             };
             
-            // 정확한 음성 찾기
-            let targetVoice = allVoices.find(v => v.name === msVoices[langCode]);
+            let targetVoice = null;
             
-            // 없으면 언어 코드로 필터링
+            // 우선순위대로 음성 찾기
+            const priorities = voicePriority[langCode] || [];
+            for (const voiceName of priorities) {
+                targetVoice = allVoices.find(v => v.name.includes(voiceName));
+                if (targetVoice) break;
+            }
+            
+            // 우선순위에 없으면 언어 코드로 찾기 (Android underscore 형식 대응)
             if (!targetVoice) {
-                targetVoice = allVoices.find(v => v.lang.startsWith(langCode.substring(0, 2)));
+                const langPrefix = langCode.substring(0, 2);
+                targetVoice = allVoices.find(v => 
+                    v.lang.replace('_', '-').startsWith(langPrefix) && 
+                    v.lang.replace('_', '-').includes(langCode.substring(3))
+                );
+            }
+            
+            // 그래도 없으면 언어 앞 2자리만 매칭
+            if (!targetVoice) {
+                targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
             }
             
             return targetVoice;
@@ -2790,21 +2805,39 @@ document.addEventListener('DOMContentLoaded', () => {
         const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
         const langCode = langCodeMap[userLang] || 'ko-KR';
         
-        // Microsoft 음성 우선
-        const msVoices = {
-            'ko-KR': 'Microsoft Heami - Korean (Korea)',
-            'en-US': 'Microsoft Zira - English (United States)',
-            'ja-JP': 'Microsoft Haruka - Japanese (Japan)',
-            'zh-CN': 'Microsoft Huihui - Chinese (Simplified, PRC)',
-            'fr-FR': 'Microsoft Hortense - French (France)',
-            'de-DE': 'Microsoft Hedda - German (Germany)',
-            'es-ES': 'Microsoft Helena - Spanish (Spain)'
+        // 플랫폼별 최적 음성 우선순위 (Windows → iOS → Android/Chrome)
+        const voicePriority = {
+            'ko-KR': ['Microsoft Heami', 'Yuna', 'Google 한국의'],
+            'en-US': ['Microsoft Zira', 'Samantha', 'Google US English'],
+            'ja-JP': ['Microsoft Haruka', 'Kyoko', 'Google 日本語'],
+            'zh-CN': ['Microsoft Huihui', 'Ting-Ting', 'Google 普通话'],
+            'fr-FR': ['Microsoft Hortense', 'Thomas', 'Google français'],
+            'de-DE': ['Microsoft Hedda', 'Anna', 'Google Deutsch'],
+            'es-ES': ['Microsoft Helena', 'Monica', 'Google español']
         };
         
         const allVoices = synth.getVoices();
-        let targetVoice = allVoices.find(v => v.name === msVoices[langCode]);
+        let targetVoice = null;
+        
+        // 우선순위대로 음성 찾기
+        const priorities = voicePriority[langCode] || [];
+        for (const voiceName of priorities) {
+            targetVoice = allVoices.find(v => v.name.includes(voiceName));
+            if (targetVoice) break;
+        }
+        
+        // 우선순위에 없으면 언어 코드로 찾기 (Android underscore 형식 대응)
         if (!targetVoice) {
-            targetVoice = allVoices.find(v => v.lang.startsWith(langCode.substring(0, 2)));
+            const langPrefix = langCode.substring(0, 2);
+            targetVoice = allVoices.find(v => 
+                v.lang.replace('_', '-').startsWith(langPrefix) && 
+                v.lang.replace('_', '-').includes(langCode.substring(3))
+            );
+        }
+        
+        // 그래도 없으면 언어 앞 2자리만 매칭
+        if (!targetVoice) {
+            targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
         }
         
         utterance.voice = targetVoice || null;
@@ -2812,7 +2845,7 @@ document.addEventListener('DOMContentLoaded', () => {
         utterance.rate = 0.9;
         utterance.pitch = 1.0;
         
-        console.log('[TTS] 언어:', langCode, '음성:', targetVoice?.name || 'default');
+        console.log('[TTS] 언어:', langCode, '음성:', targetVoice?.name || 'default', '전체:', allVoices.length + '개');
         
         utterance.onend = () => {
             element.classList.remove('speaking');
