@@ -3277,6 +3277,46 @@ document.addEventListener('DOMContentLoaded', () => {
     archiveBackBtn?.addEventListener('click', showMainPage);
     settingsBackBtn?.addEventListener('click', showArchivePage);
     
+    // 🌐 언어 선택 이벤트 리스너
+    const settingsLanguageSelect = document.getElementById('settingsLanguageSelect');
+    
+    // 페이지 로드 시 저장된 언어 불러오기
+    const savedLang = localStorage.getItem('appLanguage') || 'ko';
+    if (settingsLanguageSelect) {
+        settingsLanguageSelect.value = savedLang;
+    }
+    
+    // 언어 변경 시 저장 + Google Translate 적용
+    settingsLanguageSelect?.addEventListener('change', (e) => {
+        const selectedLang = e.target.value;
+        console.log('🌐 언어 변경:', selectedLang);
+        
+        // localStorage에 저장
+        localStorage.setItem('appLanguage', selectedLang);
+        
+        // Google Translate 쿠키 설정
+        const domain = window.location.hostname;
+        document.cookie = `googtrans=/ko/${selectedLang}; path=/; domain=${domain}`;
+        document.cookie = `googtrans=/ko/${selectedLang}; path=/`;
+        
+        // 토스트 메시지
+        const langNames = {
+            'ko': '한국어',
+            'en': 'English',
+            'ja': '日本語',
+            'zh-CN': '中文',
+            'fr': 'Français',
+            'de': 'Deutsch',
+            'es': 'Español'
+        };
+        showToast(`언어가 ${langNames[selectedLang]}로 변경됩니다...`);
+        
+        // 페이지 새로고침 (Google Translate 적용)
+        setTimeout(() => {
+            window.location.reload();
+        }, 500);
+    });
+    
     // 🔓 테스트용 로그아웃 버튼
     const testLogoutBtn = document.getElementById('testLogoutBtn');
     testLogoutBtn?.addEventListener('click', () => {
