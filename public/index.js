@@ -843,8 +843,52 @@ document.addEventListener('DOMContentLoaded', () => {
         let voices = [];
         let currentUtterance = null;
         
+        // 언어 코드 매핑
+        const langCodeMap = {
+            'ko': 'ko-KR',
+            'en': 'en-US',
+            'ja': 'ja-JP',
+            'zh-CN': 'zh-CN',
+            'fr': 'fr-FR',
+            'de': 'de-DE',
+            'es': 'es-ES'
+        };
+        
+        // 선택 언어에 맞는 음성 찾기
+        function getVoiceForLanguage(userLang, allVoices) {
+            const langCode = langCodeMap[userLang] || 'ko-KR';
+            
+            // Microsoft 음성 우선 (품질 좋음)
+            const msVoices = {
+                'ko-KR': 'Microsoft Heami - Korean (Korea)',
+                'en-US': 'Microsoft Zira - English (United States)',
+                'ja-JP': 'Microsoft Haruka - Japanese (Japan)',
+                'zh-CN': 'Microsoft Huihui - Chinese (Simplified, PRC)',
+                'fr-FR': 'Microsoft Hortense - French (France)',
+                'de-DE': 'Microsoft Hedda - German (Germany)',
+                'es-ES': 'Microsoft Helena - Spanish (Spain)'
+            };
+            
+            // 정확한 음성 찾기
+            let targetVoice = allVoices.find(v => v.name === msVoices[langCode]);
+            
+            // 없으면 언어 코드로 필터링
+            if (!targetVoice) {
+                targetVoice = allVoices.find(v => v.lang.startsWith(langCode.substring(0, 2)));
+            }
+            
+            return targetVoice;
+        }
+        
         function populateVoiceList() {
-            voices = synth.getVoices().filter(v => v.lang.startsWith('ko'));
+            const userLang = localStorage.getItem('appLanguage') || 'ko';
+            const allVoices = synth.getVoices();
+            
+            // 선택 언어에 맞는 음성 필터링
+            const langCode = langCodeMap[userLang] || 'ko-KR';
+            voices = allVoices.filter(v => v.lang.startsWith(langCode.substring(0, 2)));
+            
+            console.log('🎤 [음성로드]', langCodeMap[userLang], '음성 개수:', voices.length);
         }
         
         function stopAudio() {
@@ -884,12 +928,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             currentUtterance = new SpeechSynthesisUtterance(cleanText);
             
-            // ⚠️ 오프라인 최적화 - Microsoft Heami 음성 강제 지정 (현장 테스트 완료)
-            // 첨부된 HTML 방식: 정확한 이름 매칭으로 음성 고정
-            const targetVoice = voices.find(v => v.name === 'Microsoft Heami - Korean (Korea)');
+            // 선택 언어에 맞는 음성 자동 선택
+            const userLang = localStorage.getItem('appLanguage') || 'ko';
+            const targetVoice = getVoiceForLanguage(userLang, synth.getVoices());
+            const langCode = langCodeMap[userLang] || 'ko-KR';
+            
             currentUtterance.voice = targetVoice;
-            currentUtterance.lang = 'ko-KR';
+            currentUtterance.lang = langCode;
             currentUtterance.rate = 1.0;
+            
+            console.log('🎤 [음성재생]', langCode, '음성:', targetVoice?.name || 'default');
             
             const playIcon = document.getElementById('play-icon');
             const pauseIcon = document.getElementById('pause-icon');
