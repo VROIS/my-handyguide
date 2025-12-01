@@ -284,7 +284,7 @@ const guideDetailPage = {
         this._state.currentUtterance = new SpeechSynthesisUtterance(cleanText);
         
         // 현재 선택된 언어 가져오기 (appLanguage: ko, en, ja 등 짧은 형식)
-        const userLang = localStorage.getItem('appLanguage') || 'ko';
+        const userLang = localStorage.getItem('appLanguage') || 'en';
         
         // 🔴 매번 음성 다시 로드 (언어 변경 시 음성 적용)
         this._state.voices = this._state.synth.getVoices();
@@ -294,7 +294,7 @@ const guideDetailPage = {
         
         // 언어 코드를 긴 형식으로 변환 (ko → ko-KR)
         const langFullMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
-        const fullLang = langFullMap[userLang] || 'ko-KR';
+        const fullLang = langFullMap[userLang] || 'en-US';
         
         this._state.currentUtterance.voice = targetVoice;
         this._state.currentUtterance.lang = fullLang;
