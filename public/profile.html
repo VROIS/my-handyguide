@@ -1230,6 +1230,15 @@
                 includedLanguages: 'ko,en,ja,zh-CN,fr,de,es',
                 autoDisplay: false
             }, 'google_translate_element');
+            
+            // Google Translate 초기화 후 저장된 언어 적용
+            setTimeout(() => {
+                const savedLang = localStorage.getItem('appLanguage') || 'ko';
+                if (savedLang !== 'ko') {
+                    document.cookie = `googtrans=/ko/${savedLang}; path=/`;
+                    window.location.reload();
+                }
+            }, 500);
         }
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
