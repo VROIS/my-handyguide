@@ -95,17 +95,8 @@
     <!-- Google Translate Widget (숨김) -->
     <div id="google_translate_element" style="display:none;"></div>
 
-    <!-- 저장된 언어 자동 적용 -->
-    <script>
-        (function() {
-            const savedLang = localStorage.getItem('appLanguage') || 'ko';
-            if (savedLang !== 'ko') {
-                const domain = window.location.hostname;
-                document.cookie = `googtrans=/ko/${savedLang}; path=/; domain=${domain}`;
-                document.cookie = `googtrans=/ko/${savedLang}; path=/`;
-            }
-        })();
-    </script>
+    <!-- 언어 헬퍼 -->
+    <script src="language-helper.js"></script>
 
     <!-- Google Translate Initialization -->
     <script type="text/javascript">
@@ -115,14 +106,6 @@
                 includedLanguages: 'ko,en,ja,zh-CN,fr,de,es',
                 autoDisplay: false
             }, 'google_translate_element');
-            
-            // Google Translate 초기화 후 저장된 언어 적용
-            setTimeout(() => {
-                const savedLang = localStorage.getItem('appLanguage') || 'ko';
-                if (savedLang !== 'ko') {
-                    document.cookie = `googtrans=/ko/${savedLang}; path=/`;
-                }
-            }, 500);
         }
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
@@ -138,30 +121,11 @@
 
     <!-- 설정 페이지 로직 -->
     <script>
-        const languageSelect = document.getElementById('languageSelect');
         const backBtn = document.getElementById('backBtn');
 
-        // 페이지 로드 시 저장된 언어 불러오기
-        const savedLang = localStorage.getItem('appLanguage') || 'ko';
-        languageSelect.value = savedLang;
-
-        // 언어 변경 시 저장 + Google Translate 적용
-        languageSelect.addEventListener('change', (e) => {
-            const selectedLang = e.target.value;
-            console.log('🌐 언어 변경:', selectedLang);
-            
-            // localStorage에 저장
-            localStorage.setItem('appLanguage', selectedLang);
-            
-            // Google Translate 쿠키 설정
-            const domain = window.location.hostname;
-            document.cookie = `googtrans=/ko/${selectedLang}; path=/; domain=${domain}`;
-            document.cookie = `googtrans=/ko/${selectedLang}; path=/`;
-            
-            // 페이지 새로고침 (Google Translate 적용)
-            setTimeout(() => {
-                window.location.reload();
-            }, 300);
+        // DOMContentLoaded 후 언어 헬퍼 바인딩
+        document.addEventListener('DOMContentLoaded', () => {
+            LanguageHelper.bindLanguageSelect('languageSelect');
         });
 
         // 뒤로가기
