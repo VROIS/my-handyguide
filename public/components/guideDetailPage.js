@@ -285,6 +285,9 @@ const guideDetailPage = {
         // 현재 선택된 언어 가져오기 (appLanguage: ko, en, ja 등 짧은 형식)
         const userLang = localStorage.getItem('appLanguage') || 'ko';
         
+        // 🔴 매번 음성 다시 로드 (언어 변경 시 음성 적용)
+        this._state.voices = this._state.synth.getVoices();
+        
         // 언어별 음성 자동 선택
         const targetVoice = this._getVoiceForLanguage(userLang);
         
