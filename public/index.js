@@ -3386,7 +3386,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 600);
     });
     
-    archiveSettingsBtn?.addEventListener('click', showSettingsPage);
+    // ✅ 사용자 설정 페이지 - settings-test.html (새 페이지)로 이동
+    archiveSettingsBtn?.addEventListener('click', () => {
+        window.open('./settings-test.html');
+    });
 
     cancelSelectionBtn?.addEventListener('click', () => toggleSelectionMode(false));
     
