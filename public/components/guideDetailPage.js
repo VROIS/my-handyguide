@@ -190,7 +190,7 @@ const guideDetailPage = {
             'es': 'es-ES'
         };
         
-        const fullLang = langMap[userLang] || 'ko-KR';
+        const fullLang = langMap[userLang] || 'en-US';
         const langCode = fullLang.substring(0, 2);
         
         const voiceMap = {
