@@ -3434,9 +3434,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 600);
     });
     
-    // ✅ 사용자 설정 페이지 - settings-test.html 새 창으로 열기
+    // ✅ 설정 페이지 - 앱 내 설정 페이지 열기
     archiveSettingsBtn?.addEventListener('click', () => {
-        window.open('/settings-test.html', '_blank');
+        showSettingsPage();
     });
 
     cancelSelectionBtn?.addEventListener('click', () => toggleSelectionMode(false));
