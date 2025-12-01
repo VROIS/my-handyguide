@@ -203,8 +203,8 @@ const guideDetailPage = {
             'es-ES': 'Microsoft Helena - Spanish (Spain)'
         };
         
-        const targetVoiceName = voiceMap[fullLang] || voiceMap['ko-KR'];
-        const targetVoice = this._state.voices.find(v => v.name === targetVoiceName);
+        const targetVoiceName = voiceMap[fullLang];
+        const targetVoice = targetVoiceName ? this._state.voices.find(v => v.name === targetVoiceName) : null;
         
         return targetVoice || this._state.voices.find(v => v.lang.startsWith(langCode)) || this._state.voices[0];
     },
