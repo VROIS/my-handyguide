@@ -749,25 +749,13 @@ document.addEventListener('DOMContentLoaded', () => {
     </style>
 </head>
 <body>
-    <!-- ⚠️ 카카오톡 인앱 브라우저 감지 + Chrome 강제 리다이렉트 (2025-12-02) -->
-    <!-- 삼성폰/카톡에서 JavaScript 이벤트 미작동 문제 해결 -->
+    <!-- 카카오톡 인앱 브라우저 → Chrome 즉시 리다이렉트 (2025-12-02) -->
     <script>
         (function() {
             var ua = navigator.userAgent.toLowerCase();
             if (ua.indexOf('kakaotalk') > -1) {
-                // 노란색 경고 배너 표시
-                var banner = document.createElement('div');
-                banner.id = 'kakao-redirect-banner';
-                banner.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#FFE500;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;';
-                banner.innerHTML = '<p style="font-size:18px;font-weight:bold;color:#3C1E1E;margin-bottom:10px;">Chrome에서 열기 중...</p><p style="font-size:14px;color:#3C1E1E;">잠시만 기다려주세요</p>';
-                document.body.appendChild(banner);
-                
-                // 0.5초 후 Chrome Intent URL로 리다이렉트
-                setTimeout(function() {
-                    var currentUrl = location.href;
-                    var urlWithoutProtocol = currentUrl.replace(/^https?:\\/\\//, '');
-                    location.href = 'intent://' + urlWithoutProtocol + '#Intent;scheme=https;package=com.android.chrome;end';
-                }, 500);
+                var url = location.href.replace(/^https?:\\/\\//, '');
+                location.href = 'intent://' + url + '#Intent;scheme=https;package=com.android.chrome;end';
             }
         })();
     </script>
