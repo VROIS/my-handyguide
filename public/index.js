@@ -749,13 +749,36 @@ document.addEventListener('DOMContentLoaded', () => {
     </style>
 </head>
 <body>
-    <!-- 카카오톡 인앱 브라우저 → Chrome 즉시 리다이렉트 (2025-12-02) -->
+    <!-- 카카오톡/인앱 브라우저 감지 → 외부 브라우저 열기 버튼 표시 (2025-12-02) -->
     <script>
         (function() {
             var ua = navigator.userAgent.toLowerCase();
-            if (ua.indexOf('kakaotalk') > -1) {
-                var url = location.href.replace(/^https?:\\/\\//, '');
-                location.href = 'intent://' + url + '#Intent;scheme=https;package=com.android.chrome;end';
+            var isInApp = ua.indexOf('kakaotalk') > -1 || ua.indexOf('naver') > -1 || ua.indexOf('instagram') > -1 || ua.indexOf('fb') > -1 || ua.indexOf('facebook') > -1;
+            if (isInApp) {
+                var overlay = document.createElement('div');
+                overlay.id = 'browser-overlay';
+                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px;';
+                overlay.innerHTML = '<p style="font-size:16px;color:#fff;margin-bottom:20px;">이 페이지는 외부 브라우저에서<br>더 잘 작동합니다</p>' +
+                    '<a id="open-browser-btn" style="display:inline-block;background:#4285F4;color:#fff;padding:16px 32px;border-radius:12px;font-size:18px;font-weight:bold;text-decoration:none;box-shadow:0 4px 12px rgba(66,133,244,0.4);">브라우저에서 열기</a>' +
+                    '<p style="font-size:14px;color:#888;margin-top:20px;">또는 우측 상단 ⋮ 메뉴에서<br>"다른 브라우저로 열기" 선택</p>';
+                document.body.appendChild(overlay);
+                
+                var btn = document.getElementById('open-browser-btn');
+                var currentUrl = location.href;
+                
+                // Android: Intent URL, iOS/기타: 일반 링크
+                if (/android/i.test(ua)) {
+                    var url = currentUrl.replace(/^https?:\\/\\//, '');
+                    btn.href = 'intent://' + url + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(currentUrl) + ';end';
+                } else {
+                    btn.href = currentUrl;
+                    btn.target = '_blank';
+                }
+                
+                // 오버레이 바깥 클릭 시 닫기
+                overlay.addEventListener('click', function(e) {
+                    if (e.target === overlay) overlay.style.display = 'none';
+                });
             }
         })();
     </script>
