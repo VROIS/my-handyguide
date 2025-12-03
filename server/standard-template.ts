@@ -63,7 +63,7 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
     guid: item.id || '',
     imageDataUrl: item.imageDataUrl || '',
     description: item.description || '',
-    voiceLang: item.voiceLang || 'ko-KR'
+    voiceLang: item.voiceLang
   })));
 
   // UTF-8 안전한 base64 인코딩
@@ -402,8 +402,12 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             
             currentUtterance = new SpeechSynthesisUtterance(cleanText);
             
-            // 🎤 저장된 voiceLang 사용 (각 가이드별 원본 언어)
-            const langCode = voiceLang || 'ko-KR';
+            // 🎤 저장된 voiceLang 사용 (각 가이드별 원본 언어, 없으면 TTS 스킵)
+            if (!voiceLang) {
+                console.warn('[Share TTS] voiceLang 없음 - TTS 스킵');
+                return;
+            }
+            const langCode = voiceLang;
             
             // 플랫폼별 최적 음성 우선순위 (모든 언어 통합)
             const voicePriority = {
@@ -479,15 +483,15 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
         }
         
         // 🎤 현재 보고 있는 아이템의 voiceLang 저장
-        let currentVoiceLang = 'ko-KR';
+        let currentVoiceLang = null;
         
         // 갤러리 아이템 클릭 (앱과 100% 동일한 로직)
         document.querySelectorAll('.gallery-item').forEach(item => {
             item.addEventListener('click', () => {
                 const itemData = appData[parseInt(item.dataset.id)];
                 
-                // 🎤 현재 아이템의 voiceLang 저장
-                currentVoiceLang = itemData.voiceLang || 'ko-KR';
+                // 🎤 현재 아이템의 voiceLang 저장 (DB에서 가져온 값 그대로)
+                currentVoiceLang = itemData.voiceLang;
                 
                 // 배경 이미지 설정
                 document.getElementById('detail-bg').src = itemData.imageDataUrl;

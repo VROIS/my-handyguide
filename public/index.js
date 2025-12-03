@@ -964,18 +964,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const userLang = appData.language || 'ko';
             const langCode = langCodeMap[userLang] || 'ko-KR';
             
-            // 한국어는 시스템 기본 음성 사용 (하드코딩) - 아이폰 호환성
-            if (userLang === 'ko') {
-                currentUtterance.lang = 'ko-KR';
-                currentUtterance.rate = 1.0;
-                console.log('🎤 [음성재생] 한국어 하드코딩 모드');
-            } else {
-                const targetVoice = getVoiceForLanguage(userLang, synth.getVoices());
-                currentUtterance.voice = targetVoice;
-                currentUtterance.lang = langCode;
-                currentUtterance.rate = 1.0;
-                console.log('🎤 [음성재생]', langCode, '음성:', targetVoice?.name || 'default');
-            }
+            // 모든 언어에 대해 voicePriority에서 음성 선택
+            const targetVoice = getVoiceForLanguage(userLang, synth.getVoices());
+            currentUtterance.voice = targetVoice;
+            currentUtterance.lang = langCode;
+            currentUtterance.rate = 1.0;
+            console.log('🎤 [음성재생]', langCode, '음성:', targetVoice?.name || 'default');
             
             const playIcon = document.getElementById('play-icon');
             const pauseIcon = document.getElementById('pause-icon');
@@ -1902,25 +1896,24 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let voiceName = null;
         
-        if (userLang !== 'ko') {
-            const voicePriority = {
-                'en-US': ['Microsoft Zira', 'Samantha', 'Google US English'],
-                'ja-JP': ['Microsoft Haruka', 'Kyoko', 'Google 日本語'],
-                'zh-CN': ['Microsoft Huihui', 'Ting-Ting', 'Google 普通话'],
-                'fr-FR': ['Microsoft Hortense', 'Thomas', 'Google français'],
-                'de-DE': ['Microsoft Hedda', 'Anna', 'Google Deutsch'],
-                'es-ES': ['Microsoft Helena', 'Monica', 'Google español']
-            };
-            
-            const allVoices = synth.getVoices();
-            const priorities = voicePriority[langCode] || [];
-            
-            for (const name of priorities) {
-                const found = allVoices.find(v => v.name.includes(name));
-                if (found) {
-                    voiceName = found.name;
-                    break;
-                }
+        const voicePriority = {
+            'ko-KR': ['Microsoft Heami', 'Yuna', 'Google 한국어'],
+            'en-US': ['Microsoft Zira', 'Samantha', 'Google US English'],
+            'ja-JP': ['Microsoft Haruka', 'Kyoko', 'Google 日本語'],
+            'zh-CN': ['Microsoft Huihui', 'Ting-Ting', 'Google 普通话'],
+            'fr-FR': ['Microsoft Hortense', 'Thomas', 'Google français'],
+            'de-DE': ['Microsoft Hedda', 'Anna', 'Google Deutsch'],
+            'es-ES': ['Microsoft Helena', 'Monica', 'Google español']
+        };
+        
+        const allVoices = synth.getVoices();
+        const priorities = voicePriority[langCode] || [];
+        
+        for (const name of priorities) {
+            const found = allVoices.find(v => v.name.includes(name));
+            if (found) {
+                voiceName = found.name;
+                break;
             }
         }
         
@@ -2902,15 +2895,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 utterance.pitch = 1.0;
                 console.log('[TTS] 저장된 음성 사용:', targetVoice.name);
             }
-        } else if (langCode === 'ko-KR') {
-            // 한국어는 시스템 기본 음성 사용 (하드코딩) - 아이폰 호환성
-            utterance.lang = 'ko-KR';
-            utterance.rate = 0.9;
-            utterance.pitch = 1.0;
-            console.log('[TTS] 한국어 하드코딩 모드');
         } else {
-            // 다른 언어는 플랫폼별 최적 음성 우선순위
+            // 모든 언어에 대해 voicePriority에서 음성 선택
             const voicePriority = {
+                'ko-KR': ['Microsoft Heami', 'Yuna', 'Google 한국어'],
                 'en-US': ['Microsoft Zira', 'Samantha', 'Google US English'],
                 'ja-JP': ['Microsoft Haruka', 'Kyoko', 'Google 日本語'],
                 'zh-CN': ['Microsoft Huihui', 'Ting-Ting', 'Google 普通话'],

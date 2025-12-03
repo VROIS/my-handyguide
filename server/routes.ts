@@ -721,7 +721,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             locationName: locationName || null,
             aiGeneratedContent: aiGeneratedContent || null,
             language: userLanguage || 'ko', // 사용자 선택 언어 (기본값: ko)
-            voiceLang: voiceLang || 'ko-KR', // TTS 언어 코드
+            voiceLang: voiceLang || null, // TTS 언어 코드 (DB에서 가져온 값 그대로)
             voiceName: voiceName || null // TTS 음성 이름
           };
           

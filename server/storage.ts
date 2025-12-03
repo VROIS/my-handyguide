@@ -1400,7 +1400,8 @@ export class DatabaseStorage implements IStorage {
         id: guide.id,
         localId: guide.localId || undefined,
         imageDataUrl, // Base64 또는 기존 Base64 유지
-        description: guide.description || guide.aiGeneratedContent || '' // description 우선, 없으면 aiGeneratedContent
+        description: guide.description || guide.aiGeneratedContent || '', // description 우선, 없으면 aiGeneratedContent
+        voiceLang: guide.voiceLang || undefined // TTS 언어 코드
       };
     }));
     
@@ -1416,7 +1417,8 @@ export class DatabaseStorage implements IStorage {
         return {
           id: found.id, // ✅ 2025-11-25: 실제 guideId(UUID) 추가 (parseGuidesFromHtml 정상화)
           imageDataUrl: found.imageDataUrl,
-          description: found.description
+          description: found.description,
+          voiceLang: found.voiceLang // TTS 언어 코드
         } as GuideItem;
       })
       .filter((item): item is GuideItem => item !== null);
