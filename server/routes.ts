@@ -685,7 +685,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // 비로그인 사용자도 저장 가능 (userId는 optional)
       const userId = req.user ? getUserId(req.user) : null;
-      const { guides: guidesData } = req.body;
+      const { guides: guidesData, language: userLanguage } = req.body;
       
       if (!Array.isArray(guidesData) || guidesData.length === 0) {
         return res.status(400).json({ message: "guides 배열이 비어있습니다." });
@@ -720,7 +720,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             longitude: longitude?.toString() || null,
             locationName: locationName || null,
             aiGeneratedContent: aiGeneratedContent || null,
-            language: 'ko'
+            language: userLanguage || 'ko' // 사용자 선택 언어 (기본값: ko)
           };
           
           const savedGuide = await storage.createGuide(userId || 'anonymous', guideData);
