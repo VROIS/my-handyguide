@@ -878,7 +878,7 @@
         let originalText = '';
 
         function populateVoiceList() {
-            voices = synth.getVoices().filter(v => v.lang.startsWith('ko'));
+            voices = synth.getVoices();
         }
 
         function showGuideDetailPage() {
@@ -915,26 +915,32 @@
             `;
         }
 
-        // ⚠️ 원본 playAudio 로직 그대로 복사 (문장별 하이라이트 + Microsoft Heami)
-        function playAudio(text) {
+        // 🎤 DB 저장된 음성 정보 사용 (voiceLang, voiceName)
+        function playAudio(text, voiceLang, voiceName) {
             stopAudio();
             
-            // ⚠️ **핵심 로직 - 절대 수정 금지!** (2025-10-03 치명적 버그 해결)
             const cleanText = text.replace(new RegExp('<br\\s*/?>', 'gi'), ' ');
-            
-            // 문장 분리 및 하이라이트 준비
             const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
-            
-            // 원본 텍스트 저장
             originalText = cleanText;
             
             currentUtterance = new SpeechSynthesisUtterance(cleanText);
             
-            // ⚠️ 오프라인 최적화 - Microsoft Heami 음성 강제 지정 (현장 테스트 완료)
-            const targetVoice = voices.find(v => v.name === 'Microsoft Heami - Korean (Korea)');
+            // 🎤 DB에 저장된 음성 정보 우선 사용
+            const langCode = voiceLang || 'ko-KR';
+            let targetVoice = null;
+            
+            if (voiceName) {
+                targetVoice = voices.find(v => v.name === voiceName);
+            }
+            if (!targetVoice) {
+                targetVoice = voices.find(v => v.lang === langCode || v.lang.startsWith(langCode.split('-')[0]));
+            }
+            
             currentUtterance.voice = targetVoice;
-            currentUtterance.lang = 'ko-KR';
+            currentUtterance.lang = langCode;
             currentUtterance.rate = 1.0;
+            
+            console.log('[Profile TTS] 언어:', langCode, '음성:', targetVoice?.name || 'default');
             
             let currentSentenceIndex = 0;
             
@@ -1009,9 +1015,9 @@
                     guideDetailLocationInfo.classList.remove('hidden');
                 }
 
-                // ⚠️ 음성 자동 재생 (원본 로직)
+                // 🎤 음성 자동 재생 (DB 저장된 언어 사용)
                 if (guide.description) {
-                    playAudio(guide.description);
+                    playAudio(guide.description, guide.voiceLang, guide.voiceName);
                 }
             } catch (error) {
                 console.error('Guide detail error:', error);

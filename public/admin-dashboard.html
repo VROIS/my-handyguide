@@ -1170,7 +1170,7 @@
             },
 
             populateVoiceList() {
-                this.voices = this.synth.getVoices().filter(v => v.lang.startsWith('ko'));
+                this.voices = this.synth.getVoices();
             },
 
             show() {
@@ -1196,22 +1196,36 @@
                     this.els.locationInfo.classList.add('hidden');
                 }
 
+                // 🎤 저장된 음성 정보 전달
                 if (data.description) {
-                    this.playAudio(data.description);
+                    this.playAudio(data.description, data.voiceLang, data.voiceName);
                 }
             },
 
-            playAudio(text) {
+            playAudio(text, voiceLang, voiceName) {
                 this.stopAudio();
                 const cleanText = text.replace(new RegExp('<br\\s*/?>', 'gi'), ' ');
                 const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
                 this.originalText = cleanText;
                 
                 this.currentUtterance = new SpeechSynthesisUtterance(cleanText);
-                const targetVoice = this.voices.find(v => v.name === 'Microsoft Heami - Korean (Korea)');
+                
+                // 🎤 DB에 저장된 음성 정보 우선 사용
+                const langCode = voiceLang || 'ko-KR';
+                let targetVoice = null;
+                
+                if (voiceName) {
+                    targetVoice = this.voices.find(v => v.name === voiceName);
+                }
+                if (!targetVoice) {
+                    targetVoice = this.voices.find(v => v.lang === langCode || v.lang.startsWith(langCode.split('-')[0]));
+                }
+                
                 this.currentUtterance.voice = targetVoice;
-                this.currentUtterance.lang = 'ko-KR';
+                this.currentUtterance.lang = langCode;
                 this.currentUtterance.rate = 1.0;
+                
+                console.log('[Admin TTS] 언어:', langCode, '음성:', targetVoice?.name || 'default');
                 
                 let currentSentenceIndex = 0;
                 const self = this;

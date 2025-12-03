@@ -40,7 +40,7 @@ const guideDetailPage = {
                     </svg>
                     <span id="guideDetailLocationName" class="text-base font-semibold text-gray-800"></span>
                 </div>
-                <p id="guideDetailDescription" class="readable-on-image text-xl leading-relaxed"></p>
+                <p id="guideDetailDescription" class="readable-on-image text-xl leading-relaxed notranslate" translate="no"></p>
             </div>
         </div>
         <footer class="footer-safe-area">
