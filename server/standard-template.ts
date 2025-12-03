@@ -80,6 +80,9 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
     <!-- 🌐 2025.12.03: 구글 번역 로드 전에 쿠키 설정 (자동 번역용) -->
     <script>
         (function() {
+            // 이미 쿠키가 설정되어 있으면 스킵 (무한 루프 방지)
+            if (document.cookie.includes('googtrans=')) return;
+            
             var hash = decodeURIComponent(window.location.hash);
             var match = hash.match(/#googtrans\\(ko\\|([a-z]{2}(-[A-Z]{2})?)\\)/);
             if (match) {
@@ -88,7 +91,7 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                 document.cookie = 'googtrans=/ko/' + lang + ';path=/;domain=' + domain;
                 document.cookie = 'googtrans=/ko/' + lang + ';path=/';
                 console.log('🌐 Pre-set googtrans cookie for:', lang);
-                // 해시 제거 후 새로고침 (무한 루프 방지)
+                // 해시 제거 후 새로고침
                 history.replaceState(null, '', window.location.pathname + window.location.search);
                 window.location.reload();
             }
