@@ -507,4 +507,45 @@ router.get('/profile/referral-code', async (req: Request, res: Response) => {
   }
 });
 
+// 🌐 사용자 선호 언어 조회/업데이트 (2025-12-03)
+router.get('/profile/language', async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId((req as any).user);
+    
+    if (!userId) {
+      return res.json({ language: 'ko' }); // 미인증 사용자는 한국어
+    }
+
+    const user = await storage.getUser(userId);
+    res.json({ language: user?.preferredLanguage || 'ko' });
+  } catch (error: any) {
+    console.error('Language fetch error:', error);
+    res.status(500).json({ error: '언어 조회 실패' });
+  }
+});
+
+// 🌐 사용자 선호 언어 업데이트 (2025-12-03)
+router.put('/profile/language', async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId((req as any).user);
+    
+    if (!userId) {
+      return res.status(401).json({ error: '로그인이 필요합니다.' });
+    }
+
+    const { language } = req.body;
+    
+    if (!language || !/^[a-z]{2}(-[A-Z]{2})?$/.test(language)) {
+      return res.status(400).json({ error: '유효한 언어 코드를 입력해주세요.' });
+    }
+
+    const user = await storage.updateUserPreferences(userId, { preferredLanguage: language });
+    console.log(`🌐 사용자 언어 업데이트: ${userId} → ${language}`);
+    res.json({ language: user.preferredLanguage });
+  } catch (error: any) {
+    console.error('Language update error:', error);
+    res.status(500).json({ error: '언어 업데이트 실패' });
+  }
+});
+
 export default router;
