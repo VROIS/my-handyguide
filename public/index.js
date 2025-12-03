@@ -2708,8 +2708,8 @@ document.addEventListener('DOMContentLoaded', () => {
             } else {
                 // 3️⃣ 미인증 → OAuth 모달 표시
                 console.log('❌ Not authenticated, showing auth modal');
-                console.log('💾 Saving to localStorage:', translatedUrl);
-                localStorage.setItem('pendingShareUrl', translatedUrl);
+                console.log('💾 Saving original URL to localStorage (no language param):', shareUrl);
+                localStorage.setItem('pendingShareUrl', shareUrl);
                 console.log('✅ Saved! localStorage value:', localStorage.getItem('pendingShareUrl'));
                 
                 // 인증 모달 표시
@@ -2725,8 +2725,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             // 에러 발생 시 인증 모달 표시
             console.log('❌ Auth check failed, showing auth modal:', error);
-            console.log('💾 Saving to localStorage:', translatedUrl);
-            localStorage.setItem('pendingShareUrl', translatedUrl);
+            console.log('💾 Saving original URL to localStorage (no language param):', shareUrl);
+            localStorage.setItem('pendingShareUrl', shareUrl);
             console.log('✅ Saved! localStorage value:', localStorage.getItem('pendingShareUrl'));
             
             // 인증 모달 표시
@@ -3725,16 +3725,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 인증 모달 닫기
                 authModal?.classList.add('hidden');
                 
-                // pendingShareUrl이 있으면 새 창에서 열기 (PC/모바일 동일)
+                // pendingShareUrl이 있으면 새 창에서 열기 (현재 언어로 다시 적용!)
                 const pendingUrl = localStorage.getItem('pendingShareUrl');
                 if (pendingUrl) {
-                    console.log('🎯 Opening pending URL in new window:', pendingUrl);
+                    console.log('🎯 Opening pending URL with current language:', pendingUrl);
                     localStorage.removeItem('pendingShareUrl');
                     
-                    const newWindow = window.open(pendingUrl, '_blank');
+                    // 🌐 인증 후 현재 사용자 언어로 URL 다시 적용
+                    const translatedUrl = addLangToUrl(pendingUrl);
+                    console.log('🌐 Translated URL after auth:', translatedUrl);
+                    
+                    const newWindow = window.open(translatedUrl, '_blank');
                     if (!newWindow) {
                         console.error('❌ 팝업 차단됨! (Fallback: 현재 탭 리다이렉트)');
-                        window.location.href = pendingUrl;
+                        window.location.href = translatedUrl;
                     }
                 } else {
                     // Featured Gallery 새로고침
