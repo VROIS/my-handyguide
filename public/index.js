@@ -124,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function addLangToUrl(url) {
         const lang = getCurrentUserLang();
         if (lang === 'ko') return url; // 한국어면 그대로
-        return `${url}#googtrans(ko|${lang})`;
+        return `${url}?lang=${lang}`;
     }
     
     // ═══════════════════════════════════════════════════════════════

@@ -77,25 +77,16 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <!-- 🌐 2025.12.03: 구글 번역 로드 전에 쿠키 설정 (자동 번역용) -->
+    <!-- 🌐 2025.12.03: 쿼리 파라미터로 구글 번역 쿠키 설정 (자동 번역용) -->
     <script>
         (function() {
-            // 이미 처리했으면 스킵 (무한 루프 방지)
-            if (sessionStorage.getItem('googtrans_done')) return;
-            
-            var hash = decodeURIComponent(window.location.hash);
-            var match = hash.match(/#googtrans\\(ko\\|([a-z]{2}(-[A-Z]{2})?)\\)/);
-            if (match) {
-                var lang = match[1];
+            var params = new URLSearchParams(window.location.search);
+            var lang = params.get('lang');
+            if (lang && /^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
                 var domain = window.location.hostname;
                 document.cookie = 'googtrans=/ko/' + lang + ';path=/;domain=' + domain;
                 document.cookie = 'googtrans=/ko/' + lang + ';path=/';
                 console.log('🌐 Pre-set googtrans cookie for:', lang);
-                // 처리 완료 플래그
-                sessionStorage.setItem('googtrans_done', 'true');
-                // 해시 제거 후 새로고침
-                history.replaceState(null, '', window.location.pathname + window.location.search);
-                window.location.reload();
             }
         })();
     </script>
