@@ -1909,12 +1909,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // ✅ 핵심: 보관 시 즉시 guides DB에도 저장 (공유 시가 아님!)
             try {
                 console.log('📦 guides DB 저장 시작...');
+                const userLang = localStorage.getItem('appLanguage') || 'ko';
                 const response = await fetch('/api/guides/batch', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
+                        language: userLang, // 사용자 선택 언어
                         guides: [
                             {
                                 localId: savedId, // IndexedDB ID
