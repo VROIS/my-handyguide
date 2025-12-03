@@ -61,6 +61,8 @@ export const guides = pgTable("guides", {
   tags: text("tags").array(), // 태그 시스템 (예: ['궁전', '역사', '바로크'])
   viewCount: integer("view_count").default(0),
   language: varchar("language").default('ko'),
+  voiceLang: varchar("voice_lang").default('ko-KR'), // TTS 언어 코드 (예: 'fr-FR')
+  voiceName: varchar("voice_name"), // TTS 음성 이름 (예: 'Microsoft Hortense')
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
