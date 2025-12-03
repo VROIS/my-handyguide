@@ -96,7 +96,7 @@ app.get('/s/:id', async (req, res) => {
     <!-- 🌐 2025.12.03: 구글 번역 로드 전에 쿠키 설정 (자동 번역용) -->
     <script>
         (function() {
-            var hash = window.location.hash;
+            var hash = decodeURIComponent(window.location.hash);
             var match = hash.match(/#googtrans\\(ko\\|([a-z]{2}(-[A-Z]{2})?)\\)/);
             if (match) {
                 var lang = match[1];
