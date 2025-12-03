@@ -103,6 +103,31 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastAudioClickTime = 0;
     
     // ═══════════════════════════════════════════════════════════════
+    // 🌐 사용자 언어 감지 (구글 번역 쿠키에서)
+    // 목적: 추천모음 클릭/공유 시 해당 언어로 공유페이지 자동 번역
+    // ═══════════════════════════════════════════════════════════════
+    function getCurrentUserLang() {
+        // 1. googtrans 쿠키 확인 (예: /ko/ja)
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'googtrans' && value) {
+                const match = value.match(/\/ko\/([a-z]{2}(-[A-Z]{2})?)/);
+                if (match) return match[1]; // 예: 'ja', 'en', 'zh-CN'
+            }
+        }
+        // 2. 쿠키 없으면 한국어 (번역 안 함)
+        return 'ko';
+    }
+    
+    // URL에 언어 파라미터 추가 (한국어 제외)
+    function addLangToUrl(url) {
+        const lang = getCurrentUserLang();
+        if (lang === 'ko') return url; // 한국어면 그대로
+        return `${url}#googtrans(ko|${lang})`;
+    }
+    
+    // ═══════════════════════════════════════════════════════════════
     // 🚀 전역 디바운스 시스템 (2025-10-05)
     // 목적: 버튼 버벅거림 완전 제거 - 손님 30명 테스트 대비
     // ═══════════════════════════════════════════════════════════════
@@ -2582,22 +2607,27 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ⚠️ 2025.11.02: Featured 갤러리 다운로드 버튼 핸들러
+    // 🌐 2025.12.03 언어 파라미터 추가 - 외부공유 시 사용자 언어로 자동 번역
     // 핵심: 공유 페이지 링크를 클립보드에 복사 + 공유 모달 2번째 팝업 표시
     window.handleFeaturedDownload = async function(shareUrl, index) {
         console.log('📥 Featured Gallery download clicked:', shareUrl, 'index:', index);
         
-        // 📋 클립보드에 복사 시도
+        // 🌐 사용자 언어 파라미터 추가 (한국어 제외)
+        const translatedUrl = addLangToUrl(shareUrl);
+        console.log('🌐 Translated URL for sharing:', translatedUrl);
+        
+        // 📋 클립보드에 복사 시도 (언어 파라미터 포함)
         let copySuccess = false;
         try {
-            await navigator.clipboard.writeText(shareUrl);
+            await navigator.clipboard.writeText(translatedUrl);
             copySuccess = true;
-            console.log('✅ Link copied to clipboard:', shareUrl);
+            console.log('✅ Link copied to clipboard:', translatedUrl);
         } catch (clipboardError) {
             console.warn('클립보드 복사 실패 (권한 없음):', clipboardError);
         }
         
         // ✅ 공유 모달 2번째 팝업 표시 (성공 메시지)
-        const escapedUrl = shareUrl.replace(/'/g, "\\'");
+        const escapedUrl = translatedUrl.replace(/'/g, "\\'");
         shareModalContent.innerHTML = `
             <div class="p-8 text-center">
                 <div class="w-20 h-20 mx-auto mb-6 bg-green-100 rounded-full flex items-center justify-center">
@@ -2612,9 +2642,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 ` : `
                     <p class="text-base text-gray-700 mb-4">아래 링크를 복사해서 공유하세요:</p>
                     <div class="bg-gray-100 p-4 rounded-lg mb-3">
-                        <p class="text-sm font-mono text-gray-800 break-all">${shareUrl}</p>
+                        <p class="text-sm font-mono text-gray-800 break-all">${translatedUrl}</p>
                     </div>
-                    <button id="manualCopyBtn" data-url="${shareUrl}"
+                    <button id="manualCopyBtn" data-url="${translatedUrl}"
                             class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
                         링크 복사하기
                     </button>
@@ -2628,7 +2658,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (manualBtn) {
                 manualBtn.onclick = async () => {
                     try {
-                        await navigator.clipboard.writeText(shareUrl);
+                        await navigator.clipboard.writeText(translatedUrl);
                         manualBtn.textContent = '복사 완료!';
                         setTimeout(() => {
                             shareModal.classList.add('hidden');
@@ -2652,9 +2682,14 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // ⚠️ 2025.11.12 UX FIX: Direct URL 방식 - iOS Safari 팝업 차단 우회
+    // 🌐 2025.12.03 언어 파라미터 추가 - 사용자 언어로 공유페이지 자동 번역
     // 핵심: 인증 체크 후 직접 URL로 window.open() (about:blank 제거!)
     window.handleFeaturedClick = async function(shareUrl) {
         console.log('🔵 Featured Gallery clicked:', shareUrl);
+        
+        // 🌐 사용자 언어 파라미터 추가 (한국어 제외)
+        const translatedUrl = addLangToUrl(shareUrl);
+        console.log('🌐 Translated URL:', translatedUrl);
         
         try {
             // 1️⃣ 인증 상태 확인
@@ -2663,18 +2698,18 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (response.ok) {
                 // 2️⃣ 인증됨 → 직접 URL로 새 창 열기 (iOS Safari 호환!)
-                console.log('✅ Authenticated! Opening shared page in new window:', shareUrl);
-                const newWindow = window.open(shareUrl, '_blank');
+                console.log('✅ Authenticated! Opening shared page in new window:', translatedUrl);
+                const newWindow = window.open(translatedUrl, '_blank');
                 
                 if (!newWindow) {
                     console.error('❌ 팝업 차단됨! (Fallback: 현재 탭 리다이렉트)');
-                    window.location.href = shareUrl;
+                    window.location.href = translatedUrl;
                 }
             } else {
                 // 3️⃣ 미인증 → OAuth 모달 표시
                 console.log('❌ Not authenticated, showing auth modal');
-                console.log('💾 Saving to localStorage:', shareUrl);
-                localStorage.setItem('pendingShareUrl', shareUrl);
+                console.log('💾 Saving to localStorage:', translatedUrl);
+                localStorage.setItem('pendingShareUrl', translatedUrl);
                 console.log('✅ Saved! localStorage value:', localStorage.getItem('pendingShareUrl'));
                 
                 // 인증 모달 표시
@@ -2690,8 +2725,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             // 에러 발생 시 인증 모달 표시
             console.log('❌ Auth check failed, showing auth modal:', error);
-            console.log('💾 Saving to localStorage:', shareUrl);
-            localStorage.setItem('pendingShareUrl', shareUrl);
+            console.log('💾 Saving to localStorage:', translatedUrl);
+            localStorage.setItem('pendingShareUrl', translatedUrl);
             console.log('✅ Saved! localStorage value:', localStorage.getItem('pendingShareUrl'));
             
             // 인증 모달 표시
