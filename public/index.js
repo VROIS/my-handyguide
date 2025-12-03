@@ -1894,6 +1894,39 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 🎤 현재 선택된 TTS 음성 정보 가져오기
+    function getCurrentVoiceInfo() {
+        const userLang = localStorage.getItem('appLanguage') || 'ko';
+        const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
+        const langCode = langCodeMap[userLang] || 'ko-KR';
+        
+        let voiceName = null;
+        
+        if (userLang !== 'ko') {
+            const voicePriority = {
+                'en-US': ['Microsoft Zira', 'Samantha', 'Google US English'],
+                'ja-JP': ['Microsoft Haruka', 'Kyoko', 'Google 日本語'],
+                'zh-CN': ['Microsoft Huihui', 'Ting-Ting', 'Google 普通话'],
+                'fr-FR': ['Microsoft Hortense', 'Thomas', 'Google français'],
+                'de-DE': ['Microsoft Hedda', 'Anna', 'Google Deutsch'],
+                'es-ES': ['Microsoft Helena', 'Monica', 'Google español']
+            };
+            
+            const allVoices = synth.getVoices();
+            const priorities = voicePriority[langCode] || [];
+            
+            for (const name of priorities) {
+                const found = allVoices.find(v => v.name.includes(name));
+                if (found) {
+                    voiceName = found.name;
+                    break;
+                }
+            }
+        }
+        
+        return { voiceLang: langCode, voiceName: voiceName };
+    }
+
     async function handleSaveClick() {
         if (!currentContent.description || !currentContent.imageDataUrl) return;
         saveBtn.disabled = true;
@@ -1907,7 +1940,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('📍 GPS 데이터 저장:', window.currentGPS);
             }
             
-            // 1. IndexedDB 저장 (기존)
+            // 🎤 현재 TTS 음성 정보 저장 (저장 시점의 음성 유지)
+            const voiceInfo = getCurrentVoiceInfo();
+            currentContent.voiceLang = voiceInfo.voiceLang;
+            currentContent.voiceName = voiceInfo.voiceName;
+            console.log('🎤 음성 정보 저장:', voiceInfo);
+            
+            // 1. IndexedDB 저장 (voiceLang, voiceName 포함)
             const savedId = await addItem(currentContent);
             showToast("보관함에 저장되었습니다.");
             
@@ -1932,7 +1971,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 latitude: currentContent.latitude?.toString(),
                                 longitude: currentContent.longitude?.toString(),
                                 locationName: currentContent.locationName,
-                                aiGeneratedContent: currentContent.description
+                                aiGeneratedContent: currentContent.description,
+                                voiceLang: voiceInfo.voiceLang, // TTS 언어 코드
+                                voiceName: voiceInfo.voiceName  // TTS 음성 이름
                             }
                         ]
                     })

@@ -697,7 +697,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       for (const guideItem of guidesData) {
         try {
-          const { localId, title, description, imageDataUrl, latitude, longitude, locationName, aiGeneratedContent } = guideItem;
+          const { localId, title, description, imageDataUrl, latitude, longitude, locationName, aiGeneratedContent, voiceLang, voiceName } = guideItem;
           
           if (!title || !imageDataUrl) {
             console.error(`❌ 필수 필드 누락: title=${title}, imageDataUrl=${!!imageDataUrl}`);
@@ -720,7 +720,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             longitude: longitude?.toString() || null,
             locationName: locationName || null,
             aiGeneratedContent: aiGeneratedContent || null,
-            language: userLanguage || 'ko' // 사용자 선택 언어 (기본값: ko)
+            language: userLanguage || 'ko', // 사용자 선택 언어 (기본값: ko)
+            voiceLang: voiceLang || 'ko-KR', // TTS 언어 코드
+            voiceName: voiceName || null // TTS 음성 이름
           };
           
           const savedGuide = await storage.createGuide(userId || 'anonymous', guideData);
