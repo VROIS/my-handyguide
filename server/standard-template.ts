@@ -596,7 +596,8 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
     <!-- Google Translate Widget (숨김) -->
     <div id="google_translate_element" style="display:none;"></div>
 
-    <!-- Google Translate Initialization -->
+    <!-- Google Translate Initialization + Auto-translate from URL hash -->
+    <!-- 🌐 2025.12.03: #googtrans(ko|언어코드) 해시 감지 시 자동 번역 -->
     <script type="text/javascript">
         function googleTranslateElementInit() {
             new google.translate.TranslateElement({
@@ -604,6 +605,34 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                 includedLanguages: 'ko,en,ja,zh-CN,fr,de,es',
                 autoDisplay: false
             }, 'google_translate_element');
+            
+            // 🌐 URL 해시에서 언어 파라미터 감지 후 자동 번역
+            setTimeout(() => {
+                const hash = window.location.hash;
+                const match = hash.match(/#googtrans\\(ko\\|([a-z]{2}(-[A-Z]{2})?)\\)/);
+                if (match) {
+                    const targetLang = match[1];
+                    console.log('🌐 Auto-translate to:', targetLang);
+                    
+                    // 구글 번역 쿠키 설정
+                    document.cookie = 'googtrans=/ko/' + targetLang + ';path=/';
+                    document.cookie = 'googtrans=/ko/' + targetLang + ';path=/;domain=' + window.location.hostname;
+                    
+                    // 구글 번역 select 요소 찾아서 변경
+                    const selectEl = document.querySelector('.goog-te-combo');
+                    if (selectEl) {
+                        selectEl.value = targetLang;
+                        selectEl.dispatchEvent(new Event('change'));
+                        console.log('✅ Translation triggered for:', targetLang);
+                    } else {
+                        // select 요소가 아직 없으면 페이지 새로고침으로 쿠키 적용
+                        console.log('🔄 Reloading to apply translation cookie');
+                        // 해시 제거 후 새로고침 (무한 루프 방지)
+                        window.location.hash = '';
+                        window.location.reload();
+                    }
+                }
+            }, 1000); // 구글 번역 위젯 로드 대기
         }
     </script>
     <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
