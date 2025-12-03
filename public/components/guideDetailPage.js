@@ -253,9 +253,13 @@ const guideDetailPage = {
             this._els.locationInfo.classList.remove('hidden');
         }
 
-        // 음성 자동 재생
+        // 🎤 저장된 음성 정보 보관 (토글 재생 시 사용)
+        this._state.savedVoiceLang = guide.voiceLang || null;
+        this._state.savedVoiceName = guide.voiceName || null;
+
+        // 🎤 저장된 음성 정보 전달 (voiceLang, voiceName)
         if (guide.description) {
-            this._playAudio(guide.description);
+            this._playAudio(guide.description, guide.voiceLang, guide.voiceName);
         }
     },
 
@@ -277,7 +281,8 @@ const guideDetailPage = {
     },
 
     // 음성 재생 (문장별 하이라이트 + 자동 스크롤)
-    _playAudio: async function(text) {
+    // 🎤 voiceLang, voiceName: 저장된 음성 정보 (없으면 현재 appLanguage 기본값)
+    _playAudio: async function(text, savedVoiceLang, savedVoiceName) {
         const self = this;
         this._stopAudio();
         
@@ -292,8 +297,10 @@ const guideDetailPage = {
         
         this._state.currentUtterance = new SpeechSynthesisUtterance(cleanText);
         
-        // 현재 선택된 언어 가져오기 (appLanguage: ko, en, ja 등 짧은 형식)
+        // 🎤 저장된 음성 정보가 있으면 사용, 없으면 현재 appLanguage
         const userLang = localStorage.getItem('appLanguage') || 'ko';
+        const langFullMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
+        const fullLang = savedVoiceLang || langFullMap[userLang] || 'ko-KR';
         
         // 🔴 음성 목록 로드 대기 (최대 1초)
         let voices = this._state.synth.getVoices();
@@ -316,12 +323,17 @@ const guideDetailPage = {
         this._state.voices = voices;
         console.log('[TTS] Voices loaded:', voices.length);
         
-        // 언어별 음성 자동 선택
-        const targetVoice = this._getVoiceForLanguage(userLang);
-        
-        // 언어 코드를 긴 형식으로 변환 (ko → ko-KR)
-        const langFullMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
-        const fullLang = langFullMap[userLang] || 'ko-KR';
+        // 🎤 저장된 voiceName으로 음성 찾기 (없으면 언어별 기본 음성)
+        let targetVoice = null;
+        if (savedVoiceName) {
+            targetVoice = voices.find(v => v.name === savedVoiceName || v.name.includes(savedVoiceName));
+            console.log('[TTS] Using saved voice:', savedVoiceName, '→', targetVoice?.name);
+        }
+        if (!targetVoice) {
+            const shortLang = fullLang.substring(0, 2);
+            targetVoice = this._getVoiceForLanguage(shortLang === 'zh' ? 'zh-CN' : shortLang);
+            console.log('[TTS] Fallback to language default:', fullLang, '→', targetVoice?.name);
+        }
         
         this._state.currentUtterance.voice = targetVoice;
         this._state.currentUtterance.lang = fullLang;
@@ -374,7 +386,7 @@ const guideDetailPage = {
         }
     },
 
-    // 음성 토글
+    // 음성 토글 (저장된 음성 정보 사용)
     _toggleAudio: function() {
         const text = this._els.description.textContent;
         if (!text || text === '불러오는 중...') return;
@@ -382,7 +394,8 @@ const guideDetailPage = {
         if (this._state.synth.speaking) {
             this._stopAudio();
         } else {
-            this._playAudio(text);
+            // 🎤 저장된 음성 정보 사용
+            this._playAudio(text, this._state.savedVoiceLang, this._state.savedVoiceName);
         }
     },
 
