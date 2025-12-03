@@ -86,9 +86,32 @@ app.get('/s/:id', async (req, res) => {
       log(`[SHARE] ⚠️ Could not get creator referralCode: ${refError}`);
     }
     
-    // HTML에 referralCode 주입 + 버튼 문구 통일 함수
+    // HTML에 referralCode 주입 + 버튼 문구 통일 + 구글 번역 쿠키 설정 함수
     const injectReferralAndUpdateButton = (html: string): string => {
       let result = html;
+      
+      // 0. 🌐 구글 번역 쿠키 설정 스크립트 주입 (구버전 페이지 호환!)
+      // #googtrans(ko|언어코드) 해시 감지 → 쿠키 설정 (구글 번역 로드 전)
+      const googTransScript = `
+    <!-- 🌐 2025.12.03: 구글 번역 로드 전에 쿠키 설정 (자동 번역용) -->
+    <script>
+        (function() {
+            var hash = window.location.hash;
+            var match = hash.match(/#googtrans\\(ko\\|([a-z]{2}(-[A-Z]{2})?)\\)/);
+            if (match) {
+                var lang = match[1];
+                var domain = window.location.hostname;
+                document.cookie = 'googtrans=/ko/' + lang + ';path=/;domain=' + domain;
+                document.cookie = 'googtrans=/ko/' + lang + ';path=/';
+                console.log('🌐 Pre-set googtrans cookie for:', lang);
+            }
+        })();
+    </script>`;
+      
+      // <head> 바로 뒤에 스크립트 삽입 (구글 번역 로드보다 먼저!)
+      if (!result.includes('Pre-set googtrans cookie')) {
+        result = result.replace(/<head>/i, '<head>' + googTransScript);
+      }
       
       // 1. 버튼 문구 통일: 다양한 기존 문구 → "나도 만들어보기"
       // (이모지 제거, 모든 기존 페이지에 적용)
