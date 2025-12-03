@@ -409,12 +409,45 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             
             currentUtterance = new SpeechSynthesisUtterance(cleanText);
             
-            // ⚠️ 오프라인 최적화 - Microsoft Heami 음성 강제 지정 (현장 테스트 완료)
-            // 첨부된 HTML 방식: 정확한 이름 매칭으로 음성 고정
-            const targetVoice = voices.find(v => v.name === 'Microsoft Heami - Korean (Korea)');
-            currentUtterance.voice = targetVoice;
-            currentUtterance.lang = 'ko-KR';
-            currentUtterance.rate = 1.0;
+            // 선택 언어에 맞는 음성 자동 선택 (저장된 언어 사용)
+            const userLang = appData.language || 'ko';
+            const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
+            const langCode = langCodeMap[userLang] || 'ko-KR';
+            
+            // 한국어는 시스템 기본 음성 사용 (하드코딩) - 아이폰 호환성
+            if (userLang === 'ko') {
+                currentUtterance.lang = 'ko-KR';
+                currentUtterance.rate = 1.0;
+            } else {
+                // 다른 언어는 플랫폼별 최적 음성 우선순위
+                const voicePriority = {
+                    'en-US': ['Microsoft Zira', 'Samantha', 'Google US English'],
+                    'ja-JP': ['Microsoft Haruka', 'Kyoko', 'Google 日本語'],
+                    'zh-CN': ['Microsoft Huihui', 'Ting-Ting', 'Google 普通话'],
+                    'fr-FR': ['Microsoft Hortense', 'Thomas', 'Google français'],
+                    'de-DE': ['Microsoft Hedda', 'Anna', 'Google Deutsch'],
+                    'es-ES': ['Microsoft Helena', 'Monica', 'Google español']
+                };
+                
+                const allVoices = synth.getVoices();
+                let targetVoice = null;
+                
+                // 우선순위대로 음성 찾기
+                const priorities = voicePriority[langCode] || [];
+                for (const voiceName of priorities) {
+                    targetVoice = allVoices.find(v => v.name.includes(voiceName));
+                    if (targetVoice) break;
+                }
+                
+                // 우선순위에 없으면 언어 코드로 찾기
+                if (!targetVoice) {
+                    targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
+                }
+                
+                currentUtterance.voice = targetVoice || null;
+                currentUtterance.lang = langCode;
+                currentUtterance.rate = 1.0;
+            }
             
             const playIcon = document.getElementById('play-icon');
             const pauseIcon = document.getElementById('pause-icon');
