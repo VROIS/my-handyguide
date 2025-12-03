@@ -1917,6 +1917,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         
+        // 음성 목록이 아직 로드 안 됐으면 voicePriority 첫 번째 이름 사용
+        if (!voiceName && priorities.length > 0) {
+            voiceName = priorities[0];
+            console.log('🎤 [음성] getVoices() 빈 배열 → 기본값 사용:', voiceName);
+        }
+        
         return { voiceLang: langCode, voiceName: voiceName };
     }
 
