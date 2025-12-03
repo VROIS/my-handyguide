@@ -372,7 +372,7 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
         let currentUtterance = null;
         
         function populateVoiceList() {
-            voices = synth.getVoices().filter(v => v.lang.startsWith('ko'));
+            voices = synth.getVoices();
         }
         
         function stopAudio() {
@@ -386,21 +386,11 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             if (pauseIcon) pauseIcon.style.display = 'none';
         }
         
-        function playAudio(text) {
+        // 🎤 2025-12-03: voiceLang 파라미터 추가 (저장된 언어로 TTS 재생)
+        function playAudio(text, voiceLang) {
             stopAudio();
             
             // ⚠️ **핵심 로직 - 절대 수정 금지!** (2025-10-03 치명적 버그 해결)
-            // 
-            // 문제: HTML 내부 JavaScript에서 정규식 /<br\s*\/?>/gi 사용 시
-            //       HTML 파서가 < > 를 &lt; &gt; 로 변환하여 JavaScript 파싱 에러 발생
-            //       → "Uncaught SyntaxError: Unexpected token '&'" 
-            //
-            // 해결: new RegExp() 방식으로 HTML 파서와 100% 분리
-            //       - 안전성: HTML escape 문제 원천 차단
-            //       - 호환성: 모든 브라우저 지원
-            //       - 영구성: 앞으로 절대 깨지지 않음
-            //
-            // 영향: 27개 기존 공유 페이지 DB 일괄 업데이트 완료 (2025-10-03)
             const cleanText = text.replace(new RegExp('<br\\s*/?>', 'gi'), ' ');
             
             // 문장 분리 및 하이라이트 준비
@@ -412,45 +402,40 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             
             currentUtterance = new SpeechSynthesisUtterance(cleanText);
             
-            // 선택 언어에 맞는 음성 자동 선택 (저장된 언어 사용)
-            const userLang = appData.language || 'ko';
-            const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
-            const langCode = langCodeMap[userLang] || 'ko-KR';
+            // 🎤 저장된 voiceLang 사용 (각 가이드별 원본 언어)
+            const langCode = voiceLang || 'ko-KR';
             
-            // 한국어는 시스템 기본 음성 사용 (하드코딩) - 아이폰 호환성
-            if (userLang === 'ko') {
-                currentUtterance.lang = 'ko-KR';
-                currentUtterance.rate = 1.0;
-            } else {
-                // 다른 언어는 플랫폼별 최적 음성 우선순위
-                const voicePriority = {
-                    'en-US': ['Microsoft Zira', 'Samantha', 'Google US English'],
-                    'ja-JP': ['Microsoft Haruka', 'Kyoko', 'Google 日本語'],
-                    'zh-CN': ['Microsoft Huihui', 'Ting-Ting', 'Google 普通话'],
-                    'fr-FR': ['Microsoft Hortense', 'Thomas', 'Google français'],
-                    'de-DE': ['Microsoft Hedda', 'Anna', 'Google Deutsch'],
-                    'es-ES': ['Microsoft Helena', 'Monica', 'Google español']
-                };
-                
-                const allVoices = synth.getVoices();
-                let targetVoice = null;
-                
-                // 우선순위대로 음성 찾기
-                const priorities = voicePriority[langCode] || [];
-                for (const voiceName of priorities) {
-                    targetVoice = allVoices.find(v => v.name.includes(voiceName));
-                    if (targetVoice) break;
-                }
-                
-                // 우선순위에 없으면 언어 코드로 찾기
-                if (!targetVoice) {
-                    targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
-                }
-                
-                currentUtterance.voice = targetVoice || null;
-                currentUtterance.lang = langCode;
-                currentUtterance.rate = 1.0;
+            // 플랫폼별 최적 음성 우선순위 (모든 언어 통합)
+            const voicePriority = {
+                'ko-KR': ['Microsoft Heami', 'Yuna', 'Google 한국어'],
+                'en-US': ['Microsoft Zira', 'Samantha', 'Google US English'],
+                'ja-JP': ['Microsoft Haruka', 'Kyoko', 'Google 日本語'],
+                'zh-CN': ['Microsoft Huihui', 'Ting-Ting', 'Google 普通话'],
+                'fr-FR': ['Microsoft Hortense', 'Thomas', 'Google français'],
+                'de-DE': ['Microsoft Hedda', 'Anna', 'Google Deutsch'],
+                'es-ES': ['Microsoft Helena', 'Monica', 'Google español']
+            };
+            
+            const allVoices = synth.getVoices();
+            let targetVoice = null;
+            
+            // 우선순위대로 음성 찾기
+            const priorities = voicePriority[langCode] || [];
+            for (const voiceName of priorities) {
+                targetVoice = allVoices.find(v => v.name.includes(voiceName));
+                if (targetVoice) break;
             }
+            
+            // 우선순위에 없으면 언어 코드로 찾기
+            if (!targetVoice) {
+                targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
+            }
+            
+            currentUtterance.voice = targetVoice || null;
+            currentUtterance.lang = langCode;
+            currentUtterance.rate = 1.0;
+            
+            console.log('[Share TTS] 언어:', langCode, '음성:', targetVoice ? targetVoice.name : 'default');
             
             const playIcon = document.getElementById('play-icon');
             const pauseIcon = document.getElementById('pause-icon');
@@ -493,10 +478,16 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             synth.onvoiceschanged = populateVoiceList;
         }
         
+        // 🎤 현재 보고 있는 아이템의 voiceLang 저장
+        let currentVoiceLang = 'ko-KR';
+        
         // 갤러리 아이템 클릭 (앱과 100% 동일한 로직)
         document.querySelectorAll('.gallery-item').forEach(item => {
             item.addEventListener('click', () => {
                 const itemData = appData[parseInt(item.dataset.id)];
+                
+                // 🎤 현재 아이템의 voiceLang 저장
+                currentVoiceLang = itemData.voiceLang || 'ko-KR';
                 
                 // 배경 이미지 설정
                 document.getElementById('detail-bg').src = itemData.imageDataUrl;
@@ -513,8 +504,8 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                 // 텍스트는 표시 상태로 시작 (음성과 동시에 보임)
                 document.getElementById('detail-text').classList.remove('hidden');
                 
-                // 음성 자동 재생
-                playAudio(itemData.description);
+                // 🎤 음성 자동 재생 (저장된 언어 사용)
+                playAudio(itemData.description, currentVoiceLang);
             });
         });
         
@@ -547,7 +538,8 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                 stopAudio();
             } else {
                 const text = document.getElementById('detail-description').textContent;
-                playAudio(text);
+                // 🎤 저장된 언어 사용
+                playAudio(text, currentVoiceLang);
             }
         });
         
