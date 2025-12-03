@@ -529,7 +529,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * 3. playAudio에 onboundary 하이라이트 기능 추가
      * 4. 텍스트 초기 표시 로직: 음성과 동시에 표시 (hidden 제거)
      */
-    function generateShareHTML(title, sender, location, date, guideItems, appOrigin, isFeatured = false) {
+    function generateShareHTML(title, sender, location, date, guideItems, appOrigin, isFeatured = false, language = 'ko') {
         // HTML escape 함수 (XSS 방지 및 파싱 에러 방지)
         const escapeHTML = (str) => {
             return str
@@ -548,12 +548,15 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `).join('');
 
-        // 데이터 JSON (이미지 + 설명만, title 없음!)
-        const dataJSON = JSON.stringify(guideItems.map((item, index) => ({
-            id: index,
-            imageDataUrl: item.imageDataUrl || '',
-            description: item.description || ''
-        })));
+        // 데이터 JSON (이미지 + 설명 + 언어)
+        const dataJSON = JSON.stringify({
+            language: language, // 사용자 선택 언어 (TTS용)
+            items: guideItems.map((item, index) => ({
+                id: index,
+                imageDataUrl: item.imageDataUrl || '',
+                description: item.description || ''
+            }))
+        });
 
         // UTF-8 안전한 base64 인코딩
         const utf8ToBase64 = (str) => {
@@ -910,7 +913,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         function populateVoiceList() {
-            const userLang = localStorage.getItem('appLanguage') || 'ko';
+            const userLang = appData.language || 'ko'; // 저장된 언어 사용 (localStorage 대신)
             const allVoices = synth.getVoices();
             
             // 선택 언어에 맞는 음성 필터링
@@ -957,8 +960,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             currentUtterance = new SpeechSynthesisUtterance(cleanText);
             
-            // 선택 언어에 맞는 음성 자동 선택
-            const userLang = localStorage.getItem('appLanguage') || 'ko';
+            // 선택 언어에 맞는 음성 자동 선택 (저장된 언어 사용)
+            const userLang = appData.language || 'ko';
             const langCode = langCodeMap[userLang] || 'ko-KR';
             
             // 한국어는 시스템 기본 음성 사용 (하드코딩) - 아이폰 호환성
@@ -1018,7 +1021,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 갤러리 아이템 클릭 (앱과 100% 동일한 로직)
         document.querySelectorAll('.gallery-item').forEach(item => {
             item.addEventListener('click', () => {
-                const itemData = appData[parseInt(item.dataset.id)];
+                const itemData = appData.items[parseInt(item.dataset.id)];
                 
                 // 배경 이미지 설정
                 document.getElementById('detail-bg').src = itemData.imageDataUrl;
@@ -1147,13 +1150,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 const shareLink = request.result;
                 if (shareLink) {
                     const appOrigin = window.location.origin;
+                    const userLang = localStorage.getItem('appLanguage') || 'ko';
                     const htmlContent = generateShareHTML(
                         shareLink.title,
                         shareLink.sender,
                         shareLink.location,
                         shareLink.date,
                         shareLink.guideItems,
-                        appOrigin
+                        appOrigin,
+                        false, // isFeatured
+                        userLang // language
                     );
                     downloadHTML(`${shareLink.title}-손안에가이드.html`, htmlContent);
                     showToast('다운로드가 시작되었습니다.');
@@ -2269,13 +2275,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 📄 HTML 콘텐츠 생성 (완전한 독립 HTML 문서)
             const appOrigin = window.location.origin;
+            const userLang = localStorage.getItem('appLanguage') || 'ko';
             const htmlContent = generateShareHTML(
                 linkName,
                 senderName,
                 locationName,
                 today,
                 currentShareItems, // 선택된 가이드들
-                appOrigin
+                appOrigin,
+                false, // isFeatured
+                userLang // language
             );
 
             // 📦 서버로 보낼 데이터 준비
@@ -2386,13 +2395,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // HTML 콘텐츠 생성
             const appOrigin = window.location.origin;
+            const userLang = localStorage.getItem('appLanguage') || 'ko';
             const htmlContent = generateShareHTML(
                 linkName,
                 '여행자',
                 '파리, 프랑스',
                 today,
                 selectedItems,
-                appOrigin
+                appOrigin,
+                false, // isFeatured
+                userLang // language
             );
 
             // 서버로 보낼 데이터 준비
