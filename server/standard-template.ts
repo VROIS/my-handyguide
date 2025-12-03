@@ -25,6 +25,7 @@ export interface GuideItem {
   id?: string; // Guide UUID (optional, fallback to index)
   imageDataUrl: string;
   description: string;
+  voiceLang?: string; // TTS 언어 코드 (예: ko-KR, fr-FR)
 }
 
 export function generateStandardShareHTML(data: StandardTemplateData): string {
@@ -54,13 +55,15 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             </div>
         `).join('');
 
-  // 데이터 JSON (이미지 + 설명)
+  // 데이터 JSON (이미지 + 설명 + 음성정보)
   // ✅ 2025-11-26: id는 인덱스 (클릭 핸들러용), guid는 UUID (parseGuidesFromHtml용)
+  // ✅ 2025-12-03: voiceLang 추가 (저장된 언어로 TTS 재생)
   const dataJSON = JSON.stringify(guideItems.map((item, index) => ({
     id: index,
     guid: item.id || '',
     imageDataUrl: item.imageDataUrl || '',
-    description: item.description || ''
+    description: item.description || '',
+    voiceLang: item.voiceLang || 'ko-KR'
   })));
 
   // UTF-8 안전한 base64 인코딩
