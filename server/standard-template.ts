@@ -88,6 +88,9 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                 document.cookie = 'googtrans=/ko/' + lang + ';path=/;domain=' + domain;
                 document.cookie = 'googtrans=/ko/' + lang + ';path=/';
                 console.log('🌐 Pre-set googtrans cookie for:', lang);
+                // 해시 제거 후 새로고침 (무한 루프 방지)
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+                window.location.reload();
             }
         })();
     </script>
