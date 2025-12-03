@@ -2793,7 +2793,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!item) return;
 
             cameFromArchive = true;
-            currentContent = { imageDataUrl: item.imageDataUrl, description: item.description };
+            // 🎤 저장된 voiceLang, voiceName 포함
+            currentContent = { 
+                imageDataUrl: item.imageDataUrl, 
+                description: item.description,
+                voiceLang: item.voiceLang || null,
+                voiceName: item.voiceName || null
+            };
+            console.log('🎤 [보관함] 저장된 음성 정보:', item.voiceLang, item.voiceName);
 
             showDetailPage(true);
 
@@ -2875,13 +2882,28 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const utterance = new SpeechSynthesisUtterance(text);
         
-        // 선택 언어에 맞는 음성 자동 선택
+        // 🎤 저장된 음성 정보 사용 (없으면 현재 앱 언어)
+        const savedVoiceLang = currentContent.voiceLang;
+        const savedVoiceName = currentContent.voiceName;
         const userLang = localStorage.getItem('appLanguage') || 'ko';
         const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
-        const langCode = langCodeMap[userLang] || 'ko-KR';
+        const langCode = savedVoiceLang || langCodeMap[userLang] || 'ko-KR';
         
-        // 한국어는 시스템 기본 음성 사용 (하드코딩) - 아이폰 호환성
-        if (userLang === 'ko') {
+        console.log('[TTS] 저장된 음성:', savedVoiceLang, savedVoiceName, '→ 사용:', langCode);
+        
+        // 저장된 voiceName이 있으면 해당 음성 사용
+        if (savedVoiceName) {
+            const allVoices = synth.getVoices();
+            const targetVoice = allVoices.find(v => v.name === savedVoiceName || v.name.includes(savedVoiceName));
+            if (targetVoice) {
+                utterance.voice = targetVoice;
+                utterance.lang = langCode;
+                utterance.rate = 0.9;
+                utterance.pitch = 1.0;
+                console.log('[TTS] 저장된 음성 사용:', targetVoice.name);
+            }
+        } else if (langCode === 'ko-KR') {
+            // 한국어는 시스템 기본 음성 사용 (하드코딩) - 아이폰 호환성
             utterance.lang = 'ko-KR';
             utterance.rate = 0.9;
             utterance.pitch = 1.0;
