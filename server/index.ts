@@ -136,6 +136,54 @@ app.get('/s/:id', async (req, res) => {
         result = result.replace(/<\/body>/i, googleTranslateWidget + '</body>');
       }
       
+      // 🎤 TTS 다국어 오버라이드 스크립트 주입 (2025-12-04)
+      // ?lang= 파라미터 감지 → 해당 언어로 TTS 재생 + 번역된 텍스트 읽기
+      const ttsOverrideScript = `
+    <!-- 🎤 2025.12.04: TTS 다국어 오버라이드 (번역된 텍스트 읽기) -->
+    <script>
+        (function() {
+            // 언어코드 매핑 (2자리 → 전체)
+            var langMap = {
+                'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP',
+                'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES'
+            };
+            
+            // ?lang= 파라미터 감지
+            var params = new URLSearchParams(window.location.search);
+            var urlLang = params.get('lang');
+            window.__ttsOverrideLang = urlLang ? (langMap[urlLang] || langMap[urlLang.split('-')[0]]) : null;
+            
+            if (window.__ttsOverrideLang) {
+                console.log('🎤 TTS 언어 오버라이드:', window.__ttsOverrideLang);
+            }
+            
+            // 페이지 로드 후 playAudio 오버라이드
+            window.addEventListener('DOMContentLoaded', function() {
+                // 원본 playAudio 백업
+                var originalPlayAudio = window.playAudio;
+                if (!originalPlayAudio) return;
+                
+                // 오버라이드된 playAudio
+                window.playAudio = function(text, voiceLang) {
+                    // 🎤 URL에서 언어 지정된 경우: 해당 언어로 오버라이드
+                    var finalLang = window.__ttsOverrideLang || voiceLang;
+                    
+                    // 🎤 번역된 텍스트 가져오기 (구글 번역 적용된 DOM에서)
+                    var descEl = document.getElementById('detail-description');
+                    var translatedText = descEl ? descEl.textContent : text;
+                    
+                    console.log('🎤 TTS 재생:', finalLang, '텍스트 길이:', translatedText.length);
+                    originalPlayAudio(translatedText, finalLang);
+                };
+            });
+        })();
+    </script>`;
+      
+      // 구글 번역 위젯 뒤에 TTS 오버라이드 스크립트 삽입
+      if (!result.includes('__ttsOverrideLang')) {
+        result = result.replace(/<\/body>/i, ttsOverrideScript + '</body>');
+      }
+      
       // 1. 버튼 문구 통일: 다양한 기존 문구 → "나도 만들어보기"
       // (이모지 제거, 모든 기존 페이지에 적용)
       result = result
