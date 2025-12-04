@@ -139,6 +139,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
                 userPreferredLanguage = data.language || 'ko';
                 console.log('🌐 사용자 선호 언어 로드:', userPreferredLanguage);
+                
+                // 🌐 DB 언어를 localStorage/쿠키에 동기화 (구글 번역 적용)
+                if (userPreferredLanguage !== 'ko') {
+                    localStorage.setItem('appLanguage', userPreferredLanguage);
+                    const domain = window.location.hostname;
+                    document.cookie = `googtrans=/ko/${userPreferredLanguage}; path=/; domain=${domain}`;
+                    document.cookie = `googtrans=/ko/${userPreferredLanguage}; path=/`;
+                    console.log('🌐 DB 언어 → localStorage/쿠키 동기화 완료');
+                }
             }
         } catch (error) {
             console.warn('언어 로드 실패:', error);

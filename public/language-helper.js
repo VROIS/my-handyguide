@@ -35,7 +35,7 @@ const LanguageHelper = {
   },
 
   /**
-   * 언어 설정 저장 + Google Translate 쿠키 설정
+   * 언어 설정 저장 + Google Translate 쿠키 설정 + DB 저장
    * @param {string} lang - 언어 코드 (예: 'en', 'fr' 등)
    */
   setLanguage: function(lang) {
@@ -62,6 +62,28 @@ const LanguageHelper = {
       } catch (e) {
         console.log('⚠️ Google Translate 서비스 미발견 (초기화 필요)');
       }
+    }
+    
+    // 4. 🌐 DB에 저장 (로그인된 사용자만)
+    this.saveToDatabase(lang);
+  },
+  
+  /**
+   * DB에 선호 언어 저장 (비동기, 실패해도 무시)
+   */
+  saveToDatabase: async function(lang) {
+    try {
+      const response = await fetch('/api/profile/language', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ language: lang })
+      });
+      if (response.ok) {
+        console.log('🌐 DB에 선호 언어 저장:', lang);
+      }
+    } catch (error) {
+      // 비로그인 상태면 실패 - 무시
+      console.log('🌐 DB 저장 스킵 (비로그인 또는 오류)');
     }
   },
 
