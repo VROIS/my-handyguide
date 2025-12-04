@@ -1,8 +1,144 @@
-# 내손가이드 - 프로젝트 현황 (2025년 12월 01일)
+# 내손가이드 - 프로젝트 현황 (2025년 12월 04일)
 
 **프로젝트:** 파리 여행 가이드 PWA  
 **핵심 타겟:** 📱 모바일 99%, 카카오톡 90%, 삼성 안드로이드 90%  
-**현재 상태:** Production 배포 중, 출시 전 최종 점검
+**현재 상태:** Production 배포 중, 공유페이지 다국어 TTS 시스템 구현 중
+
+---
+
+## 🎯 오늘 완료 (2025-12-04)
+
+### ✅ 공유페이지 번역 후 다국어 TTS 재생 시스템 구현
+**작업 시간:** 3시간  
+**배경:** 공유페이지에서 언어 선택 시 구글 번역은 되지만 TTS가 한국어로 재생되는 문제
+
+**문제 발견:**
+- 공유페이지는 DB에 정적 HTML로 저장됨 (voiceLang: 'ko-KR' 하드코딩)
+- 갤러리 아이템 클릭 시 `playAudio(itemData.description, currentVoiceLang)` 호출
+- `itemData.description`은 원본 한국어, `currentVoiceLang`은 'ko-KR' 고정
+- 구글 번역은 DOM만 번역하고, JS 변수는 그대로
+
+**완료 작업:**
+1. **speechSynthesis.speak 가로채기 구현**
+   - `<head>` 최상단에 스크립트 주입 (모든 스크립트보다 먼저 실행)
+   - 원본 speak 함수 백업 후 오버라이드
+   - 번역 완료 전까지 TTS 요청을 대기열에 저장
+
+2. **번역 완료 감지 (MutationObserver)**
+   - `body` 클래스에 `translated-ltr` 또는 `translated-rtl` 추가되면 감지
+   - 5초 타임아웃 (오프라인 시 원본으로 재생)
+
+3. **번역된 텍스트로 TTS 재생**
+   - DOM에서 `#detail-description.textContent` 가져오기 (번역된 텍스트)
+   - URL 파라미터 `?lang=` 에서 언어 코드 추출
+   - `utterance.text`와 `utterance.lang` 교체 후 재생
+
+4. **신규/구버전 페이지 모두 지원**
+   - `server/standard-template.ts`: 신규 페이지용 (head에 직접 포함)
+   - `server/index.ts`: 구버전 페이지용 (서빙 시점에 주입)
+
+**코드 위치:**
+```javascript
+// server/standard-template.ts (Line 81-170)
+// server/index.ts (Line 145-252) - injectReferralAndUpdateButton 함수 내
+
+// 핵심 로직
+var originalSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);
+window.speechSynthesis.speak = function(utterance) {
+    if (!window.__translationComplete) {
+        window.__ttsQueue.push(utterance);  // 대기열 추가
+        return;
+    }
+    if (window.__ttsTargetLang) {
+        var descEl = document.getElementById('detail-description');
+        if (descEl) {
+            utterance.text = descEl.textContent;  // 번역된 텍스트
+            utterance.lang = window.__ttsTargetLang;  // URL 언어
+        }
+    }
+    originalSpeak(utterance);
+};
+```
+
+**수정 파일:**
+- `server/standard-template.ts` - TTS 차단 스크립트 (head 최상단)
+- `server/index.ts` - 구버전 페이지용 주입 로직
+
+---
+
+## 🚧 진행 중 (2025-12-04)
+
+### ⏳ 공유페이지 상세뷰 UI 버그 수정
+**상태:** 사용자 피드백 대기
+
+**발견된 문제:**
+1. **구글 번역 스피너가 리턴 버튼 가림**
+   - 스피너 위치: 왼쪽 상단 (구글이 고정, 변경 불가)
+   - 리턴 버튼 위치: `position: absolute; left: 1rem;` (충돌)
+   - **해결책:** 리턴 버튼을 오른쪽으로 이동 (`left: 1rem` → `right: 1rem`)
+
+2. **홈 버튼 동작 안 함**
+   - 하단 홈 버튼 클릭해도 배포본 랜딩페이지로 이동 안 됨
+   - 확인 필요: 이벤트 리스너 또는 href 문제
+
+3. **상세페이지에서 갤러리로 돌아가는 방법 없음**
+   - 리턴 버튼: 스피너에 가려짐 ❌
+   - 홈 버튼: 작동 안 함 ❌
+   - 음성/텍스트 버튼: 작동 ✅
+
+**다음 작업:**
+```typescript
+// server/standard-template.ts (Line 419)
+// 변경 전
+style="... left: 1rem; ..."
+
+// 변경 후
+style="... right: 1rem; ..." // 또는 z-index 높이기
+```
+
+---
+
+## 📝 후임자 참고사항
+
+### 핵심 파일 구조
+```
+공유페이지 생성 흐름:
+server/standard-template.ts → HTML 생성 → DB 저장 (정적)
+
+공유페이지 서빙 흐름:
+GET /s/:shareId → server/index.ts → injectReferralAndUpdateButton() → HTML 수정 후 서빙
+```
+
+### 상세페이지 TTS 호출 순서 (공유페이지)
+```
+1. 갤러리 아이템 클릭
+2. itemData = appData[id] (DB 저장값)
+3. currentVoiceLang = itemData.voiceLang ('ko-KR')
+4. detail-description.textContent = itemData.description (원본 한국어)
+5. [구글 번역] → DOM만 번역됨
+6. playAudio(itemData.description, currentVoiceLang) → 원본 한국어로 호출
+7. speechSynthesis.speak(utterance) → 가로채기!
+8. utterance.text = DOM에서 번역된 텍스트
+9. utterance.lang = URL 파라미터 언어
+10. 번역된 언어로 TTS 재생 ✅
+```
+
+### 앱 보관함 vs 공유페이지 차이
+| 구분 | 앱 보관함 | 공유페이지 |
+|------|----------|-----------|
+| 데이터 소스 | 로컬 IndexedDB | DB (정적 HTML) |
+| voiceLang | localStorage.appLanguage (가변) | 하드코딩 (고정) |
+| 언어 변경 | ✅ 사용자 설정 반영 | ❌ → speechSynthesis.speak 가로채기로 해결 |
+
+### 테스트 방법
+1. 공유페이지 접속: `/s/{shareId}`
+2. 언어 선택 (예: 일본어)
+3. 캐시 삭제 또는 강제 새로고침 (Ctrl+Shift+R)
+4. 갤러리 아이템 클릭
+5. 콘솔 확인:
+   - `🎤🔒 [TTS 차단] 번역 대기 중... 대상: ja-JP`
+   - `🎤✅ [번역 완료] TTS 차단 해제!`
+   - `🎤✅ [TTS 재생] 언어: ja-JP 길이: xxx`
 
 ---
 
