@@ -136,14 +136,17 @@ app.get('/s/:id', async (req, res) => {
         result = result.replace(/<\/body>/i, googleTranslateWidget + '</body>');
       }
       
-      // 🎤 TTS 다국어 오버라이드 스크립트 주입 (2025-12-04)
-      // ?lang= 파라미터 감지 → 해당 언어로 TTS 재생 + 번역된 텍스트 읽기
-      const ttsOverrideScript = `
-    <!-- 🎤 2025.12.04: TTS 다국어 오버라이드 (번역된 텍스트 읽기) -->
+      // 🎤🔒 2025-12-04: 가장 강력한 TTS 차단 - speechSynthesis.speak 자체를 가로채기
+      // 모든 TTS 호출은 최종적으로 speechSynthesis.speak()를 호출함
+      // 이걸 가로채면 playAudio가 로컬이든 전역이든 100% 차단됨
+      const ttsBlockerScript = `
+    <!-- 🎤🔒 2025.12.04: TTS 강제 차단 + 번역 완료 후 재생 (speechSynthesis.speak 가로채기) -->
     <script>
         (function() {
-            // 언어코드 매핑 (2자리 → 전체)
-            var langMap = {
+            'use strict';
+            
+            // 언어코드 매핑
+            var LANG_MAP = {
                 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP',
                 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES'
             };
@@ -151,37 +154,101 @@ app.get('/s/:id', async (req, res) => {
             // ?lang= 파라미터 감지
             var params = new URLSearchParams(window.location.search);
             var urlLang = params.get('lang');
-            window.__ttsOverrideLang = urlLang ? (langMap[urlLang] || langMap[urlLang.split('-')[0]]) : null;
+            var targetLang = urlLang ? (LANG_MAP[urlLang] || LANG_MAP[urlLang.split('-')[0]] || null) : null;
             
-            if (window.__ttsOverrideLang) {
-                console.log('🎤 TTS 언어 오버라이드:', window.__ttsOverrideLang);
+            // 한국어거나 lang 파라미터 없으면 → 번역 불필요, 바로 재생 허용
+            var needsTranslation = targetLang && urlLang !== 'ko';
+            window.__translationComplete = !needsTranslation;
+            window.__ttsTargetLang = targetLang;
+            window.__ttsQueue = []; // 대기 중인 TTS 요청
+            
+            if (needsTranslation) {
+                console.log('🎤🔒 [TTS 차단] 번역 대기 중... 대상:', targetLang);
             }
             
-            // 페이지 로드 후 playAudio 오버라이드
-            window.addEventListener('DOMContentLoaded', function() {
-                // 원본 playAudio 백업
-                var originalPlayAudio = window.playAudio;
-                if (!originalPlayAudio) return;
+            // 🔒 speechSynthesis.speak 원본 백업 및 가로채기
+            var originalSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);
+            
+            window.speechSynthesis.speak = function(utterance) {
+                // 번역 완료 전이면 → 대기열에 추가
+                if (!window.__translationComplete) {
+                    console.log('🎤🔒 [TTS 차단] 대기열 추가 (번역 미완료)');
+                    window.__ttsQueue.push(utterance);
+                    return;
+                }
                 
-                // 오버라이드된 playAudio
-                window.playAudio = function(text, voiceLang) {
-                    // 🎤 URL에서 언어 지정된 경우: 해당 언어로 오버라이드
-                    var finalLang = window.__ttsOverrideLang || voiceLang;
-                    
-                    // 🎤 번역된 텍스트 가져오기 (구글 번역 적용된 DOM에서)
+                // 번역 완료 후 → 번역된 텍스트와 언어로 교체
+                if (window.__ttsTargetLang) {
                     var descEl = document.getElementById('detail-description');
-                    var translatedText = descEl ? descEl.textContent : text;
+                    if (descEl) {
+                        var translatedText = descEl.textContent || descEl.innerText;
+                        utterance.text = translatedText;
+                        utterance.lang = window.__ttsTargetLang;
+                        console.log('🎤✅ [TTS 재생] 언어:', window.__ttsTargetLang, '길이:', translatedText.length);
+                    }
+                }
+                
+                originalSpeak(utterance);
+            };
+            
+            // 🔍 번역 완료 감지 (MutationObserver)
+            function watchForTranslation() {
+                if (!needsTranslation) return;
+                
+                var observer = new MutationObserver(function() {
+                    var hasTranslateClass = document.body.classList.contains('translated-ltr') || 
+                                            document.body.classList.contains('translated-rtl');
                     
-                    console.log('🎤 TTS 재생:', finalLang, '텍스트 길이:', translatedText.length);
-                    originalPlayAudio(translatedText, finalLang);
-                };
-            });
+                    if (hasTranslateClass) {
+                        console.log('🎤✅ [번역 완료] TTS 차단 해제!');
+                        window.__translationComplete = true;
+                        observer.disconnect();
+                        
+                        // 대기열에 있는 TTS 재생
+                        if (window.__ttsQueue.length > 0) {
+                            console.log('🎤✅ [대기열 재생]', window.__ttsQueue.length + '개');
+                            window.__ttsQueue.forEach(function(utt) {
+                                var descEl = document.getElementById('detail-description');
+                                if (descEl) {
+                                    utt.text = descEl.textContent || descEl.innerText;
+                                    utt.lang = window.__ttsTargetLang;
+                                }
+                                originalSpeak(utt);
+                            });
+                            window.__ttsQueue = [];
+                        }
+                    }
+                });
+                
+                observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+                
+                // 5초 후 타임아웃 (오프라인 등)
+                setTimeout(function() {
+                    if (!window.__translationComplete) {
+                        console.log('🎤⚠️ [번역 타임아웃] 원본으로 재생');
+                        window.__translationComplete = true;
+                        observer.disconnect();
+                        // 대기열 재생 (원본 그대로)
+                        window.__ttsQueue.forEach(function(utt) {
+                            originalSpeak(utt);
+                        });
+                        window.__ttsQueue = [];
+                    }
+                }, 5000);
+            }
+            
+            // DOM 로드 후 감시 시작
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', watchForTranslation);
+            } else {
+                watchForTranslation();
+            }
         })();
     </script>`;
       
-      // 구글 번역 위젯 뒤에 TTS 오버라이드 스크립트 삽입
-      if (!result.includes('__ttsOverrideLang')) {
-        result = result.replace(/<\/body>/i, ttsOverrideScript + '</body>');
+      // <head> 바로 뒤에 삽입 (모든 스크립트보다 먼저!)
+      if (!result.includes('__translationComplete')) {
+        result = result.replace(/<head>/i, '<head>' + ttsBlockerScript);
       }
       
       // 1. 버튼 문구 통일: 다양한 기존 문구 → "나도 만들어보기"
