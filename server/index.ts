@@ -112,6 +112,30 @@ app.get('/s/:id', async (req, res) => {
         result = result.replace(/<head>/i, '<head>' + googTransScript);
       }
       
+      // 🌐 구글 번역 위젯 주입 (기존 페이지에 없는 경우만!)
+      const googleTranslateWidget = `
+    <!-- 🌐 2025.12.04: 구글 번역 위젯 자동 주입 (다국어 지원) -->
+    <div id="google_translate_element" style="display:none;"></div>
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'ko',
+                includedLanguages: 'ko,en,ja,zh-CN,fr,de,es',
+                autoDisplay: false
+            }, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    <style>
+        .skiptranslate { display: none !important; }
+        body { top: 0 !important; }
+    </style>`;
+      
+      // </body> 앞에 구글 번역 위젯 삽입 (없으면만!)
+      if (!result.includes('google_translate_element')) {
+        result = result.replace(/<\/body>/i, googleTranslateWidget + '</body>');
+      }
+      
       // 1. 버튼 문구 통일: 다양한 기존 문구 → "나도 만들어보기"
       // (이모지 제거, 모든 기존 페이지에 적용)
       result = result
