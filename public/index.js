@@ -3869,9 +3869,9 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     // 푸시 알림 토글
     userPushToggle?.addEventListener('change', handleUserPushToggle);
     
-    // 사용 방법 버튼 - Features 페이지로 이동
+    // 사용 방법 버튼 - 유튜브 영상으로 이동
     userSettingsGuideBtn?.addEventListener('click', () => {
-        showFeaturesPage();
+        window.open('https://youtu.be/JJ65XZvBgsk', '_blank');
     });
     
     // QR 코드 모달
