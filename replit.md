@@ -39,6 +39,12 @@ The UI/UX is mobile-first and responsive, with camera/GPS integration. Performan
 ### Guide Detail Page Component
 A full-screen detail page component (`public/components/guideDetailPage.js`) displays an image background with automatic voice playback (Microsoft Heami TTS) and sentence-by-sentence highlighting. It includes auto-scrolling, location display, play/pause toggles, and back button functionality.
 
+**Translation-Aware TTS (2025-12-04)**: The component now waits for Google Translate to complete before starting TTS playback. It uses `MutationObserver` to detect the `translated-ltr/rtl` class on `body`, then reads the translated text from DOM and plays TTS in the selected language. Features:
+- `_initTranslationWatcher()`: Initial setup on component init
+- `_refreshTranslationState()`: Re-checks translation state on each page open
+- `guideTranslationComplete` event: Triggers TTS playback after translation
+- 3-second timeout fallback for offline mode
+
 ### Share Page Translation + TTS Component V1
 A standard component system for multi-language support integrates translation detection and text-to-speech. It uses Google Translate's class additions to `body` to detect translation completion, allowing TTS playback in the translated language. It also includes offline storage capabilities via IndexedDB.
 
