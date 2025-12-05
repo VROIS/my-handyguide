@@ -3,6 +3,20 @@ import * as gemini from './geminiService.js';
 import { optimizeImage } from './imageOptimizer.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+    // ═══════════════════════════════════════════════════════════════
+    // 🎁 추천 코드 시스템 (앱 진입 시 즉시 실행)
+    // ═══════════════════════════════════════════════════════════════
+    (function checkAndSaveReferralCode() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const refCode = urlParams.get('ref');
+        if (refCode) {
+            localStorage.setItem('pendingReferralCode', refCode);
+            console.log('🎁 추천 코드 저장:', refCode);
+            const cleanUrl = window.location.origin + window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+        }
+    })();
+    
     // DOM Elements
     const video = document.getElementById('camera-feed');
     const canvas = document.getElementById('capture-canvas');
@@ -4210,6 +4224,36 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
         }
     });
     
+    // 🎁 추천 코드 보너스 적용 (회원가입 완료 시)
+    async function applyPendingReferralBonus() {
+        const pendingCode = localStorage.getItem('pendingReferralCode');
+        if (!pendingCode) return;
+        
+        try {
+            console.log('🎁 추천 보너스 적용 시도:', pendingCode);
+            const response = await fetch('/api/referral/signup-bonus', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ referrerCode: pendingCode })
+            });
+            if (response.ok) {
+                const result = await response.json();
+                localStorage.removeItem('pendingReferralCode');
+                console.log('🎁 추천 보너스 결과:', result);
+                if (result.newUserBonus) {
+                    showToast('🎁 가입 보너스 +10 크레딧이 지급되었습니다!');
+                }
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                console.log('🎁 추천 보너스 실패:', errorData.error || response.status);
+                localStorage.removeItem('pendingReferralCode');
+            }
+        } catch (error) {
+            console.error('추천 보너스 처리 실패:', error);
+        }
+    }
+    
     // OAuth 팝업 닫힌 후 인증 상태 확인 및 Featured Gallery 열기
     async function checkAuthAndOpenPendingUrl() {
         try {
@@ -4218,6 +4262,9 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
                 console.log('✅ 인증 성공!');
                 // 인증 모달 닫기
                 authModal?.classList.add('hidden');
+                
+                // 🎁 추천 코드 보너스 자동 적용 (신규 가입자)
+                await applyPendingReferralBonus();
                 
                 // 🌐 인증 후 DB에서 선호 언어 로드
                 await loadUserLanguage();
