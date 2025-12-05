@@ -56,113 +56,19 @@
             }
         }
         
-        /* ⚠️ 상세페이지 컴포넌트 스타일 (2025-11-28 확보) */
+        /* 상세페이지 컴포넌트 CSS - 동적 삽입됨 */
         :root {
             --gemini-blue: #4285F4;
-        }
-        #guideDetailPage {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 9998;
-            display: flex;
-            flex-direction: column;
-        }
-        #guideDetailPage .full-screen-bg {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            object-fit: cover;
-            z-index: 1;
-        }
-        #guideDetailPage .header-safe-area {
-            width: 100%;
-            height: 80px;
-            flex-shrink: 0;
-            z-index: 30;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 1rem;
-            position: relative;
-        }
-        #guideDetailPage .content-safe-area {
-            flex: 1;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            background: transparent;
-            z-index: 20;
-        }
-        #guideDetailPage .text-content {
-            padding: 1.5rem;
-            line-height: 1.8;
-            word-break: keep-all;
-            overflow-wrap: break-word;
-        }
-        #guideDetailPage .readable-on-image {
-            color: white;
-        }
-        #guideDetailPage .footer-safe-area {
-            width: 100%;
-            height: 100px;
-            flex-shrink: 0;
-            z-index: 30;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 1.5rem;
-            padding: 0 1rem;
-            background: transparent;
-        }
-        #guideDetailPage .interactive-btn {
-            transition: transform 0.1s ease, background-color 0.2s ease;
-        }
-        #guideDetailPage .interactive-btn:active {
-            transform: scale(0.95);
         }
         .text-gemini-blue { color: var(--gemini-blue); }
         .hidden { display: none !important; }
     </style>
+    <!-- ⚠️ 2025-12-04: 상세페이지 표준 컴포넌트 import -->
+    <script src="/components/guideDetailPage.js"></script>
 </head>
 <body class="min-h-screen">
-    <!-- 풀 화면 상세보기 (상세페이지 컴포넌트) -->
-    <div id="guideDetailPage" class="hidden">
-        <img id="guideDetailImage" src="" alt="상세페이지 이미지" class="full-screen-bg">
-        <header class="header-safe-area">
-            <button id="guideDetailBackBtn" class="w-12 h-12 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl absolute top-1/2 left-4 -translate-y-1/2" aria-label="뒤로가기">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                </svg>
-            </button>
-        </header>
-        <div class="content-safe-area">
-            <div id="guideDetailTextOverlay" class="text-content">
-                <div id="guideDetailLocationInfo" class="hidden mb-4 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gemini-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                        <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
-                    </svg>
-                    <span id="guideDetailLocationName" class="text-base font-semibold text-gray-800"></span>
-                </div>
-                <p id="guideDetailDescription" class="readable-on-image text-xl leading-relaxed"></p>
-            </div>
-        </div>
-        <footer class="footer-safe-area">
-            <button id="guideDetailAudioBtn" aria-label="오디오 재생" class="w-16 h-16 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
-                    <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.648c1.295.748 1.295 2.538 0 3.286L7.279 20.99c-1.25.717-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
-                </svg>
-            </button>
-            <button id="guideDetailTextToggleBtn" aria-label="해설 읽기" class="w-16 h-16 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-            </button>
-        </footer>
-    </div>
+    <!-- 상세페이지 컴포넌트: 동적 삽입 (guideDetailPage.getHTML()) -->
+    <div id="guideDetailPageContainer"></div>
 
     <div class="max-w-7xl mx-auto p-6">
         <!-- 헤더 -->
@@ -1136,173 +1042,22 @@
         }
 
         // ═══════════════════════════════════════════════════
-        // 상세페이지 컴포넌트 (2025-11-28)
+        // ⚠️ 2025-12-04: 상세페이지 표준 컴포넌트 사용
+        // 컴포넌트 파일: /components/guideDetailPage.js
         // ═══════════════════════════════════════════════════
-        const guideDetailPage = {
-            els: null,
-            synth: window.speechSynthesis,
-            voices: [],
-            currentUtterance: null,
-            originalText: '',
-            isTextVisible: true,
-
-            init() {
-                this.els = {
-                    page: document.getElementById('guideDetailPage'),
-                    image: document.getElementById('guideDetailImage'),
-                    description: document.getElementById('guideDetailDescription'),
-                    locationInfo: document.getElementById('guideDetailLocationInfo'),
-                    locationName: document.getElementById('guideDetailLocationName'),
-                    textOverlay: document.getElementById('guideDetailTextOverlay'),
-                    audioBtn: document.getElementById('guideDetailAudioBtn'),
-                    textToggleBtn: document.getElementById('guideDetailTextToggleBtn'),
-                    backBtn: document.getElementById('guideDetailBackBtn')
-                };
-
-                this.populateVoiceList();
-                if (speechSynthesis.onvoiceschanged !== undefined) {
-                    speechSynthesis.onvoiceschanged = () => this.populateVoiceList();
-                }
-
-                this.els.backBtn.addEventListener('click', () => this.close());
-                this.els.audioBtn.addEventListener('click', () => this.toggleAudio());
-                this.els.textToggleBtn.addEventListener('click', () => this.toggleText());
-            },
-
-            populateVoiceList() {
-                this.voices = this.synth.getVoices();
-            },
-
-            show() {
-                this.els.page.classList.remove('hidden');
-                document.body.style.overflow = 'hidden';
-            },
-
-            close() {
-                this.stopAudio();
-                this.els.page.classList.add('hidden');
-                document.body.style.overflow = '';
-            },
-
-            openWithData(data) {
-                this.show();
-                this.els.image.src = data.imageUrl || '';
-                this.els.description.textContent = data.description || '내용 없음';
-                
-                if (data.locationName) {
-                    this.els.locationName.textContent = data.locationName;
-                    this.els.locationInfo.classList.remove('hidden');
-                } else {
-                    this.els.locationInfo.classList.add('hidden');
-                }
-
-                // 🎤 저장된 음성 정보 전달
-                if (data.description) {
-                    this.playAudio(data.description, data.voiceLang, data.voiceName);
-                }
-            },
-
-            playAudio(text, voiceLang, voiceName) {
-                this.stopAudio();
-                const cleanText = text.replace(new RegExp('<br\\s*/?>', 'gi'), ' ');
-                const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
-                this.originalText = cleanText;
-                
-                this.currentUtterance = new SpeechSynthesisUtterance(cleanText);
-                
-                // 🎤 DB에 저장된 음성 정보 우선 사용
-                const langCode = voiceLang || 'ko-KR';
-                let targetVoice = null;
-                
-                if (voiceName) {
-                    targetVoice = this.voices.find(v => v.name === voiceName);
-                }
-                if (!targetVoice) {
-                    targetVoice = this.voices.find(v => v.lang === langCode || v.lang.startsWith(langCode.split('-')[0]));
-                }
-                
-                this.currentUtterance.voice = targetVoice;
-                this.currentUtterance.lang = langCode;
-                this.currentUtterance.rate = 1.0;
-                
-                console.log('[Admin TTS] 언어:', langCode, '음성:', targetVoice?.name || 'default');
-                
-                let currentSentenceIndex = 0;
-                const self = this;
-                
-                this.currentUtterance.onstart = () => {
-                    self.updateAudioButtonIcon(true);
-                };
-                
-                this.currentUtterance.onboundary = (event) => {
-                    if (event.name === 'sentence') {
-                        const highlightedHTML = sentences.map((sentence, idx) => {
-                            if (idx === currentSentenceIndex) {
-                                return '<span class="current-sentence" style="background-color: rgba(66, 133, 244, 0.3); font-weight: 600;">' + sentence + '</span>';
-                            }
-                            return sentence;
-                        }).join('');
-                        
-                        self.els.description.innerHTML = highlightedHTML;
-                        currentSentenceIndex++;
-                        
-                        const currentSpan = self.els.description.querySelector('.current-sentence');
-                        if (currentSpan) {
-                            currentSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
-                    }
-                };
-                
-                this.currentUtterance.onend = () => {
-                    self.updateAudioButtonIcon(false);
-                    self.els.description.textContent = self.originalText;
-                };
-                
-                this.synth.speak(this.currentUtterance);
-            },
-
-            stopAudio() {
-                if (this.synth.speaking) {
-                    this.synth.pause();
-                    this.synth.cancel();
-                }
-                this.updateAudioButtonIcon(false);
-                if (this.originalText) {
-                    this.els.description.textContent = this.originalText;
-                }
-            },
-
-            toggleAudio() {
-                const text = this.els.description.textContent;
-                if (!text || text === '불러오는 중...') return;
-
-                if (this.synth.speaking) {
-                    this.stopAudio();
-                } else {
-                    this.playAudio(text);
-                }
-            },
-
-            updateAudioButtonIcon(isPlaying) {
-                this.els.audioBtn.innerHTML = isPlaying ? `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
-                        <path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z" clip-rule="evenodd" />
-                    </svg>
-                ` : `
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
-                        <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.648c1.295.748 1.295 2.538 0 3.286L7.279 20.99c-1.25.717-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
-                    </svg>
-                `;
-            },
-
-            toggleText() {
-                this.isTextVisible = !this.isTextVisible;
-                this.els.textOverlay.style.opacity = this.isTextVisible ? '1' : '0';
-            }
-        };
-
-        // 컴포넌트 초기화
+        
+        // 컴포넌트 초기화 (HTML, CSS 동적 삽입)
         document.addEventListener('DOMContentLoaded', () => {
+            // HTML 삽입
+            const container = document.getElementById('guideDetailPageContainer');
+            container.innerHTML = guideDetailPage.getHTML();
+            
+            // CSS 삽입
+            const style = document.createElement('style');
+            style.textContent = guideDetailPage.getCSS();
+            document.head.appendChild(style);
+            
+            // 초기화
             guideDetailPage.init();
         });
 
