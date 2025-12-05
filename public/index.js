@@ -1282,7 +1282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // --- Page Control ---
     function showPage(pageToShow) {
-        [featuresPage, mainPage, detailPage, archivePage, settingsPage].forEach(page => {
+        [featuresPage, mainPage, detailPage, archivePage, settingsPage, adminSettingsPage].forEach(page => {
             if (page) page.classList.toggle('visible', page === pageToShow);
         });
     }
