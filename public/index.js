@@ -93,16 +93,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const authSection = document.getElementById('authSection');
     const authForm = document.getElementById('authForm');
     const authPassword = document.getElementById('authPassword');
-    const promptSettingsSection = document.getElementById('promptSettingsSection');
-    const imagePromptTextarea = document.getElementById('imagePromptTextarea');
-    const textPromptTextarea = document.getElementById('textPromptTextarea');
-    const savePromptsBtn = document.getElementById('savePromptsBtn');
-    const resetPromptsBtn = document.getElementById('resetPromptsBtn');
+    const adminPromptSettingsSection = document.getElementById('adminPromptSettingsSection');
+    const adminImagePromptTextarea = document.getElementById('adminImagePromptTextarea');
+    const adminTextPromptTextarea = document.getElementById('adminTextPromptTextarea');
+    const adminSavePromptsBtn = document.getElementById('adminSavePromptsBtn');
+    const adminResetPromptsBtn = document.getElementById('adminResetPromptsBtn');
     // v1.8: New Demo Elements
-    const imageSynthesisPromptTextarea = document.getElementById('imageSynthesisPromptTextarea');
-    const generateImageBtn = document.getElementById('generateImageBtn');
-    const videoGenerationPromptTextarea = document.getElementById('videoGenerationPromptTextarea');
-    const generateVideoBtn = document.getElementById('generateVideoBtn');
+    const adminImageSynthesisPromptTextarea = document.getElementById('adminImageSynthesisPromptTextarea');
+    const adminGenerateImageBtn = document.getElementById('adminGenerateImageBtn');
+    const adminVideoGenerationPromptTextarea = document.getElementById('adminVideoGenerationPromptTextarea');
+    const adminGenerateVideoBtn = document.getElementById('adminGenerateVideoBtn');
 
 
     // Web Speech API
@@ -3104,8 +3104,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const savedImagePrompt = localStorage.getItem('customImagePrompt') || gemini.DEFAULT_IMAGE_PROMPT;
         const savedTextPrompt = localStorage.getItem('customTextPrompt') || gemini.DEFAULT_TEXT_PROMPT;
         
-        if (imagePromptTextarea) imagePromptTextarea.value = savedImagePrompt;
-        if (textPromptTextarea) textPromptTextarea.value = savedTextPrompt;
+        if (adminImagePromptTextarea) adminImagePromptTextarea.value = savedImagePrompt;
+        if (adminTextPromptTextarea) adminTextPromptTextarea.value = savedTextPrompt;
+        
+        console.log('📝 프롬프트 로드 완료 (이미지:', savedImagePrompt.substring(0, 50) + '...)');
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -3381,7 +3383,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
                 localStorage.setItem('adminAuthTime', Date.now().toString());
                 
                 authSection?.classList.add('hidden');
-                promptSettingsSection?.classList.remove('hidden');
+                adminPromptSettingsSection?.classList.remove('hidden');
                 
                 const dashboardLink = document.getElementById('adminDashboardLink');
                 if (dashboardLink) {
@@ -3396,7 +3398,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
                 
                 if (authPassword) authPassword.value = '';
                 authSection?.classList.remove('hidden');
-                promptSettingsSection?.classList.add('hidden');
+                adminPromptSettingsSection?.classList.add('hidden');
                 
                 const dashboardLink = document.getElementById('adminDashboardLink');
                 if (dashboardLink) {
@@ -3410,7 +3412,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
             
             if (authPassword) authPassword.value = '';
             authSection?.classList.remove('hidden');
-            promptSettingsSection?.classList.add('hidden');
+            adminPromptSettingsSection?.classList.add('hidden');
             
             const dashboardLink = document.getElementById('adminDashboardLink');
             if (dashboardLink) {
@@ -3461,7 +3463,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
                 localStorage.setItem('adminAuthTime', Date.now().toString());
                 
                 authSection.classList.add('hidden');
-                promptSettingsSection.classList.remove('hidden');
+                adminPromptSettingsSection.classList.remove('hidden');
                 showToast('관리자 인증 성공');
                 
                 // 🔓 대시보드 링크 표시 (영업 비밀!)
@@ -3797,8 +3799,8 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     }
 
     function savePrompts() {
-        const imagePrompt = imagePromptTextarea.value.trim();
-        const textPrompt = textPromptTextarea.value.trim();
+        const imagePrompt = adminImagePromptTextarea?.value.trim();
+        const textPrompt = adminTextPromptTextarea?.value.trim();
         
         if (!imagePrompt || !textPrompt) {
             showToast('모든 프롬프트를 입력해주세요.');
@@ -3807,6 +3809,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
         
         localStorage.setItem('customImagePrompt', imagePrompt);
         localStorage.setItem('customTextPrompt', textPrompt);
+        console.log('💾 프롬프트 저장 완료');
         showToast('프롬프트가 저장되었습니다.');
     }
 
@@ -3820,22 +3823,22 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     }
 
     function handleGenerateImageDemo() {
-        if (!imageSynthesisPromptTextarea.value.trim()) return showToast('이미지 생성을 위한 프롬프트를 입력해주세요.');
-        generateImageBtn.disabled = true;
+        if (!adminImageSynthesisPromptTextarea?.value.trim()) return showToast('이미지 생성을 위한 프롬프트를 입력해주세요.');
+        if (adminGenerateImageBtn) adminGenerateImageBtn.disabled = true;
         showToast('멋진 이미지를 만들고 있어요...', 3000);
         setTimeout(() => {
             showToast('이미지 생성이 완료되었습니다! (데모)');
-            generateImageBtn.disabled = false;
+            if (adminGenerateImageBtn) adminGenerateImageBtn.disabled = false;
         }, 4000);
     }
 
     function handleGenerateVideoDemo() {
-        if (!videoGenerationPromptTextarea.value.trim()) return showToast('영상 제작을 위한 프롬프트를 입력해주세요.');
-        generateVideoBtn.disabled = true;
+        if (!adminVideoGenerationPromptTextarea?.value.trim()) return showToast('영상 제작을 위한 프롬프트를 입력해주세요.');
+        if (adminGenerateVideoBtn) adminGenerateVideoBtn.disabled = true;
         showToast('AI가 영상을 제작 중입니다 (약 10초 소요)...', 8000);
         setTimeout(() => {
             showToast('영상이 완성되었습니다! (데모)');
-            generateVideoBtn.disabled = false;
+            if (adminGenerateVideoBtn) adminGenerateVideoBtn.disabled = false;
         }, 9000);
     }
 
@@ -4008,10 +4011,10 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     archiveGrid?.addEventListener('keydown', handleArchiveGridKeydown);
     
     authForm?.addEventListener('submit', handleAuth);
-    savePromptsBtn?.addEventListener('click', savePrompts);
-    resetPromptsBtn?.addEventListener('click', resetPrompts);
-    generateImageBtn?.addEventListener('click', handleGenerateImageDemo);
-    generateVideoBtn?.addEventListener('click', handleGenerateVideoDemo);
+    adminSavePromptsBtn?.addEventListener('click', savePrompts);
+    adminResetPromptsBtn?.addEventListener('click', resetPrompts);
+    adminGenerateImageBtn?.addEventListener('click', handleGenerateImageDemo);
+    adminGenerateVideoBtn?.addEventListener('click', handleGenerateVideoDemo);
 
     // Auth Modal Event Listeners
     closeAuthModalBtn?.addEventListener('click', () => {
