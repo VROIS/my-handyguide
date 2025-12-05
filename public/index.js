@@ -69,8 +69,27 @@ document.addEventListener('DOMContentLoaded', () => {
     const archiveDeleteBtn = document.getElementById('archiveDeleteBtn');
     const archiveSettingsBtn = document.getElementById('archiveSettingsBtn');
 
-    // Settings Page Elements
+    // Settings Page Elements (User Settings)
     const settingsBackBtn = document.getElementById('settingsBackBtn');
+    const userSettingsGuideBtn = document.getElementById('userSettingsGuideBtn');
+    const userSettingsQrBtn = document.getElementById('userSettingsQrBtn');
+    const userPushToggle = document.getElementById('user-push-toggle');
+    const userPushStatusText = document.getElementById('user-push-status-text');
+    const userAdminAuthBtn = document.getElementById('userSettingsAdminAuthBtn');
+    
+    // User Settings Modals
+    const userAdminAuthModal = document.getElementById('user-admin-auth-modal');
+    const userAdminPassword = document.getElementById('user-admin-password');
+    const userAdminAuthCancelBtn = document.getElementById('userAdminAuthCancelBtn');
+    const userAdminAuthConfirmBtn = document.getElementById('userAdminAuthConfirmBtn');
+    const userAdminAuthMessage = document.getElementById('user-admin-auth-message');
+    const userQrCodeModal = document.getElementById('user-qr-code-modal');
+    const userQrCloseBtn = document.getElementById('userQrCloseBtn');
+    const userCopyQrButton = document.getElementById('user-copy-qr-button');
+    
+    // Admin Settings Page Elements
+    const adminSettingsPage = document.getElementById('adminSettingsPage');
+    const adminSettingsBackBtn = document.getElementById('adminSettingsBackBtn');
     const authSection = document.getElementById('authSection');
     const authForm = document.getElementById('authForm');
     const authPassword = document.getElementById('authPassword');
@@ -1317,53 +1336,10 @@ document.addEventListener('DOMContentLoaded', () => {
     async function showSettingsPage() {
         pauseCamera();
         
-        // 🔐 서버 세션 확인 (localStorage와 동기화)
-        try {
-            const response = await fetch('/api/admin/featured');
-            if (response.ok) {
-                // 서버 세션 유효 - 관리자 섹션 표시
-                localStorage.setItem('adminAuthenticated', 'true');
-                localStorage.setItem('adminAuthTime', Date.now().toString());
-                
-                authSection.classList.add('hidden');
-                promptSettingsSection.classList.remove('hidden');
-                
-                const dashboardLink = document.getElementById('adminDashboardLink');
-                if (dashboardLink) {
-                    dashboardLink.classList.remove('hidden');
-                }
-                
-                await loadAdminData();
-            } else {
-                // 서버 세션 없음 - localStorage 클리어 + 로그인 화면
-                localStorage.removeItem('adminAuthenticated');
-                localStorage.removeItem('adminAuthTime');
-                
-                authPassword.value = '';
-                authSection.classList.remove('hidden');
-                promptSettingsSection.classList.add('hidden');
-                
-                const dashboardLink = document.getElementById('adminDashboardLink');
-                if (dashboardLink) {
-                    dashboardLink.classList.add('hidden');
-                }
-            }
-        } catch (error) {
-            // 에러 발생 - localStorage 클리어 + 로그인 화면
-            localStorage.removeItem('adminAuthenticated');
-            localStorage.removeItem('adminAuthTime');
-            
-            authPassword.value = '';
-            authSection.classList.remove('hidden');
-            promptSettingsSection.classList.add('hidden');
-            
-            const dashboardLink = document.getElementById('adminDashboardLink');
-            if (dashboardLink) {
-                dashboardLink.classList.add('hidden');
-            }
-        }
+        // 사용자 설정 페이지 초기화
+        initUserSettingsLegalContent();
+        initUserPushToggle();
         
-        populatePromptTextareas(); // Load saved or default prompts
         showPage(settingsPage);
     }
 
@@ -3133,6 +3109,320 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ═══════════════════════════════════════════════════════════════
+    // 📱 사용자 설정 페이지 로직 (User Settings Page)
+    // ═══════════════════════════════════════════════════════════════
+    
+    // 법적 문서 및 FAQ 데이터
+    const userSettingsLegalData = {
+        faq: `<h4>Q1. 앱이 처음에 바로 안 열리거나 화면이 하얗게 나와요.</h4>
+네트워크 상태를 확인해주세요. Wi-Fi나 모바일 데이터가 연결되어 있어야 정상적으로 사용할 수 있습니다.
+
+<h4>Q2. 사진을 찍었는데 설명이 안 나와요.</h4>
+사진이 너무 어둡거나 흐리면 AI가 인식하기 어려울 수 있습니다. 밝은 곳에서 선명하게 다시 찍어보세요.
+
+<h4>Q3. 음성으로 질문하면 답변이 안 나와요.</h4>
+마이크 권한이 허용되어 있는지 확인해주세요. 설정 → 앱 → 손안에 가이드 → 권한에서 마이크를 허용해주세요.
+
+<h4>Q4. 저장한 가이드가 사라졌어요.</h4>
+보관함에 저장된 가이드는 기기에 저장됩니다. 브라우저 캐시를 삭제하면 데이터가 사라질 수 있으니 주의해주세요.
+
+<h4>Q5. 공유 링크가 작동하지 않아요.</h4>
+링크가 만료되었거나 삭제되었을 수 있습니다. 새로운 공유 링크를 생성해주세요.`,
+        
+        terms: `<h4>1. 서비스 목적 및 범위</h4>
+'손안에 가이드'는 AI 기반 여행 가이드 서비스로, 사진 인식을 통해 장소 정보와 설명을 제공합니다.
+
+<h4>2. 서비스 이용</h4>
+본 서비스는 만 14세 이상의 사용자가 이용할 수 있습니다. 서비스 이용 시 발생하는 데이터 요금은 사용자 부담입니다.
+
+<h4>3. AI 생성 콘텐츠</h4>
+AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니다. 중요한 결정 시에는 공식 정보를 확인해주세요.
+
+<h4>4. 서비스 변경 및 중단</h4>
+서비스 개선을 위해 사전 공지 없이 기능이 변경될 수 있으며, 불가피한 경우 서비스가 일시 중단될 수 있습니다.
+
+<h4>5. 책임 제한</h4>
+서비스 이용으로 인해 발생한 손해에 대해 회사는 법적 책임을 지지 않습니다.`,
+        
+        privacy: `<h4>1. 개인 정보 수집 원칙</h4>
+필수 정보만 최소한으로 수집하며, 사용자 동의 없이 제3자에게 제공하지 않습니다.
+
+<h4>2. 수집하는 정보</h4>
+- 로그인 정보 (소셜 로그인 시 이메일, 프로필)
+- 위치 정보 (사진의 GPS 데이터, 선택적)
+- 사용 기록 (서비스 개선 목적)
+
+<h4>3. 정보 이용 목적</h4>
+- 맞춤형 가이드 서비스 제공
+- 서비스 품질 향상 및 통계 분석
+- 고객 지원 및 문의 대응
+
+<h4>4. 정보 보관 기간</h4>
+서비스 이용 종료 시까지 보관하며, 탈퇴 요청 시 즉시 삭제합니다.
+
+<h4>5. 사용자 권리</h4>
+언제든지 개인정보 열람, 수정, 삭제를 요청할 수 있습니다.`,
+        
+        thirdparty: `<h4>1. 연결된 계정 목록</h4>
+- Google 로그인: 이메일, 프로필 정보 활용
+- Kakao 로그인: 이메일, 닉네임 활용
+
+<h4>2. 외부 서비스 연동</h4>
+- Google Maps API: 위치 정보 표시
+- Google Cloud Vision/Gemini: 이미지 분석 및 AI 응답
+
+<h4>3. 데이터 공유 범위</h4>
+외부 서비스에는 서비스 제공에 필요한 최소한의 데이터만 전달됩니다.
+
+<h4>4. 연결 해제</h4>
+각 소셜 계정의 연결된 앱 관리에서 접근 권한을 해제할 수 있습니다.`
+    };
+    
+    // 법적 문서 콘텐츠 초기화
+    function initUserSettingsLegalContent() {
+        const types = ['faq', 'terms', 'privacy', 'thirdparty'];
+        types.forEach(type => {
+            const contentDiv = document.querySelector(`#content-user-${type} .user-settings-content-body`);
+            if (contentDiv && userSettingsLegalData[type]) {
+                contentDiv.innerHTML = userSettingsLegalData[type];
+            }
+        });
+    }
+    
+    // 아코디언 토글
+    function toggleUserSettingsAccordion(type) {
+        const content = document.getElementById(`content-user-${type}`);
+        const icon = document.getElementById(`icon-user-${type}`);
+        
+        if (content) {
+            content.classList.toggle('open');
+            if (icon) {
+                icon.style.transform = content.classList.contains('open') ? 'rotate(180deg)' : '';
+            }
+        }
+    }
+    
+    // 푸시 알림 상태 초기화
+    function initUserPushToggle() {
+        if (!userPushToggle || !userPushStatusText) return;
+        
+        // 현재 푸시 알림 권한 상태 확인
+        if ('Notification' in window) {
+            const permission = Notification.permission;
+            if (permission === 'granted') {
+                userPushToggle.checked = true;
+                userPushStatusText.textContent = '알림이 켜져 있습니다';
+            } else if (permission === 'denied') {
+                userPushToggle.checked = false;
+                userPushStatusText.textContent = '알림이 차단되어 있습니다';
+            } else {
+                userPushToggle.checked = false;
+                userPushStatusText.textContent = '알림을 켜려면 토글을 누르세요';
+            }
+        } else {
+            userPushToggle.disabled = true;
+            userPushStatusText.textContent = '이 브라우저는 알림을 지원하지 않습니다';
+        }
+    }
+    
+    // 푸시 알림 토글 핸들러
+    async function handleUserPushToggle() {
+        if (!('Notification' in window)) {
+            showToast('이 브라우저는 알림을 지원하지 않습니다');
+            return;
+        }
+        
+        if (userPushToggle.checked) {
+            // 알림 권한 요청
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                userPushStatusText.textContent = '알림이 켜졌습니다';
+                showToast('푸시 알림이 활성화되었습니다');
+            } else {
+                userPushToggle.checked = false;
+                userPushStatusText.textContent = permission === 'denied' ? '알림이 차단되어 있습니다' : '알림 권한을 허용해주세요';
+                showToast('알림 권한이 필요합니다');
+            }
+        } else {
+            userPushStatusText.textContent = '알림이 꺼져 있습니다';
+            showToast('푸시 알림이 비활성화되었습니다');
+        }
+    }
+    
+    // QR 코드 모달 열기
+    function openUserQrCodeModal() {
+        if (userQrCodeModal) {
+            userQrCodeModal.classList.remove('hidden');
+        }
+    }
+    
+    // QR 코드 모달 닫기
+    function closeUserQrCodeModal() {
+        if (userQrCodeModal) {
+            userQrCodeModal.classList.add('hidden');
+        }
+    }
+    
+    // QR 코드 복사
+    async function copyUserQrCode() {
+        const qrImage = document.getElementById('user-qr-image');
+        if (!qrImage) {
+            showToast('QR 코드 이미지를 찾을 수 없습니다');
+            return;
+        }
+        
+        try {
+            // 이미지를 캔버스로 복사
+            const canvas = document.createElement('canvas');
+            canvas.width = qrImage.naturalWidth || 250;
+            canvas.height = qrImage.naturalHeight || 250;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(qrImage, 0, 0);
+            
+            // Blob으로 변환 후 클립보드에 복사
+            canvas.toBlob(async (blob) => {
+                try {
+                    await navigator.clipboard.write([
+                        new ClipboardItem({ 'image/png': blob })
+                    ]);
+                    showToast('QR 코드가 복사되었습니다!');
+                } catch (e) {
+                    // Fallback: 앱 URL 복사
+                    const appUrl = window.location.origin;
+                    await navigator.clipboard.writeText(appUrl);
+                    showToast('앱 주소가 복사되었습니다: ' + appUrl);
+                }
+            }, 'image/png');
+        } catch (error) {
+            console.error('QR 복사 실패:', error);
+            // Fallback: 앱 URL 복사
+            try {
+                const appUrl = window.location.origin;
+                await navigator.clipboard.writeText(appUrl);
+                showToast('앱 주소가 복사되었습니다');
+            } catch (e) {
+                showToast('복사에 실패했습니다. 화면을 캡처해주세요.');
+            }
+        }
+    }
+    
+    // 관리자 인증 모달 열기
+    function openUserAdminAuthModal() {
+        if (userAdminAuthModal) {
+            userAdminAuthModal.classList.remove('hidden');
+            if (userAdminPassword) userAdminPassword.value = '';
+            if (userAdminAuthMessage) userAdminAuthMessage.classList.add('hidden');
+        }
+    }
+    
+    // 관리자 인증 모달 닫기
+    function closeUserAdminAuthModal() {
+        if (userAdminAuthModal) {
+            userAdminAuthModal.classList.add('hidden');
+        }
+    }
+    
+    // 관리자 인증 처리 (사용자 설정 페이지에서)
+    async function handleUserAdminAuth() {
+        const password = userAdminPassword?.value;
+        
+        if (!password) {
+            if (userAdminAuthMessage) {
+                userAdminAuthMessage.textContent = '비밀번호를 입력해주세요';
+                userAdminAuthMessage.classList.remove('hidden');
+            }
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/admin/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+            
+            if (response.ok) {
+                // 인증 성공
+                localStorage.setItem('adminAuthenticated', 'true');
+                localStorage.setItem('adminAuthTime', Date.now().toString());
+                
+                closeUserAdminAuthModal();
+                showToast('관리자 인증 성공');
+                
+                // 관리자 설정 페이지로 이동
+                showAdminSettingsPage();
+            } else {
+                // 인증 실패
+                if (userAdminAuthMessage) {
+                    userAdminAuthMessage.textContent = '잘못된 비밀번호입니다';
+                    userAdminAuthMessage.classList.remove('hidden');
+                }
+                if (userAdminPassword) userAdminPassword.value = '';
+            }
+        } catch (error) {
+            console.error('인증 오류:', error);
+            if (userAdminAuthMessage) {
+                userAdminAuthMessage.textContent = '인증 중 오류가 발생했습니다';
+                userAdminAuthMessage.classList.remove('hidden');
+            }
+        }
+    }
+    
+    // 관리자 설정 페이지 표시
+    async function showAdminSettingsPage() {
+        pauseCamera();
+        
+        // 서버 세션 확인
+        try {
+            const response = await fetch('/api/admin/featured');
+            if (response.ok) {
+                // 서버 세션 유효 - 관리자 섹션 표시
+                localStorage.setItem('adminAuthenticated', 'true');
+                localStorage.setItem('adminAuthTime', Date.now().toString());
+                
+                authSection?.classList.add('hidden');
+                promptSettingsSection?.classList.remove('hidden');
+                
+                const dashboardLink = document.getElementById('adminDashboardLink');
+                if (dashboardLink) {
+                    dashboardLink.classList.remove('hidden');
+                }
+                
+                await loadAdminData();
+            } else {
+                // 서버 세션 없음 - 로그인 화면
+                localStorage.removeItem('adminAuthenticated');
+                localStorage.removeItem('adminAuthTime');
+                
+                if (authPassword) authPassword.value = '';
+                authSection?.classList.remove('hidden');
+                promptSettingsSection?.classList.add('hidden');
+                
+                const dashboardLink = document.getElementById('adminDashboardLink');
+                if (dashboardLink) {
+                    dashboardLink.classList.add('hidden');
+                }
+            }
+        } catch (error) {
+            // 에러 발생 - 로그인 화면
+            localStorage.removeItem('adminAuthenticated');
+            localStorage.removeItem('adminAuthTime');
+            
+            if (authPassword) authPassword.value = '';
+            authSection?.classList.remove('hidden');
+            promptSettingsSection?.classList.add('hidden');
+            
+            const dashboardLink = document.getElementById('adminDashboardLink');
+            if (dashboardLink) {
+                dashboardLink.classList.add('hidden');
+            }
+        }
+        
+        populatePromptTextareas();
+        showPage(adminSettingsPage);
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     // 🔐 관리자 인증 로직 (Admin Authentication)
     // ═══════════════════════════════════════════════════════════════
     // ⚠️ CRITICAL: DO NOT MODIFY WITHOUT USER APPROVAL
@@ -3561,6 +3851,42 @@ document.addEventListener('DOMContentLoaded', () => {
     backBtn?.addEventListener('click', () => cameFromArchive ? showArchivePage() : showMainPage());
     archiveBackBtn?.addEventListener('click', showMainPage);
     settingsBackBtn?.addEventListener('click', showArchivePage);
+    adminSettingsBackBtn?.addEventListener('click', showSettingsPage);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // 📱 사용자 설정 페이지 이벤트 핸들러
+    // ═══════════════════════════════════════════════════════════════
+    
+    // 아코디언 토글 버튼들
+    document.getElementById('toggle-user-faq')?.addEventListener('click', () => toggleUserSettingsAccordion('faq'));
+    document.getElementById('toggle-user-terms')?.addEventListener('click', () => toggleUserSettingsAccordion('terms'));
+    document.getElementById('toggle-user-privacy')?.addEventListener('click', () => toggleUserSettingsAccordion('privacy'));
+    document.getElementById('toggle-user-thirdparty')?.addEventListener('click', () => toggleUserSettingsAccordion('thirdparty'));
+    
+    // 푸시 알림 토글
+    userPushToggle?.addEventListener('change', handleUserPushToggle);
+    
+    // 사용 방법 버튼 - Features 페이지로 이동
+    userSettingsGuideBtn?.addEventListener('click', () => {
+        showFeaturesPage();
+    });
+    
+    // QR 코드 모달
+    userSettingsQrBtn?.addEventListener('click', openUserQrCodeModal);
+    userQrCloseBtn?.addEventListener('click', closeUserQrCodeModal);
+    userCopyQrButton?.addEventListener('click', copyUserQrCode);
+    
+    // 관리자 인증 모달
+    userAdminAuthBtn?.addEventListener('click', openUserAdminAuthModal);
+    userAdminAuthCancelBtn?.addEventListener('click', closeUserAdminAuthModal);
+    userAdminAuthConfirmBtn?.addEventListener('click', handleUserAdminAuth);
+    
+    // Enter 키로 관리자 인증
+    userAdminPassword?.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            handleUserAdminAuth();
+        }
+    });
     
     // 🌐 언어 선택 이벤트 리스너
     const settingsLanguageSelect = document.getElementById('settingsLanguageSelect');
