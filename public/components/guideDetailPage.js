@@ -338,6 +338,56 @@ const guideDetailPage = {
     _show: function() {
         this._els.page.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
+        
+        // 🌐 2025-12-04: 페이지 열 때마다 번역 상태 재확인
+        this._refreshTranslationState();
+    },
+    
+    // 🌐 번역 상태 재확인 (언어 동적 변경 대응)
+    _refreshTranslationState: function() {
+        const self = this;
+        const userLang = localStorage.getItem('appLanguage') || 'ko';
+        
+        // 한국어면 번역 대기 불필요
+        if (userLang === 'ko') {
+            this._state.translationComplete = true;
+            return;
+        }
+        
+        // 이미 번역된 상태인지 확인
+        const hasTranslateClass = document.body.classList.contains('translated-ltr') || 
+                                  document.body.classList.contains('translated-rtl');
+        if (hasTranslateClass) {
+            this._state.translationComplete = true;
+            console.log('[GuideDetailPage] 번역 완료 상태');
+            return;
+        }
+        
+        // 번역 대기 모드 (아직 번역되지 않음)
+        this._state.translationComplete = false;
+        console.log('[GuideDetailPage] 번역 대기 모드 (재설정):', userLang);
+        
+        // 기존 Observer 정리
+        if (this._state.translationObserver) {
+            this._state.translationObserver.disconnect();
+        }
+        
+        // 새로운 MutationObserver 설정
+        this._state.translationObserver = new MutationObserver(function(mutations) {
+            const hasTranslated = document.body.classList.contains('translated-ltr') || 
+                                  document.body.classList.contains('translated-rtl');
+            if (hasTranslated) {
+                console.log('[GuideDetailPage] 🌐 번역 완료 감지 (재설정)!');
+                self._state.translationComplete = true;
+                self._state.translationObserver.disconnect();
+                window.dispatchEvent(new CustomEvent('guideTranslationComplete'));
+            }
+        });
+        
+        this._state.translationObserver.observe(document.body, { 
+            attributes: true, 
+            attributeFilter: ['class'] 
+        });
     },
 
     // 페이지 닫기
