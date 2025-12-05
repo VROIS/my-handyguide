@@ -88,13 +88,18 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES'
             };
             
-            // ?lang= 파라미터 감지
+            // 🌐 2025.12.05: URL 파라미터 + localStorage 모두 체크
             var params = new URLSearchParams(window.location.search);
             var urlLang = params.get('lang');
-            var targetLang = urlLang ? (LANG_MAP[urlLang] || LANG_MAP[urlLang.split('-')[0]] || null) : null;
+            var storedLang = null;
+            try { storedLang = localStorage.getItem('appLanguage'); } catch(e) {}
             
-            // 한국어거나 lang 파라미터 없으면 → 번역 불필요, 바로 재생 허용
-            var needsTranslation = targetLang && urlLang !== 'ko';
+            // URL 파라미터 우선, 없으면 localStorage
+            var activeLang = urlLang || storedLang || 'ko';
+            var targetLang = LANG_MAP[activeLang] || LANG_MAP[activeLang.split('-')[0]] || null;
+            
+            // 한국어가 아니면 → 번역 필요, TTS 대기
+            var needsTranslation = activeLang !== 'ko' && targetLang;
             window.__translationComplete = !needsTranslation;
             window.__ttsTargetLang = targetLang;
             window.__ttsQueue = [];
