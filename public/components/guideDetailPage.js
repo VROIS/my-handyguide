@@ -26,7 +26,7 @@ const guideDetailPage = {
     <div id="guideDetailPage" class="hidden">
         <img id="guideDetailImage" src="" alt="상세페이지 이미지" class="full-screen-bg">
         <header class="header-safe-area">
-            <button id="guideDetailBackBtn" class="w-12 h-12 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl absolute top-1/2 left-4 -translate-y-1/2" aria-label="뒤로가기">
+            <button id="guideDetailBackBtn" class="w-12 h-12 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl absolute top-1/2 right-16 -translate-y-1/2" aria-label="뒤로가기">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                 </svg>
@@ -177,7 +177,8 @@ const guideDetailPage = {
         this._state.voices = this._state.synth.getVoices();
     },
     
-    // 언어별 음성 선택
+    // 언어별 음성 선택 (플랫폼별 최적 음성 우선순위)
+    // ⚠️ 2025-12-04 표준화: Microsoft → iOS → Chrome/Google fallback
     _getVoiceForLanguage: function(userLang) {
         // 짧은 형식 (ko, en) → 긴 형식 (ko-KR, en-US) 변환
         const langMap = {
@@ -193,29 +194,37 @@ const guideDetailPage = {
         const fullLang = langMap[userLang] || 'ko-KR';
         const langCode = fullLang.substring(0, 2);
         
-        const voiceMap = {
-            'ko-KR': 'Microsoft Heami - Korean (Korea)',
-            'en-US': 'Microsoft Zira - English (United States)',
-            'ja-JP': 'Microsoft Haruka - Japanese (Japan)',
-            'zh-CN': 'Microsoft Huihui - Chinese (Simplified, PRC)',
-            'fr-FR': 'Microsoft Hortense - French (France)',
-            'de-DE': 'Microsoft Hedda - German (Germany)',
-            'es-ES': 'Microsoft Helena - Spanish (Spain)'
+        // 플랫폼별 최적 음성 우선순위 (Microsoft → iOS → Chrome/Google)
+        const voicePriority = {
+            'ko-KR': ['Microsoft Heami', 'Yuna', 'Google 한국어'],
+            'en-US': ['Microsoft Zira', 'Samantha', 'Google US English'],
+            'ja-JP': ['Microsoft Haruka', 'Kyoko', 'Google 日本語'],
+            'zh-CN': ['Microsoft Huihui', 'Ting-Ting', 'Google 普通话'],
+            'fr-FR': ['Microsoft Hortense', 'Thomas', 'Google français'],
+            'de-DE': ['Microsoft Hedda', 'Anna', 'Google Deutsch'],
+            'es-ES': ['Microsoft Helena', 'Monica', 'Google español']
         };
         
-        const targetVoiceName = voiceMap[fullLang];
-        const targetVoice = targetVoiceName ? this._state.voices.find(v => v.name === targetVoiceName) : null;
+        const allVoices = this._state.voices;
+        let targetVoice = null;
+        
+        // 우선순위대로 음성 찾기
+        const priorities = voicePriority[fullLang] || [];
+        for (const voiceName of priorities) {
+            targetVoice = allVoices.find(v => v.name.includes(voiceName));
+            if (targetVoice) break;
+        }
+        
+        // 우선순위에 없으면 언어 코드로 찾기
+        if (!targetVoice) {
+            targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode));
+        }
         
         // 디버깅 로그
         console.log('[TTS] userLang:', userLang, 'fullLang:', fullLang, 'langCode:', langCode);
-        console.log('[TTS] Available voices:', this._state.voices.map(v => v.lang + ':' + v.name).slice(0, 10));
+        console.log('[TTS] Selected voice:', targetVoice?.name, targetVoice?.lang);
         
-        const fallbackVoice = this._state.voices.find(v => v.lang.startsWith(langCode));
-        const selectedVoice = targetVoice || fallbackVoice || this._state.voices[0];
-        
-        console.log('[TTS] Selected voice:', selectedVoice?.name, selectedVoice?.lang);
-        
-        return selectedVoice;
+        return targetVoice || allVoices[0];
     },
 
     // 페이지 열기 (guideId로 API 호출)
