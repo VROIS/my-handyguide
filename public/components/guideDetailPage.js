@@ -136,7 +136,10 @@ const guideDetailPage = {
         voices: [],
         currentUtterance: null,
         originalText: '',
-        onClose: null
+        onClose: null,
+        // 🌐 2025-12-04: 번역 완료 대기 상태
+        translationComplete: true,
+        translationObserver: null
     },
 
     // 초기화
@@ -169,7 +172,66 @@ const guideDetailPage = {
         this._els.audioBtn.addEventListener('click', () => self._toggleAudio());
         this._els.textToggleBtn.addEventListener('click', () => self._toggleText());
 
+        // 🌐 2025-12-04: 번역 완료 감지 초기화
+        this._initTranslationWatcher();
+
         console.log('[GuideDetailPage] Initialized');
+    },
+
+    // 🌐 번역 완료 감지 (MutationObserver)
+    _initTranslationWatcher: function() {
+        const self = this;
+        const userLang = localStorage.getItem('appLanguage') || 'ko';
+        
+        // 한국어면 번역 대기 불필요
+        if (userLang === 'ko') {
+            this._state.translationComplete = true;
+            return;
+        }
+        
+        // 이미 번역된 상태인지 확인
+        const hasTranslateClass = document.body.classList.contains('translated-ltr') || 
+                                  document.body.classList.contains('translated-rtl');
+        if (hasTranslateClass) {
+            this._state.translationComplete = true;
+            console.log('[GuideDetailPage] 이미 번역됨');
+            return;
+        }
+        
+        // 번역 대기 모드
+        this._state.translationComplete = false;
+        console.log('[GuideDetailPage] 번역 대기 모드:', userLang);
+        
+        // MutationObserver로 번역 완료 감지
+        this._state.translationObserver = new MutationObserver(function(mutations) {
+            const hasTranslated = document.body.classList.contains('translated-ltr') || 
+                                  document.body.classList.contains('translated-rtl');
+            if (hasTranslated) {
+                console.log('[GuideDetailPage] 🌐 번역 완료 감지!');
+                self._state.translationComplete = true;
+                self._state.translationObserver.disconnect();
+                
+                // 번역 완료 이벤트 발생
+                window.dispatchEvent(new CustomEvent('guideTranslationComplete'));
+            }
+        });
+        
+        this._state.translationObserver.observe(document.body, { 
+            attributes: true, 
+            attributeFilter: ['class'] 
+        });
+        
+        // 3초 후 타임아웃 (오프라인 등)
+        setTimeout(function() {
+            if (!self._state.translationComplete) {
+                console.log('[GuideDetailPage] 번역 타임아웃 - 원본 사용');
+                self._state.translationComplete = true;
+                if (self._state.translationObserver) {
+                    self._state.translationObserver.disconnect();
+                }
+                window.dispatchEvent(new CustomEvent('guideTranslationComplete', { detail: { timeout: true } }));
+            }
+        }, 3000);
     },
 
     // 음성 목록 로드 (모든 언어)
@@ -291,12 +353,31 @@ const guideDetailPage = {
 
     // 음성 재생 (문장별 하이라이트 + 자동 스크롤)
     // 🎤 voiceLang, voiceName: 저장된 음성 정보 (없으면 현재 appLanguage 기본값)
+    // 🌐 2025-12-04: 번역 완료 대기 후 번역된 텍스트로 TTS 재생
     _playAudio: async function(text, savedVoiceLang, savedVoiceName) {
         const self = this;
         this._stopAudio();
         
+        // 🌐 번역 완료 대기 (한국어가 아닌 경우)
+        const userLang = localStorage.getItem('appLanguage') || 'ko';
+        if (userLang !== 'ko' && !this._state.translationComplete) {
+            console.log('[TTS] 번역 완료 대기 중...');
+            await new Promise(resolve => {
+                const handler = () => {
+                    window.removeEventListener('guideTranslationComplete', handler);
+                    resolve();
+                };
+                window.addEventListener('guideTranslationComplete', handler);
+                // 타임아웃 백업 (3초)
+                setTimeout(resolve, 3500);
+            });
+        }
+        
+        // 🌐 번역된 텍스트 가져오기 (DOM에서 현재 보이는 텍스트)
+        const currentText = this._els.description.textContent || text;
+        
         // <br> 태그 제거
-        const cleanText = text.replace(new RegExp('<br\\s*/?>', 'gi'), ' ');
+        const cleanText = currentText.replace(new RegExp('<br\\s*/?>', 'gi'), ' ');
         
         // 문장 분리
         const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
@@ -306,10 +387,11 @@ const guideDetailPage = {
         
         this._state.currentUtterance = new SpeechSynthesisUtterance(cleanText);
         
-        // 🎤 저장된 음성 정보가 있으면 사용, 없으면 현재 appLanguage
-        const userLang = localStorage.getItem('appLanguage') || 'ko';
+        // 🎤 TTS 언어 결정: 현재 appLanguage 우선 (번역된 텍스트에 맞춤)
         const langFullMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
-        const fullLang = savedVoiceLang || langFullMap[userLang] || 'ko-KR';
+        const fullLang = (userLang !== 'ko') ? (langFullMap[userLang] || 'ko-KR') : (savedVoiceLang || 'ko-KR');
+        
+        console.log('[TTS] 재생 언어:', fullLang, '텍스트 길이:', cleanText.length);
         
         // 🔴 음성 목록 로드 대기 (최대 1초)
         let voices = this._state.synth.getVoices();
