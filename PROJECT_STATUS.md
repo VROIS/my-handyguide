@@ -1,12 +1,103 @@
-# 내손가이드 - 프로젝트 현황 (2025년 12월 04일)
+# 내손가이드 - 프로젝트 현황 (2025년 12월 06일)
 
 **프로젝트:** 파리 여행 가이드 PWA  
 **핵심 타겟:** 📱 모바일 99%, 카카오톡 90%, 삼성 안드로이드 90%  
-**현재 상태:** Production 배포 중, 공유페이지 다국어 TTS 시스템 구현 중
+**현재 상태:** Production 배포 중, 다국어 TTS 시스템 완성
 
 ---
 
-## 🎯 오늘 완료 (2025-12-04)
+## 🎯 오늘 완료 (2025-12-06)
+
+### ✅ 구글 번역 후 TTS 통일 시스템 구축
+**작업 시간:** 2시간  
+**배경:** 구글 번역 완료 전 TTS가 재생되어 원본 한국어로 읽히는 문제
+
+**문제 발견:**
+- 구글 번역은 페이지 로드 후 비동기로 DOM 텍스트 변경
+- TTS 함수가 번역 완료 전에 호출되면 원본 한국어로 재생
+- 4개 파일에서 각각 다른 방식으로 TTS 호출 → 통일 필요
+
+**완료 작업:**
+1. **번역 상태 감지 시스템 (MutationObserver)**
+   - `body` 클래스에 `translated-ltr` 또는 `translated-rtl` 추가되면 감지
+   - `translationState` 객체로 상태 중앙 관리
+   - 대기 중인 콜백 자동 실행
+
+2. **번역 완료 대기 함수 (`waitForTranslation`)**
+   - async 함수로 번역 완료까지 대기
+   - 3초 타임아웃 (오프라인/번역 실패 시 원본으로 재생)
+   - Promise 기반 콜백 시스템
+
+3. **4개 파일 TTS 호출 부분 통일**
+   - `public/index.js` - `playAudio()`, `speakNext()` 함수
+   - `public/generate-standalone.js` - `startSpeech()` 함수
+   - `public/share-page.js` - `playNextInQueue()` 함수
+   - `public/components/guideDetailPage.js` - `_startAutoPlay()` 함수
+
+4. **replit.md 문서화**
+   - '구글 번역 후 TTS 통일 규칙 (2025-12-06)' 섹션 추가
+   - 구현 패턴, 핵심 로직, 주의사항 문서화
+
+**코드 위치:**
+```javascript
+// 모든 TTS 파일에 공통 적용
+const translationState = {
+    isTranslated: false,
+    detectedLang: null,
+    waitingCallbacks: []
+};
+
+function initTranslationWatcher() {
+    const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            if (mutation.attributeName === 'class') {
+                const classList = document.body.classList;
+                if (classList.contains('translated-ltr') || classList.contains('translated-rtl')) {
+                    translationState.isTranslated = true;
+                    translationState.waitingCallbacks.forEach(cb => cb());
+                    translationState.waitingCallbacks = [];
+                }
+            }
+        }
+    });
+    observer.observe(document.body, { attributes: true });
+}
+
+async function waitForTranslation(timeout = 3000) {
+    if (translationState.isTranslated) return true;
+    return new Promise(resolve => {
+        const timer = setTimeout(() => resolve(false), timeout);
+        translationState.waitingCallbacks.push(() => {
+            clearTimeout(timer);
+            resolve(true);
+        });
+    });
+}
+
+// TTS 함수에서 사용
+async function playTTS() {
+    await waitForTranslation();
+    const text = document.querySelector('#description')?.innerText;
+    // TTS 재생...
+}
+```
+
+**수정 파일:**
+- `public/index.js` - 번역 대기 로직 추가 (3곳)
+- `public/generate-standalone.js` - 번역 대기 로직 추가
+- `public/share-page.js` - 번역 대기 로직 추가
+- `public/components/guideDetailPage.js` - 이미 구현됨 (2025-12-04)
+- `replit.md` - 통일 규칙 문서화
+
+**영향:**
+- ✅ 모든 페이지에서 번역된 언어로 TTS 재생
+- ✅ 오프라인 시 3초 후 원본으로 재생 (graceful fallback)
+- ✅ 코드 일관성 향상 (4개 파일 동일 패턴)
+- ✅ 향후 TTS 기능 추가 시 참조 가능한 표준 패턴
+
+---
+
+## 🎯 완료 (2025-12-04)
 
 ### ✅ 공유페이지 번역 후 다국어 TTS 재생 시스템 구현
 **작업 시간:** 3시간  
