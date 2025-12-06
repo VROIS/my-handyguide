@@ -87,6 +87,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const userQrCloseBtn = document.getElementById('userQrCloseBtn');
     const userCopyQrButton = document.getElementById('user-copy-qr-button');
     
+    // Notification Modal Elements
+    const notificationModal = document.getElementById('notificationModal');
+    const notificationList = document.getElementById('notificationList');
+    const emptyNotificationMessage = document.getElementById('emptyNotificationMessage');
+    const closeNotificationModalBtn = document.getElementById('closeNotificationModalBtn');
+    const markAllReadBtn = document.getElementById('markAllReadBtn');
+    const notificationBadge = document.getElementById('notificationBadge');
+    
     // Admin Settings Page Elements
     const adminSettingsPage = document.getElementById('adminSettingsPage');
     const adminSettingsBackBtn = document.getElementById('adminSettingsBackBtn');
@@ -1355,6 +1363,230 @@ document.addEventListener('DOMContentLoaded', () => {
         currentlySpeakingElement = null;
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // 🔔 알림 시스템 (2025-12-06)
+    // 목적: 프로필 버튼 배지 + 알림 모달 (YouTube 스타일)
+    // ═══════════════════════════════════════════════════════════════
+    let notificationPollingInterval = null;
+    
+    async function fetchUnreadNotificationCount() {
+        try {
+            const response = await fetch('/api/notifications/unread-count', { credentials: 'include' });
+            if (response.ok) {
+                const data = await response.json();
+                return data.count || 0;
+            }
+            return 0;
+        } catch (error) {
+            console.warn('알림 수 조회 실패:', error);
+            return 0;
+        }
+    }
+    
+    async function updateNotificationBadge() {
+        const count = await fetchUnreadNotificationCount();
+        if (notificationBadge) {
+            if (count > 0) {
+                notificationBadge.textContent = count > 99 ? '99+' : count;
+                notificationBadge.classList.remove('hidden');
+            } else {
+                notificationBadge.classList.add('hidden');
+            }
+        }
+    }
+    
+    async function fetchNotifications() {
+        try {
+            const response = await fetch('/api/notifications', { credentials: 'include' });
+            if (response.ok) {
+                const notifications = await response.json();
+                return notifications;
+            }
+            return [];
+        } catch (error) {
+            console.warn('알림 목록 조회 실패:', error);
+            return [];
+        }
+    }
+    
+    function renderNotifications(notifications) {
+        if (!notificationList || !emptyNotificationMessage) return;
+        
+        if (notifications.length === 0) {
+            notificationList.classList.add('hidden');
+            emptyNotificationMessage.classList.remove('hidden');
+            return;
+        }
+        
+        notificationList.classList.remove('hidden');
+        emptyNotificationMessage.classList.add('hidden');
+        
+        notificationList.innerHTML = notifications.map(notification => {
+            const isRead = notification.isRead;
+            const timeAgo = getTimeAgo(new Date(notification.createdAt));
+            const typeIcon = getNotificationIcon(notification.type);
+            
+            return `
+                <div class="notification-item flex items-start gap-3 p-3 rounded-lg cursor-pointer transition hover:bg-gray-50 ${isRead ? 'opacity-60' : 'bg-blue-50/50'}"
+                     data-notification-id="${notification.id}"
+                     data-link="${notification.link || ''}"
+                     data-testid="notification-item-${notification.id}">
+                    <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                        ${typeIcon}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 ${isRead ? '' : 'font-semibold'}">${notification.title}</p>
+                        <p class="text-sm text-gray-600 truncate">${notification.body || ''}</p>
+                        <p class="text-xs text-gray-400 mt-1">${timeAgo}</p>
+                    </div>
+                    ${!isRead ? '<span class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2"></span>' : ''}
+                </div>
+            `;
+        }).join('');
+        
+        // 알림 클릭 이벤트
+        notificationList.querySelectorAll('.notification-item').forEach(item => {
+            item.addEventListener('click', async () => {
+                const notificationId = parseInt(item.dataset.notificationId);
+                const link = item.dataset.link;
+                
+                await markNotificationRead(notificationId);
+                updateNotificationBadge();
+                
+                if (link) {
+                    closeNotificationModal();
+                    if (link.startsWith('/') || link.startsWith('http')) {
+                        window.open(link, '_blank');
+                    } else {
+                        window.location.href = link;
+                    }
+                } else {
+                    // 링크가 없으면 읽음 표시만 하고 새로고침
+                    const notifications = await fetchNotifications();
+                    renderNotifications(notifications);
+                }
+            });
+        });
+    }
+    
+    function getNotificationIcon(type) {
+        switch (type) {
+            case 'reward':
+                return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            case 'system':
+                return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>';
+            case 'new_content':
+                return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"></path></svg>';
+            case 'event':
+                return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>';
+            case 'urgent':
+                return '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>';
+            default:
+                return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>';
+        }
+    }
+    
+    function getTimeAgo(date) {
+        const now = new Date();
+        const diffMs = now - date;
+        const diffSec = Math.floor(diffMs / 1000);
+        const diffMin = Math.floor(diffSec / 60);
+        const diffHour = Math.floor(diffMin / 60);
+        const diffDay = Math.floor(diffHour / 24);
+        
+        if (diffSec < 60) return '방금 전';
+        if (diffMin < 60) return `${diffMin}분 전`;
+        if (diffHour < 24) return `${diffHour}시간 전`;
+        if (diffDay < 7) return `${diffDay}일 전`;
+        return date.toLocaleDateString('ko-KR');
+    }
+    
+    async function markNotificationRead(notificationId) {
+        try {
+            await fetch('/api/notifications/mark-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ notificationId })
+            });
+        } catch (error) {
+            console.warn('알림 읽음 처리 실패:', error);
+        }
+    }
+    
+    async function markAllNotificationsRead() {
+        try {
+            await fetch('/api/notifications/mark-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({})
+            });
+            updateNotificationBadge();
+            const notifications = await fetchNotifications();
+            renderNotifications(notifications);
+            showToast('모든 알림을 읽음으로 표시했습니다');
+        } catch (error) {
+            console.warn('전체 읽음 처리 실패:', error);
+        }
+    }
+    
+    async function openNotificationModal() {
+        if (!notificationModal) return;
+        
+        notificationModal.classList.remove('hidden');
+        
+        // 알림 로딩
+        const notifications = await fetchNotifications();
+        renderNotifications(notifications);
+    }
+    
+    function closeNotificationModal() {
+        if (!notificationModal) return;
+        notificationModal.classList.add('hidden');
+    }
+    
+    function startNotificationPolling() {
+        // 즉시 한 번 실행
+        updateNotificationBadge();
+        
+        // 30초마다 폴링
+        if (notificationPollingInterval) {
+            clearInterval(notificationPollingInterval);
+        }
+        notificationPollingInterval = setInterval(() => {
+            updateNotificationBadge();
+        }, 30000);
+    }
+    
+    function stopNotificationPolling() {
+        if (notificationPollingInterval) {
+            clearInterval(notificationPollingInterval);
+            notificationPollingInterval = null;
+        }
+    }
+    
+    // 알림 모달 이벤트 리스너
+    closeNotificationModalBtn?.addEventListener('click', closeNotificationModal);
+    markAllReadBtn?.addEventListener('click', markAllNotificationsRead);
+    
+    // 모달 바깥 클릭 시 닫기
+    notificationModal?.addEventListener('click', (e) => {
+        if (e.target === notificationModal) {
+            closeNotificationModal();
+        }
+    });
+    
+    // 프로필 버튼 클릭 → 로그인된 경우 알림 모달, 아니면 프로필 페이지
+    profileBtn?.addEventListener('click', async () => {
+        const user = await checkUserAuth();
+        if (user) {
+            openNotificationModal();
+        } else {
+            window.open('/profile.html', '_blank');
+        }
+    });
+
     // --- App Initialization ---
     async function initializeApp() {
         try {
@@ -1456,6 +1688,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 checkAuthStatusAndCloseModal();
             }
         });
+        
+        // 🔔 알림 배지 폴링 시작 (2025-12-06)
+        startNotificationPolling();
     }
     
     // 인증 상태 확인 및 모달 자동 닫기
@@ -3978,10 +4213,6 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     saveBtn?.addEventListener('click', () => debounceClick('save', handleSaveClick, 500));
     textToggleBtn?.addEventListener('click', () => textOverlay.classList.toggle('hidden'));
 
-    // ✅ 2025.11.28: 프로필 버튼 - 프로필 페이지로 이동 (대시보드와 동일 방식)
-    profileBtn?.addEventListener('click', () => {
-        window.open('./profile.html');
-    });
     // ✅ 공유 버튼 간편 로직 - 2025.10.02 구현 완료 (디바운스 추가)
     // 핵심: 1회 클릭 → 선택 모드 활성화 / 2회 클릭 (선택 후) → 공유 모달
     archiveShareBtn?.addEventListener('click', async () => {

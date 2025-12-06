@@ -492,6 +492,35 @@
         </div>
     </div>
 
+    <!-- 알림 모달 (YouTube 스타일) -->
+    <div id="notificationModal" class="fixed inset-0 z-[9998] bg-gray-900/60 backdrop-blur-sm flex items-end sm:items-center justify-center hidden" style="pointer-events: auto;" data-testid="modal-notifications">
+        <div id="notificationModalContent" class="bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-md max-h-[70vh] flex flex-col transition-transform transform" style="pointer-events: auto;">
+            <!-- 헤더 -->
+            <div class="p-4 border-b border-gray-200 flex justify-between items-center flex-shrink-0">
+                <h2 class="text-lg font-bold text-gray-800">알림</h2>
+                <div class="flex items-center gap-2">
+                    <button id="markAllReadBtn" data-testid="button-mark-all-read" class="text-sm text-blue-600 hover:text-blue-800 font-medium px-2 py-1 rounded-md hover:bg-blue-50 transition">
+                        모두 읽음
+                    </button>
+                    <button id="closeNotificationModalBtn" data-testid="button-close-notification-modal" class="p-2 text-gray-500 hover:text-gray-800 text-2xl leading-none">&times;</button>
+                </div>
+            </div>
+            
+            <!-- 알림 목록 -->
+            <div id="notificationList" class="flex-1 overflow-y-auto p-2" data-testid="list-notifications">
+                <!-- 알림 아이템들이 여기에 동적으로 추가됨 -->
+            </div>
+            
+            <!-- 빈 상태 -->
+            <div id="emptyNotificationMessage" class="hidden flex-1 flex flex-col items-center justify-center p-8 text-gray-500" data-testid="text-empty-notifications">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
+                </svg>
+                <p class="text-base font-medium">알림이 없습니다</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Features Page -->
     <div id="featuresPage" class="ui-layer bg-gray-50 text-gray-800">
         <div class="content-safe-area">
@@ -695,11 +724,12 @@
         <!-- ✅ 존 4: 하단 Footer (고정) - 2025.11.22 UI 개선: 원형 배경 + 단순 아이콘 -->
         <!-- 핵심: .footer-safe-area로 100px 고정 높이 -->
         <footer id="archiveFooter" class="footer-safe-area bg-white/95 backdrop-blur-sm border-t border-gray-200/80">
-             <button id="profileBtn" aria-label="프로필" class="w-16 h-16 flex items-center justify-center rounded-full interactive-btn" style="background-color: rgba(66, 133, 244, 0.1); color: #4285F4;">
+             <button id="profileBtn" aria-label="프로필" class="w-16 h-16 flex items-center justify-center rounded-full interactive-btn relative" style="background-color: rgba(66, 133, 244, 0.1); color: #4285F4;" data-testid="button-profile">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <circle cx="12" cy="8" r="4" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2" />
                 </svg>
+                <span id="notificationBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full min-w-[20px] h-5 flex items-center justify-center px-1" data-testid="badge-notification-count">0</span>
             </button>
              <button id="archiveShareBtn" aria-label="선택 항목 공유" class="w-16 h-16 flex items-center justify-center rounded-full interactive-btn" style="background-color: rgba(66, 133, 244, 0.1); color: #4285F4;">
                  <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
