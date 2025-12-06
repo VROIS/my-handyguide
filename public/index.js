@@ -99,7 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const userAdminAuthMessage = document.getElementById('user-admin-auth-message');
     const userQrCodeModal = document.getElementById('user-qr-code-modal');
     const userCopyQrLinkButton = document.getElementById('user-copy-qr-link-button');
-    const qrCodeDisplay = document.getElementById('qr-code-display');
     
     let currentQrShareUrl = ''; // 현재 QR에 포함된 URL 저장
     
@@ -3267,70 +3266,15 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
         }
     }
     
-    // QR 코드 모달 열기 (심플한 원형 QR)
+    // QR 코드 모달 열기 (하드코딩 이미지 사용)
     async function openUserQrCodeModal() {
-        if (!userQrCodeModal || !qrCodeDisplay) return;
+        if (!userQrCodeModal) return;
         
         userQrCodeModal.classList.remove('hidden');
         
-        // /invite 페이지 URL 생성 (추천 코드 포함)
-        const baseUrl = window.location.origin;
-        let inviteUrl = `${baseUrl}/invite`;
-        
-        try {
-            // 로그인 상태 확인 및 추천 코드 조회
-            const authResponse = await fetch('/api/auth/user');
-            if (authResponse.ok) {
-                const userData = await authResponse.json();
-                if (userData && userData.id) {
-                    const refResponse = await fetch('/api/referral-code');
-                    if (refResponse.ok) {
-                        const refData = await refResponse.json();
-                        if (refData.referralCode) {
-                            inviteUrl = `${baseUrl}/invite?ref=${refData.referralCode}`;
-                            console.log('🎁 초대 URL:', inviteUrl);
-                        }
-                    }
-                }
-            }
-        } catch (error) {
-            console.log('추천 코드 조회 실패:', error.message);
-        }
-        
-        currentQrShareUrl = inviteUrl;
-        console.log('📱 QR 모달 열기, URL:', inviteUrl);
-        
-        // QR 코드 생성 (심플)
-        await generateSimpleQr(inviteUrl);
-    }
-    
-    // 심플 QR 코드 생성
-    async function generateSimpleQr(url) {
-        if (!qrCodeDisplay) return;
-        
-        // 기존 QR 제거
-        qrCodeDisplay.innerHTML = '';
-        
-        try {
-            // QR 코드를 canvas로 생성
-            const canvas = document.createElement('canvas');
-            await QRCode.toCanvas(canvas, url, {
-                width: 144,
-                margin: 1,
-                color: {
-                    dark: '#4285F4',  // Gemini Blue
-                    light: '#FFFFFF'  // 흰색 배경
-                },
-                errorCorrectionLevel: 'M'
-            });
-            
-            qrCodeDisplay.appendChild(canvas);
-            console.log('✅ QR 코드 생성 완료');
-            
-        } catch (error) {
-            console.error('QR 생성 실패:', error);
-            qrCodeDisplay.innerHTML = '<p class="text-gray-500 text-sm">QR 생성 실패</p>';
-        }
+        // 앱 메인 URL 설정 (QR 이미지는 하드코딩이므로 기본 URL만)
+        currentQrShareUrl = window.location.origin;
+        console.log('📱 QR 모달 열기, URL:', currentQrShareUrl);
     }
     
     // QR 코드 모달 닫기

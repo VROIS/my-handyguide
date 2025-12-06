@@ -996,17 +996,13 @@
             </div>
         </div>
 
-        <!-- QR 코드 공유 모달 (심플한 원형 QR + 링크 복사) -->
+        <!-- QR 코드 공유 모달 (하드코딩 이미지 + 링크 복사) -->
         <div id="user-qr-code-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-            <div class="bg-white w-80 rounded-2xl p-6 shadow-2xl text-center">
-                <!-- 큰 원형 QR 코드 -->
-                <div id="qr-code-container" class="w-48 h-48 mx-auto mb-4 rounded-full bg-white shadow-lg flex items-center justify-center overflow-hidden border-4 border-blue-100">
-                    <div id="qr-code-display" class="w-36 h-36"></div>
-                </div>
-                <p class="text-sm text-gray-600 mb-4">친구에게 QR을 보여주거나<br/>링크를 복사해서 공유하세요</p>
-                <!-- 링크 복사 버튼 (제미니 블루) -->
-                <button id="user-copy-qr-link-button" class="w-full py-3 rounded-xl text-white text-lg font-semibold transition hover:opacity-90" style="background-color: #4285F4;">📋 링크 복사하기</button>
-                <p class="text-xs text-gray-500 mt-2">복사 시 +2 크레딧 적립!</p>
+            <div class="bg-white w-72 rounded-2xl p-5 shadow-2xl text-center">
+                <!-- 하드코딩 QR 이미지 -->
+                <img src="/qr-code.png" alt="QR Code" class="w-52 h-52 mx-auto mb-4">
+                <!-- 링크 복사 버튼 -->
+                <button id="user-copy-qr-link-button" class="w-full py-3 rounded-xl text-white font-semibold transition hover:opacity-90" style="background-color: #4285F4;">📋 링크 복사</button>
             </div>
         </div>
     </div>
