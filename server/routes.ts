@@ -1945,13 +1945,11 @@ self.addEventListener('fetch', (event) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>손안에 가이드 - 친구 초대</title>
-    <meta property="og:title" content="손안에 가이드">
+    <title>손안에 가이드</title>
     <meta property="og:image" content="${qrImageUrl}">
-    <meta property="og:image:width" content="512">
-    <meta property="og:image:height" content="512">
+    <meta property="og:image:width" content="800">
+    <meta property="og:image:height" content="800">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="${baseUrl}/invite${refCode ? '?ref=' + refCode : ''}">
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:image" content="${qrImageUrl}">
     <script>
