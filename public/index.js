@@ -98,8 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const userAdminAuthConfirmBtn = document.getElementById('userAdminAuthConfirmBtn');
     const userAdminAuthMessage = document.getElementById('user-admin-auth-message');
     const userQrCodeModal = document.getElementById('user-qr-code-modal');
-    const userSaveQrButton = document.getElementById('user-save-qr-button');
-    const qrCardCanvas = document.getElementById('qr-card-canvas');
+    const userCopyQrLinkButton = document.getElementById('user-copy-qr-link-button');
+    const qrCodeDisplay = document.getElementById('qr-code-display');
     
     let currentQrShareUrl = ''; // 현재 QR에 포함된 URL 저장
     
@@ -3267,9 +3267,9 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
         }
     }
     
-    // QR 카드 이미지 생성 (1200x630, 중앙에 원형 QR, Gemini Blue 색상)
+    // QR 코드 모달 열기 (심플한 원형 QR)
     async function openUserQrCodeModal() {
-        if (!userQrCodeModal || !qrCardCanvas) return;
+        if (!userQrCodeModal || !qrCodeDisplay) return;
         
         userQrCodeModal.classList.remove('hidden');
         
@@ -3298,84 +3298,38 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
         }
         
         currentQrShareUrl = inviteUrl;
-        console.log('📱 QR 카드 생성 시작, URL:', inviteUrl);
+        console.log('📱 QR 모달 열기, URL:', inviteUrl);
         
-        // QR 카드 캔버스 생성 (1200x630 - 메신저 OG 이미지 최적 사이즈)
-        await generateQrCard(inviteUrl);
+        // QR 코드 생성 (심플)
+        await generateSimpleQr(inviteUrl);
     }
     
-    // QR 카드 캔버스 그리기
-    async function generateQrCard(url) {
-        if (!qrCardCanvas) return;
+    // 심플 QR 코드 생성
+    async function generateSimpleQr(url) {
+        if (!qrCodeDisplay) return;
         
-        const canvas = qrCardCanvas;
-        const ctx = canvas.getContext('2d');
+        // 기존 QR 제거
+        qrCodeDisplay.innerHTML = '';
         
-        // 캔버스 크기 설정 (1200x630)
-        canvas.width = 1200;
-        canvas.height = 630;
-        
-        // 배경색 (밝은 아이보리)
-        ctx.fillStyle = '#FFFEFA';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        // QR 코드 생성 (임시 캔버스에)
-        const tempCanvas = document.createElement('canvas');
         try {
-            await QRCode.toCanvas(tempCanvas, url, {
-                width: 400,
-                margin: 2,
+            // QR 코드를 canvas로 생성
+            const canvas = document.createElement('canvas');
+            await QRCode.toCanvas(canvas, url, {
+                width: 144,
+                margin: 1,
                 color: {
                     dark: '#4285F4',  // Gemini Blue
                     light: '#FFFFFF'  // 흰색 배경
                 },
-                errorCorrectionLevel: 'H'
+                errorCorrectionLevel: 'M'
             });
             
-            // 원형 클리핑으로 QR 그리기
-            const qrSize = 400;
-            const centerX = canvas.width / 2;
-            const centerY = canvas.height / 2;
-            const radius = qrSize / 2;
-            
-            // 흰색 원형 배경 (그림자 효과)
-            ctx.save();
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.15)';
-            ctx.shadowBlur = 30;
-            ctx.shadowOffsetX = 0;
-            ctx.shadowOffsetY = 10;
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius + 20, 0, Math.PI * 2);
-            ctx.fillStyle = '#FFFFFF';
-            ctx.fill();
-            ctx.restore();
-            
-            // 원형 클리핑 마스크
-            ctx.save();
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-            ctx.clip();
-            
-            // QR 코드 그리기 (중앙 정렬)
-            ctx.drawImage(tempCanvas, centerX - qrSize/2, centerY - qrSize/2, qrSize, qrSize);
-            ctx.restore();
-            
-            // 원형 테두리
-            ctx.beginPath();
-            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
-            ctx.strokeStyle = '#4285F4';
-            ctx.lineWidth = 4;
-            ctx.stroke();
-            
-            console.log('✅ QR 카드 생성 완료');
+            qrCodeDisplay.appendChild(canvas);
+            console.log('✅ QR 코드 생성 완료');
             
         } catch (error) {
             console.error('QR 생성 실패:', error);
-            // 에러 시 텍스트 표시
-            ctx.fillStyle = '#666';
-            ctx.font = '24px MaruBuri, sans-serif';
-            ctx.textAlign = 'center';
-            ctx.fillText('QR 생성 중 오류 발생', canvas.width / 2, canvas.height / 2);
+            qrCodeDisplay.innerHTML = '<p class="text-gray-500 text-sm">QR 생성 실패</p>';
         }
     }
     
@@ -3386,33 +3340,42 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
         }
     }
     
-    // 이미지 저장 버튼 클릭
-    async function saveQrCard() {
-        if (!qrCardCanvas) {
-            showToast('QR 카드를 찾을 수 없습니다');
+    // 링크 복사 버튼 클릭 + 크레딧 적립
+    async function copyQrLinkAndEarnCredits() {
+        if (!currentQrShareUrl) {
+            showToast('링크를 생성 중입니다. 잠시 후 다시 시도해주세요.');
             return;
         }
         
         try {
-            // 캔버스를 이미지로 변환
-            const dataUrl = qrCardCanvas.toDataURL('image/png');
+            // 1. 클립보드에 복사
+            await navigator.clipboard.writeText(currentQrShareUrl);
+            console.log('📋 링크 복사됨:', currentQrShareUrl);
             
-            // 다운로드 링크 생성
-            const link = document.createElement('a');
-            link.download = '손안에가이드-초대.png';
-            link.href = dataUrl;
-            link.click();
+            // 2. 크레딧 적립 API 호출
+            const response = await fetch('/api/profile/qr-share-reward', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
             
-            showToast('이미지가 저장되었습니다!');
+            if (response.ok) {
+                const data = await response.json();
+                showToast(`링크 복사 완료! +${data.creditsAwarded} 크레딧 적립 🎁`);
+                console.log('🎁 크레딧 적립:', data);
+            } else {
+                // 비로그인 등의 경우에도 복사는 성공
+                showToast('링크가 복사되었습니다!');
+            }
             
-            // 3초 후 모달 닫기
+            // 3. 2초 후 모달 닫기
             setTimeout(() => {
                 closeUserQrCodeModal();
             }, 2000);
             
         } catch (error) {
-            console.error('이미지 저장 실패:', error);
-            showToast('저장에 실패했습니다. 화면을 캡처해주세요.');
+            console.error('링크 복사 실패:', error);
+            showToast('링크 복사에 실패했습니다.');
         }
     }
     
@@ -3984,7 +3947,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     
     // QR 코드 모달 (동적 QR 카드 생성 + 이미지 저장)
     userSettingsQrBtn?.addEventListener('click', openUserQrCodeModal);
-    userSaveQrButton?.addEventListener('click', saveQrCard);
+    userCopyQrLinkButton?.addEventListener('click', copyQrLinkAndEarnCredits);
     // 모달 배경 클릭 시 닫기
     userQrCodeModal?.addEventListener('click', (e) => {
         if (e.target === userQrCodeModal) closeUserQrCodeModal();

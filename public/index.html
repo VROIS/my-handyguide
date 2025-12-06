@@ -996,16 +996,17 @@
             </div>
         </div>
 
-        <!-- QR 코드 공유 모달 (동적 QR 카드 이미지 생성 + 저장) -->
+        <!-- QR 코드 공유 모달 (심플한 원형 QR + 링크 복사) -->
         <div id="user-qr-code-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
             <div class="bg-white w-80 rounded-2xl p-6 shadow-2xl text-center">
-                <!-- QR 카드 캔버스 (1200x630 비율 유지, 화면에 맞게 축소) -->
-                <div class="w-full aspect-[1200/630] mx-auto mb-5 bg-gray-100 rounded-xl overflow-hidden flex items-center justify-center">
-                    <canvas id="qr-card-canvas" class="w-full h-full"></canvas>
+                <!-- 큰 원형 QR 코드 -->
+                <div id="qr-code-container" class="w-48 h-48 mx-auto mb-4 rounded-full bg-white shadow-lg flex items-center justify-center overflow-hidden border-4 border-blue-100">
+                    <div id="qr-code-display" class="w-36 h-36"></div>
                 </div>
-                <!-- 이미지 저장 버튼 (제미니 블루) -->
-                <button id="user-save-qr-button" class="w-full py-3 rounded-xl text-white text-lg font-semibold transition hover:opacity-90" style="background-color: #4285F4;">이미지 저장</button>
-                <p class="text-xs text-gray-500 mt-2">저장 후 메신저에서 이미지로 공유하세요</p>
+                <p class="text-sm text-gray-600 mb-4">친구에게 QR을 보여주거나<br/>링크를 복사해서 공유하세요</p>
+                <!-- 링크 복사 버튼 (제미니 블루) -->
+                <button id="user-copy-qr-link-button" class="w-full py-3 rounded-xl text-white text-lg font-semibold transition hover:opacity-90" style="background-color: #4285F4;">📋 링크 복사하기</button>
+                <p class="text-xs text-gray-500 mt-2">복사 시 +2 크레딧 적립!</p>
             </div>
         </div>
     </div>
