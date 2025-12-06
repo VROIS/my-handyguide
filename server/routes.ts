@@ -7,7 +7,9 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupGoogleAuth } from "./googleAuth";
 import { setupKakaoAuth } from "./kakaoAuth";
 import { generateLocationBasedContent, getLocationName, generateShareLinkDescription, generateCinematicPrompt, optimizeAudioScript, type GuideContent, type DreamShotPrompt } from "./gemini";
-import { insertGuideSchema, insertShareLinkSchema, insertSharedHtmlPageSchema, creditTransactions, users } from "@shared/schema";
+import { insertGuideSchema, insertShareLinkSchema, insertSharedHtmlPageSchema, creditTransactions, users, notifications, pushSubscriptions, insertNotificationSchema, insertPushSubscriptionSchema } from "@shared/schema";
+import webpush from "web-push";
+import { eq, and, or, isNull } from "drizzle-orm";
 import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
 import path from "path";
@@ -34,6 +36,22 @@ const upload = multer({
 
 // Initialize Gemini AI
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+
+// Configure web-push with VAPID keys
+let vapidConfigured = false;
+if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
+  try {
+    webpush.setVapidDetails(
+      'mailto:support@naesongaide.com',
+      process.env.VAPID_PUBLIC_KEY,
+      process.env.VAPID_PRIVATE_KEY
+    );
+    vapidConfigured = true;
+    console.log('✅ Web Push VAPID 설정 완료');
+  } catch (error) {
+    console.error('⚠️ Web Push VAPID 설정 실패:', error);
+  }
+}
 
 // Ensure uploads directory exists
 if (!fs.existsSync('uploads')) {
@@ -2890,6 +2908,197 @@ self.addEventListener('fetch', (event) => {
     } catch (error) {
       console.error('수익 데이터 조회 오류:', error);
       res.status(500).json({ error: '수익 데이터 조회에 실패했습니다.' });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🔔 알림 + 푸시 알림 API (2025-12-06)
+  // ═══════════════════════════════════════════════════════════════
+  // 목적: 인앱 알림 CRUD + 웹 푸시 발송
+  // ═══════════════════════════════════════════════════════════════
+
+  // 알림 목록 조회 (사용자별 알림 + 전체 공지)
+  app.get('/api/notifications', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req.user);
+      const limit = parseInt(req.query.limit as string) || 50;
+      
+      const userNotifications = await db.select()
+        .from(notifications)
+        .where(or(
+          eq(notifications.userId, userId),
+          isNull(notifications.userId) // 전체 공지
+        ))
+        .orderBy(desc(notifications.createdAt))
+        .limit(limit);
+      
+      res.json(userNotifications);
+    } catch (error) {
+      console.error('알림 조회 오류:', error);
+      res.status(500).json({ error: '알림 조회에 실패했습니다.' });
+    }
+  });
+
+  // 읽지 않은 알림 수 조회
+  app.get('/api/notifications/unread-count', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req.user);
+      
+      const result = await db.select({ count: sql<number>`count(*)` })
+        .from(notifications)
+        .where(and(
+          or(
+            eq(notifications.userId, userId),
+            isNull(notifications.userId)
+          ),
+          eq(notifications.isRead, false)
+        ));
+      
+      res.json({ count: Number(result[0]?.count || 0) });
+    } catch (error) {
+      console.error('읽지 않은 알림 수 조회 오류:', error);
+      res.status(500).json({ error: '알림 수 조회에 실패했습니다.' });
+    }
+  });
+
+  // 알림 읽음 처리
+  app.post('/api/notifications/mark-read', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req.user);
+      const { notificationIds } = req.body;
+      
+      if (notificationIds && Array.isArray(notificationIds)) {
+        // 특정 알림들 읽음 처리
+        for (const id of notificationIds) {
+          await db.update(notifications)
+            .set({ isRead: true })
+            .where(and(
+              eq(notifications.id, id),
+              or(
+                eq(notifications.userId, userId),
+                isNull(notifications.userId)
+              )
+            ));
+        }
+      } else {
+        // 모든 알림 읽음 처리
+        await db.update(notifications)
+          .set({ isRead: true })
+          .where(or(
+            eq(notifications.userId, userId),
+            isNull(notifications.userId)
+          ));
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('알림 읽음 처리 오류:', error);
+      res.status(500).json({ error: '알림 읽음 처리에 실패했습니다.' });
+    }
+  });
+
+  // 푸시 구독 등록
+  app.post('/api/push/subscribe', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req.user);
+      const { endpoint, keys, userAgent } = req.body;
+      
+      if (!endpoint || !keys?.p256dh || !keys?.auth) {
+        return res.status(400).json({ error: '유효하지 않은 구독 정보입니다.' });
+      }
+      
+      // 기존 구독이 있으면 업데이트, 없으면 새로 생성
+      const existingSubscription = await db.select()
+        .from(pushSubscriptions)
+        .where(and(
+          eq(pushSubscriptions.userId, userId),
+          eq(pushSubscriptions.endpoint, endpoint)
+        ))
+        .limit(1);
+      
+      if (existingSubscription.length > 0) {
+        await db.update(pushSubscriptions)
+          .set({
+            p256dh: keys.p256dh,
+            auth: keys.auth,
+            userAgent: userAgent || null
+          })
+          .where(eq(pushSubscriptions.id, existingSubscription[0].id));
+      } else {
+        await db.insert(pushSubscriptions).values({
+          userId,
+          endpoint,
+          p256dh: keys.p256dh,
+          auth: keys.auth,
+          userAgent: userAgent || null
+        });
+      }
+      
+      console.log(`✅ 푸시 구독 등록: ${userId}`);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('푸시 구독 등록 오류:', error);
+      res.status(500).json({ error: '푸시 구독 등록에 실패했습니다.' });
+    }
+  });
+
+  // 푸시 구독 해제
+  app.post('/api/push/unsubscribe', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req.user);
+      const { endpoint } = req.body;
+      
+      if (endpoint) {
+        await db.delete(pushSubscriptions)
+          .where(and(
+            eq(pushSubscriptions.userId, userId),
+            eq(pushSubscriptions.endpoint, endpoint)
+          ));
+      } else {
+        // 모든 구독 해제
+        await db.delete(pushSubscriptions)
+          .where(eq(pushSubscriptions.userId, userId));
+      }
+      
+      console.log(`✅ 푸시 구독 해제: ${userId}`);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('푸시 구독 해제 오류:', error);
+      res.status(500).json({ error: '푸시 구독 해제에 실패했습니다.' });
+    }
+  });
+
+  // 푸시 구독 재등록 (service worker pushsubscriptionchange 이벤트 처리)
+  app.post('/api/push/resubscribe', async (req: any, res) => {
+    try {
+      const { oldEndpoint, newSubscription } = req.body;
+      
+      if (!oldEndpoint || !newSubscription) {
+        return res.status(400).json({ error: '잘못된 재구독 요청입니다.' });
+      }
+      
+      // 기존 구독 찾기
+      const existing = await db.select()
+        .from(pushSubscriptions)
+        .where(eq(pushSubscriptions.endpoint, oldEndpoint))
+        .limit(1);
+      
+      if (existing.length > 0) {
+        await db.update(pushSubscriptions)
+          .set({
+            endpoint: newSubscription.endpoint,
+            p256dh: newSubscription.keys?.p256dh,
+            auth: newSubscription.keys?.auth
+          })
+          .where(eq(pushSubscriptions.id, existing[0].id));
+        
+        console.log(`✅ 푸시 구독 재등록: ${existing[0].userId}`);
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('푸시 재구독 오류:', error);
+      res.status(500).json({ error: '푸시 재구독에 실패했습니다.' });
     }
   });
 
