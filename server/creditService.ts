@@ -15,7 +15,7 @@ import { users, creditTransactions } from '@shared/schema';
 import { eq, desc, sql, and, like } from 'drizzle-orm';
 
 export const CREDIT_CONFIG = {
-  SIGNUP_BONUS: 35,
+  SIGNUP_BONUS: 10,
   PURCHASE_CREDITS: 140,
   PURCHASE_BONUS: 40,
   DETAIL_PAGE_COST: 2,
@@ -113,7 +113,7 @@ export class CreditService {
       userId,
       CREDIT_CONFIG.SIGNUP_BONUS,
       'signup_bonus',
-      '신규 가입 보너스 35 크레딧'
+      '신규 가입 보너스 10 크레딧'
     );
   }
 

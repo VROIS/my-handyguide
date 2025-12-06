@@ -309,7 +309,7 @@ document.addEventListener('DOMContentLoaded', () => {
             authModal.classList.remove('pointer-events-none');
             authModal.classList.add('pointer-events-auto');
         }
-        showToast('무료 체험이 끝났습니다. 로그인하면 35 크레딧을 드려요!');
+        showToast('무료 체험이 끝났습니다. 로그인하면 10 크레딧을 드려요!');
     }
 
     function showChargeModal() {
