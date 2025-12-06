@@ -1547,10 +1547,25 @@ document.addEventListener('DOMContentLoaded', () => {
         renderNotifications(notifications);
     }
     
-    function closeNotificationModal() {
+    async function closeNotificationModal() {
         if (!notificationModal) return;
         notificationModal.classList.add('hidden');
         notificationModalOpenedFromProfile = false;
+        
+        // 모달 닫을 때 모든 알림 읽음 처리
+        try {
+            await fetch('/api/notifications/mark-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+            // 배지 숨기기
+            if (notificationBadge) {
+                notificationBadge.classList.add('hidden');
+            }
+        } catch (error) {
+            console.warn('알림 읽음 처리 실패:', error);
+        }
     }
     
     function startNotificationPolling() {
