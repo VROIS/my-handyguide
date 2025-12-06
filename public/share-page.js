@@ -9,8 +9,73 @@ let currentlySpeakingElement = null;
 let lastAudioClickTime = 0;
 let textHidden = false;
 
+// 번역 완료 대기 시스템 (2025-12-06)
+let translationState = {
+    complete: false,
+    observer: null,
+    timeoutId: null
+};
+
+function initTranslationWatcher() {
+    const userLang = localStorage.getItem('appLanguage') || 'ko';
+    if (userLang === 'ko') {
+        translationState.complete = true;
+        return;
+    }
+    
+    const hasTranslated = document.body.classList.contains('translated-ltr') ||
+                          document.body.classList.contains('translated-rtl');
+    if (hasTranslated) {
+        translationState.complete = true;
+        return;
+    }
+    
+    translationState.complete = false;
+    translationState.observer = new MutationObserver((mutations) => {
+        const hasTranslatedNow = document.body.classList.contains('translated-ltr') ||
+                                 document.body.classList.contains('translated-rtl');
+        if (hasTranslatedNow) {
+            translationState.complete = true;
+            translationState.observer?.disconnect();
+            window.dispatchEvent(new CustomEvent('appTranslationComplete'));
+        }
+    });
+    
+    translationState.observer.observe(document.body, { 
+        attributes: true, 
+        attributeFilter: ['class'] 
+    });
+    
+    translationState.timeoutId = setTimeout(() => {
+        if (!translationState.complete) {
+            translationState.complete = true;
+            translationState.observer?.disconnect();
+            window.dispatchEvent(new CustomEvent('appTranslationComplete', { detail: { timeout: true } }));
+        }
+    }, 3000);
+}
+
+async function waitForTranslation() {
+    const userLang = localStorage.getItem('appLanguage') || 'ko';
+    if (userLang === 'ko' || translationState.complete) {
+        return;
+    }
+    
+    await new Promise(resolve => {
+        const handler = () => {
+            window.removeEventListener('appTranslationComplete', handler);
+            resolve();
+        };
+        window.addEventListener('appTranslationComplete', handler);
+        setTimeout(resolve, 3500);
+    });
+}
+
 // 공유 페이지 로딩
 document.addEventListener('DOMContentLoaded', async () => {
+    // 번역 감시 초기화
+    initTranslationWatcher();
+    
     const contentContainer = document.getElementById('guidebook-content');
     const loader = document.getElementById('loader');
     const descriptionEl = document.getElementById('guidebook-description');
@@ -203,7 +268,7 @@ function queueForSpeech(text, element) {
     }
 }
 
-function playNextInQueue() {
+async function playNextInQueue() {
     if (isPaused || utteranceQueue.length === 0) {
         if (utteranceQueue.length === 0) {
             isSpeaking = false;
@@ -215,8 +280,17 @@ function playNextInQueue() {
         return;
     }
     
+    // 번역 완료 대기 후 TTS 재생
+    await waitForTranslation();
+    
     isSpeaking = true;
     const { utterance, element } = utteranceQueue.shift();
+    
+    // 번역된 텍스트를 DOM에서 읽기
+    const translatedText = element.textContent.trim();
+    if (translatedText) {
+        utterance.text = translatedText;
+    }
     
     if (currentlySpeakingElement) {
         currentlySpeakingElement.classList.remove('speaking');

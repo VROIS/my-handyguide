@@ -186,6 +186,64 @@ function generateStandaloneHTML(shareData, shareId) {
         let isSpeaking = false;
         let textVisible = true;
         
+        // 번역 완료 대기 시스템 (2025-12-06)
+        let translationState = {
+            complete: false,
+            observer: null,
+            timeoutId: null
+        };
+
+        function initTranslationWatcher() {
+            const hasTranslated = document.body.classList.contains('translated-ltr') ||
+                                  document.body.classList.contains('translated-rtl');
+            if (hasTranslated) {
+                translationState.complete = true;
+                return;
+            }
+            
+            translationState.complete = false;
+            translationState.observer = new MutationObserver((mutations) => {
+                const hasTranslatedNow = document.body.classList.contains('translated-ltr') ||
+                                         document.body.classList.contains('translated-rtl');
+                if (hasTranslatedNow) {
+                    translationState.complete = true;
+                    translationState.observer?.disconnect();
+                    window.dispatchEvent(new CustomEvent('appTranslationComplete'));
+                }
+            });
+            
+            translationState.observer.observe(document.body, { 
+                attributes: true, 
+                attributeFilter: ['class'] 
+            });
+            
+            translationState.timeoutId = setTimeout(() => {
+                if (!translationState.complete) {
+                    translationState.complete = true;
+                    translationState.observer?.disconnect();
+                    window.dispatchEvent(new CustomEvent('appTranslationComplete', { detail: { timeout: true } }));
+                }
+            }, 3000);
+        }
+
+        async function waitForTranslation() {
+            if (translationState.complete) {
+                return;
+            }
+            
+            await new Promise(resolve => {
+                const handler = () => {
+                    window.removeEventListener('appTranslationComplete', handler);
+                    resolve();
+                };
+                window.addEventListener('appTranslationComplete', handler);
+                setTimeout(resolve, 3500);
+            });
+        }
+
+        // 초기화
+        initTranslationWatcher();
+        
         function openDetail(index) {
             currentIndex = index;
             const item = shareData.contents[index];
@@ -208,8 +266,14 @@ function generateStandaloneHTML(shareData, shareId) {
             }
         }
         
-        function startSpeech() {
-            const text = shareData.contents[currentIndex].description;
+        async function startSpeech() {
+            // 번역 완료 대기 후 TTS 재생
+            await waitForTranslation();
+            
+            // 번역된 텍스트를 DOM에서 읽기 (번역된 경우 DOM이 업데이트됨)
+            const descriptionEl = document.getElementById('descriptionText');
+            const text = descriptionEl ? descriptionEl.textContent : shareData.contents[currentIndex].description;
+            
             utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'ko-KR';
             utterance.rate = 0.9;
