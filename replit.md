@@ -117,3 +117,71 @@ const voicePriority = {
 - v2.js는 실패한 로직이므로 수정 금지
 - 모든 파일에서 동일한 설정 유지 필수
 - 새 언어 추가 시 6곳 모두 업데이트 필요
+
+# 구글 번역 후 TTS 통일 규칙 (2025-12-06)
+
+## 개요
+모든 TTS 재생 전에 구글 번역이 완료되었는지 확인해야 합니다. 구글 번역은 페이지 로드 후 비동기로 텍스트를 변경하므로, 번역 완료를 감지한 후 DOM에서 번역된 텍스트를 읽어 TTS로 재생합니다.
+
+## 구현 패턴
+```javascript
+// 1. 번역 상태 객체
+const translationState = {
+    isTranslated: false,
+    detectedLang: null,
+    waitingCallbacks: []
+};
+
+// 2. MutationObserver로 번역 감지
+function initTranslationWatcher() {
+    const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+            if (mutation.attributeName === 'class') {
+                const classList = document.body.classList;
+                if (classList.contains('translated-ltr') || classList.contains('translated-rtl')) {
+                    translationState.isTranslated = true;
+                    // 콜백 실행
+                }
+            }
+        }
+    });
+    observer.observe(document.body, { attributes: true });
+}
+
+// 3. 번역 완료 대기 함수
+async function waitForTranslation(timeout = 3000) {
+    if (translationState.isTranslated) return true;
+    return new Promise(resolve => {
+        const timer = setTimeout(() => resolve(false), timeout);
+        translationState.waitingCallbacks.push(() => {
+            clearTimeout(timer);
+            resolve(true);
+        });
+    });
+}
+
+// 4. TTS 함수에서 사용
+async function playTTS(elementSelector) {
+    await waitForTranslation();
+    const element = document.querySelector(elementSelector);
+    const text = element?.innerText || element?.textContent;
+    // TTS 재생...
+}
+```
+
+## 적용된 파일 (4곳) - 반드시 동일하게 유지!
+- `public/index.js` - `playAudio()`, `speakNext()` 함수
+- `public/generate-standalone.js` - `startSpeech()` 함수
+- `public/share-page.js` - `playNextInQueue()` 함수
+- `public/components/guideDetailPage.js` - `_startAutoPlay()` 함수
+
+## 핵심 로직
+1. `initTranslationWatcher()` - MutationObserver로 `translated-ltr/rtl` 클래스 감지
+2. `waitForTranslation()` - async 함수로 번역 완료 대기 (3초 타임아웃)
+3. TTS 함수에서 `await waitForTranslation()` 호출 후 DOM에서 번역된 텍스트 읽기
+
+## 주의사항
+- v2.js는 실패한 로직이므로 수정 금지
+- 한국어(ko) 원본 페이지는 번역 대기 스킵 가능
+- 3초 타임아웃으로 오프라인/번역 실패 상황 대응
+- 새 TTS 기능 추가 시 반드시 이 패턴 적용 필요
