@@ -99,7 +99,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const userAdminAuthMessage = document.getElementById('user-admin-auth-message');
     const userQrCodeModal = document.getElementById('user-qr-code-modal');
     const userCopyQrButton = document.getElementById('user-copy-qr-button');
-    const userQrCanvas = document.getElementById('user-qr-canvas');
     
     let currentQrShareUrl = ''; // 현재 QR에 포함된 URL 저장
     
@@ -3267,15 +3266,15 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
         }
     }
     
-    // QR 코드 모달 열기 (심플 버전 - 원형 QR + 복사 버튼)
+    // QR 코드 모달 열기 (하드코딩 이미지 + /invite URL 복사)
     async function openUserQrCodeModal() {
         if (!userQrCodeModal) return;
         
         userQrCodeModal.classList.remove('hidden');
         
-        // 기본 앱 URL
+        // /invite 페이지 URL 생성 (추천 코드 포함)
         const baseUrl = window.location.origin;
-        let shareUrl = baseUrl;
+        let inviteUrl = `${baseUrl}/invite`;
         
         try {
             // 로그인 상태 확인 및 추천 코드 조회
@@ -3287,8 +3286,8 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
                     if (refResponse.ok) {
                         const refData = await refResponse.json();
                         if (refData.referralCode) {
-                            shareUrl = `${baseUrl}/?ref=${refData.referralCode}`;
-                            console.log('🎁 추천 코드 포함 URL:', shareUrl);
+                            inviteUrl = `${baseUrl}/invite?ref=${refData.referralCode}`;
+                            console.log('🎁 초대 URL:', inviteUrl);
                         }
                     }
                 }
@@ -3297,25 +3296,8 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
             console.log('추천 코드 조회 실패:', error.message);
         }
         
-        currentQrShareUrl = shareUrl;
-        
-        // QR 코드 생성 (캔버스에 직접)
-        if (userQrCanvas && typeof QRCode !== 'undefined') {
-            try {
-                await QRCode.toCanvas(userQrCanvas, shareUrl, {
-                    width: 180,
-                    margin: 1,
-                    color: {
-                        dark: '#4285F4',
-                        light: '#FFFFFF'
-                    }
-                });
-                console.log('✅ QR 코드 생성 완료');
-            } catch (qrError) {
-                console.error('QR 생성 실패:', qrError);
-                showToast('QR 코드 생성에 실패했습니다');
-            }
-        }
+        currentQrShareUrl = inviteUrl;
+        console.log('📱 QR 모달 열림, 복사 URL:', inviteUrl);
     }
     
     // QR 코드 모달 닫기
@@ -3325,28 +3307,16 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
         }
     }
     
-    // 복사 버튼 클릭: QR 이미지 + 링크 복사 → 토스트 → 3초 후 자동 닫힘
+    // 복사 버튼 클릭: /invite URL 복사 → 토스트 → 3초 후 자동 닫힘
     async function copyUserQrAndClose() {
-        if (!userQrCanvas || !currentQrShareUrl) {
-            showToast('QR 코드를 찾을 수 없습니다');
+        if (!currentQrShareUrl) {
+            showToast('공유 링크를 찾을 수 없습니다');
             return;
         }
         
         try {
-            // QR 이미지 + 링크 동시 복사 시도
-            const blob = await new Promise(resolve => userQrCanvas.toBlob(resolve, 'image/png'));
-            
-            try {
-                // 이미지 복사 시도
-                await navigator.clipboard.write([
-                    new ClipboardItem({ 'image/png': blob })
-                ]);
-                showToast('QR 이미지가 복사되었습니다!');
-            } catch (imgError) {
-                // 이미지 복사 실패 시 링크만 복사
-                await navigator.clipboard.writeText(currentQrShareUrl);
-                showToast('링크가 복사되었습니다!');
-            }
+            await navigator.clipboard.writeText(currentQrShareUrl);
+            showToast('초대 링크가 복사되었습니다!');
             
             // 3초 후 자동 닫힘
             setTimeout(() => {
@@ -3355,20 +3325,18 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
             
         } catch (error) {
             console.error('복사 실패:', error);
-            // 최후의 대체 방법: 링크 복사
+            // 최후의 대체 방법
             try {
-                await navigator.clipboard.writeText(currentQrShareUrl);
-                showToast('링크가 복사되었습니다!');
-                setTimeout(() => closeUserQrCodeModal(), 3000);
-            } catch (e) {
                 const textArea = document.createElement('textarea');
                 textArea.value = currentQrShareUrl;
                 document.body.appendChild(textArea);
                 textArea.select();
                 document.execCommand('copy');
                 document.body.removeChild(textArea);
-                showToast('링크가 복사되었습니다!');
+                showToast('초대 링크가 복사되었습니다!');
                 setTimeout(() => closeUserQrCodeModal(), 3000);
+            } catch (e) {
+                showToast('복사에 실패했습니다');
             }
         }
     }

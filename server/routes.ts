@@ -1928,6 +1928,49 @@ self.addEventListener('fetch', (event) => {
   });
   
   /**
+   * 🎁 GET /invite - QR 전달하기용 초대 페이지
+   * 
+   * 목적: 메신저 미리보기에 원형 QR 이미지 표시
+   * - og:image에 QR 이미지 설정
+   * - 페이지 접속 시 메인 앱으로 리다이렉트 (추천 코드 유지)
+   */
+  app.get('/invite', (req, res) => {
+    const refCode = req.query.ref || '';
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const qrImageUrl = `${baseUrl}/attached_assets/손앱QR_1764977526427.png`;
+    const redirectUrl = refCode ? `${baseUrl}/?ref=${refCode}` : baseUrl;
+    
+    res.send(`<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>손안에 가이드 - 친구 초대</title>
+    <meta property="og:title" content="손안에 가이드">
+    <meta property="og:description" content="AI가 만들어주는 나만의 여행 가이드! 친구가 초대했어요.">
+    <meta property="og:image" content="${qrImageUrl}">
+    <meta property="og:image:width" content="512">
+    <meta property="og:image:height" content="512">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="${baseUrl}/invite${refCode ? '?ref=' + refCode : ''}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="${qrImageUrl}">
+    <script>
+        // 즉시 메인 앱으로 리다이렉트
+        window.location.href = "${redirectUrl}";
+    </script>
+</head>
+<body style="font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #FFFEFA;">
+    <div style="text-align: center; padding: 2rem;">
+        <img src="${qrImageUrl}" alt="손안에 가이드 QR" style="width: 200px; height: 200px; border-radius: 50%;">
+        <p style="margin-top: 1rem; color: #4285F4; font-size: 1.2rem;">손안에 가이드로 이동 중...</p>
+        <p style="color: #666; font-size: 0.9rem;">자동으로 이동하지 않으면 <a href="${redirectUrl}" style="color: #4285F4;">여기를 클릭</a>하세요.</p>
+    </div>
+</body>
+</html>`);
+  });
+
+  /**
    * 📄 GET /s/:id - 짧은 URL로 HTML 페이지 직접 서빙
    * 
    * ⚠️ DEPRECATED: 이 라우트는 server/index.ts로 이동됨!
