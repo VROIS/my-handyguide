@@ -15,7 +15,7 @@ import { users, creditTransactions } from '@shared/schema';
 import { eq, desc, sql, and, like } from 'drizzle-orm';
 
 export const CREDIT_CONFIG = {
-  SIGNUP_BONUS: 35,
+  SIGNUP_BONUS: 10,
   PURCHASE_CREDITS: 140,
   PURCHASE_BONUS: 40,
   DETAIL_PAGE_COST: 2,
@@ -25,6 +25,7 @@ export const CREDIT_CONFIG = {
   CASHBACK_THRESHOLD: 1000,
   CASHBACK_AMOUNT: 200,
   PRICE_EUR: 10,
+  QR_COPY_REWARD: 2,
 };
 
 export class CreditService {
@@ -113,7 +114,16 @@ export class CreditService {
       userId,
       CREDIT_CONFIG.SIGNUP_BONUS,
       'signup_bonus',
-      '신규 가입 보너스 35 크레딧'
+      '신규 가입 보너스 10 크레딧'
+    );
+  }
+
+  async grantQrCopyReward(userId: string): Promise<number> {
+    return await this.addCredits(
+      userId,
+      CREDIT_CONFIG.QR_COPY_REWARD,
+      'qr_copy_reward',
+      'QR 복사 리워드 2 크레딧'
     );
   }
 
