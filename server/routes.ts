@@ -41,10 +41,13 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 let vapidConfigured = false;
 if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
   try {
+    const publicKey = process.env.VAPID_PUBLIC_KEY.replace(/[\s\n\r]+/g, '').trim();
+    const privateKey = process.env.VAPID_PRIVATE_KEY.replace(/[\s\n\r]+/g, '').trim();
+    console.log(`🔑 VAPID 키 길이: public=${publicKey.length}, private=${privateKey.length}`);
     webpush.setVapidDetails(
       'mailto:support@naesongaide.com',
-      process.env.VAPID_PUBLIC_KEY,
-      process.env.VAPID_PRIVATE_KEY
+      publicKey,
+      privateKey
     );
     vapidConfigured = true;
     console.log('✅ Web Push VAPID 설정 완료');
