@@ -160,3 +160,114 @@ self.addEventListener('activate', event => {
     })()
   );
 });
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🔔 푸시 알림 이벤트 핸들러 (Push Notification Event Handler)
+// ═══════════════════════════════════════════════════════════════════════════════
+self.addEventListener('push', event => {
+  console.log('[Service Worker] Push 알림 수신');
+  
+  let data = {
+    title: '내손가이드',
+    body: '새로운 알림이 있습니다.',
+    icon: '/icons/icon-192x192.png',
+    badge: '/icons/badge-72x72.png',
+    tag: 'default',
+    data: { url: '/' }
+  };
+  
+  try {
+    if (event.data) {
+      const payload = event.data.json();
+      data = {
+        title: payload.title || data.title,
+        body: payload.body || payload.message || data.body,
+        icon: payload.icon || data.icon,
+        badge: payload.badge || data.badge,
+        tag: payload.tag || payload.type || data.tag,
+        data: { 
+          url: payload.link || payload.url || data.data.url,
+          notificationId: payload.notificationId
+        }
+      };
+    }
+  } catch (e) {
+    console.error('[Service Worker] Push 데이터 파싱 오류:', e);
+    if (event.data) {
+      data.body = event.data.text();
+    }
+  }
+  
+  const options = {
+    body: data.body,
+    icon: data.icon,
+    badge: data.badge,
+    tag: data.tag,
+    vibrate: [100, 50, 100],
+    requireInteraction: false,
+    data: data.data,
+    actions: [
+      { action: 'open', title: '열기' },
+      { action: 'close', title: '닫기' }
+    ]
+  };
+  
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+// 푸시 알림 클릭 핸들러
+self.addEventListener('notificationclick', event => {
+  console.log('[Service Worker] 알림 클릭:', event.action);
+  
+  event.notification.close();
+  
+  if (event.action === 'close') {
+    return;
+  }
+  
+  const urlToOpen = event.notification.data?.url || '/';
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windowClients => {
+      // 이미 열린 창이 있으면 포커스
+      for (const client of windowClients) {
+        if (client.url.includes(self.location.origin) && 'focus' in client) {
+          client.focus();
+          if (urlToOpen !== '/') {
+            client.navigate(urlToOpen);
+          }
+          return;
+        }
+      }
+      // 열린 창이 없으면 새 창 열기
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});
+
+// 푸시 구독 변경 핸들러
+self.addEventListener('pushsubscriptionchange', event => {
+  console.log('[Service Worker] 푸시 구독 변경됨');
+  
+  event.waitUntil(
+    self.registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: self.VAPID_PUBLIC_KEY
+    }).then(subscription => {
+      return fetch('/api/push/resubscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          oldEndpoint: event.oldSubscription?.endpoint,
+          newSubscription: subscription.toJSON()
+        })
+      });
+    }).catch(err => {
+      console.error('[Service Worker] 재구독 실패:', err);
+    })
+  );
+});
