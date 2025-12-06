@@ -13,6 +13,7 @@
 import { db } from './db';
 import { users, creditTransactions } from '@shared/schema';
 import { eq, desc, sql, and, like } from 'drizzle-orm';
+import { notificationService } from './notificationService';
 
 export const CREDIT_CONFIG = {
   SIGNUP_BONUS: 10,
@@ -119,34 +120,61 @@ export class CreditService {
   }
 
   async grantQrCopyReward(userId: string): Promise<number> {
-    return await this.addCredits(
+    const newBalance = await this.addCredits(
       userId,
       CREDIT_CONFIG.QR_COPY_REWARD,
       'qr_copy_reward',
       'QR 복사 리워드 2 크레딧'
     );
+
+    await notificationService.sendRewardNotification(
+      userId,
+      '🎁 QR 리워드 적립!',
+      `QR 복사 리워드 ${CREDIT_CONFIG.QR_COPY_REWARD} 크레딧이 적립되었습니다.`,
+      '/profile'
+    );
+
+    return newBalance;
   }
 
   async processPurchase(userId: string, stripePaymentId: string): Promise<number> {
     const totalCredits = CREDIT_CONFIG.PURCHASE_CREDITS;
     
-    return await this.addCredits(
+    const newBalance = await this.addCredits(
       userId,
       totalCredits,
       'purchase',
       `크레딧 충전 ${totalCredits} (100 기본 + 40 보너스)`,
       stripePaymentId
     );
+
+    await notificationService.sendRewardNotification(
+      userId,
+      '💎 크레딧 충전 완료!',
+      `${totalCredits} 크레딧이 충전되었습니다. (100 기본 + 40 보너스)`,
+      '/profile'
+    );
+
+    return newBalance;
   }
 
   async processReferralBonus(referrerId: string, newUserId: string): Promise<number> {
-    return await this.addCredits(
+    const newBalance = await this.addCredits(
       referrerId,
       CREDIT_CONFIG.REFERRAL_BONUS,
       'referral_bonus',
       '친구 추천 보너스 10 크레딧',
       newUserId
     );
+
+    await notificationService.sendRewardNotification(
+      referrerId,
+      '🎉 친구 추천 보너스!',
+      `친구가 가입하여 ${CREDIT_CONFIG.REFERRAL_BONUS} 크레딧이 적립되었습니다.`,
+      '/profile'
+    );
+
+    return newBalance;
   }
 
   async getTransactionHistory(userId: string, limit: number = 20): Promise<any[]> {
