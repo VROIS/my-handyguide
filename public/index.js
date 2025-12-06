@@ -3746,6 +3746,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
                 // 인증 성공
                 localStorage.setItem('adminAuthenticated', 'true');
                 localStorage.setItem('adminAuthTime', Date.now().toString());
+                localStorage.setItem('adminPassword', password);
                 
                 closeUserAdminAuthModal();
                 showToast('관리자 인증 성공');
@@ -3794,6 +3795,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
                 // 서버 세션 없음 - 로그인 화면
                 localStorage.removeItem('adminAuthenticated');
                 localStorage.removeItem('adminAuthTime');
+                localStorage.removeItem('adminPassword');
                 
                 if (authPassword) authPassword.value = '';
                 authSection?.classList.remove('hidden');
@@ -3808,6 +3810,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
             // 에러 발생 - 로그인 화면
             localStorage.removeItem('adminAuthenticated');
             localStorage.removeItem('adminAuthTime');
+            localStorage.removeItem('adminPassword');
             
             if (authPassword) authPassword.value = '';
             authSection?.classList.remove('hidden');
@@ -3860,6 +3863,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
                 // 인증 성공 - localStorage에 세션 저장 (유지)
                 localStorage.setItem('adminAuthenticated', 'true');
                 localStorage.setItem('adminAuthTime', Date.now().toString());
+                localStorage.setItem('adminPassword', password);
                 
                 authSection.classList.add('hidden');
                 adminPromptSettingsSection.classList.remove('hidden');
