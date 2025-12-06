@@ -3925,7 +3925,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     });
     
     // 🌐 언어 선택 이벤트 리스너
-    const settingsLanguageSelect = document.getElementById('settingsLanguageSelect');
+    const settingsLanguageSelect = document.getElementById('adminSettingsLanguageSelect');
     
     // 페이지 로드 시 저장된 언어 불러오기
     const savedLang = localStorage.getItem('appLanguage') || 'ko';
@@ -3965,7 +3965,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     });
     
     // 🔓 테스트용 로그아웃 버튼
-    const testLogoutBtn = document.getElementById('testLogoutBtn');
+    const testLogoutBtn = document.getElementById('adminTestLogoutBtn');
     testLogoutBtn?.addEventListener('click', () => {
         console.log('🔓 Test logout clicked');
         if (confirm('로그아웃하시겠습니까? (테스트용)')) {
