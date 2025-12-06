@@ -997,14 +997,10 @@
         <!-- QR 코드 공유 모달 -->
         <div id="user-qr-code-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
             <div class="bg-white w-full max-w-xs rounded-xl p-6 shadow-2xl text-center">
-                <h3 class="text-lg font-bold text-gray-800 mb-4">공유 QR 코드</h3>
-                <div id="user-qr-image-wrapper" class="w-full aspect-square mx-auto mb-6 p-2 bg-gray-50 rounded-lg flex items-center justify-center">
+                <div id="user-qr-image-wrapper" class="w-full aspect-square mx-auto mb-4 p-2 bg-gray-50 rounded-lg flex items-center justify-center">
                     <img id="user-qr-image" src="/images/app-qr-code.png" alt="공유 QR 코드" class="max-w-full max-h-full rounded-lg shadow-md border border-gray-200" style="width: 250px; height: 250px; object-fit: contain;">
                 </div>
-                <p id="user-qr-loading-text" class="text-xs text-red-500 mb-4 hidden">이미지 로딩 중...</p>
-                <button id="user-copy-qr-button" class="w-full mb-3 bg-blue-500 text-white py-3 rounded-lg text-lg font-semibold hover:bg-blue-600 transition disabled:bg-gray-400">복사</button>
-                <button id="userQrCloseBtn" class="w-full bg-gray-200 text-gray-700 py-2 rounded-lg text-sm">닫기</button>
-                <p class="text-xs text-gray-400 mt-2">복사 기능이 작동하지 않을 경우, 화면을 캡처하여 공유해주세요.</p>
+                <button id="user-copy-qr-button" class="w-full bg-blue-500 text-white py-3 rounded-lg text-lg font-semibold hover:bg-blue-600 transition disabled:bg-gray-400">복사</button>
             </div>
         </div>
     </div>

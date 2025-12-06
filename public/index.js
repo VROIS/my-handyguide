@@ -3265,7 +3265,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
         }
     }
     
-    // QR 코드 복사
+    // QR 코드 복사 + 3초 후 자동 닫힘
     async function copyUserQrCode() {
         const qrImage = document.getElementById('user-qr-image');
         if (!qrImage) {
@@ -3288,11 +3288,13 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
                         new ClipboardItem({ 'image/png': blob })
                     ]);
                     showToast('QR 코드가 복사되었습니다!');
+                    setTimeout(closeUserQrCodeModal, 3000);
                 } catch (e) {
                     // Fallback: 앱 URL 복사
                     const appUrl = window.location.origin;
                     await navigator.clipboard.writeText(appUrl);
-                    showToast('앱 주소가 복사되었습니다: ' + appUrl);
+                    showToast('앱 주소가 복사되었습니다!');
+                    setTimeout(closeUserQrCodeModal, 3000);
                 }
             }, 'image/png');
         } catch (error) {
@@ -3301,9 +3303,11 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
             try {
                 const appUrl = window.location.origin;
                 await navigator.clipboard.writeText(appUrl);
-                showToast('앱 주소가 복사되었습니다');
+                showToast('앱 주소가 복사되었습니다!');
+                setTimeout(closeUserQrCodeModal, 3000);
             } catch (e) {
                 showToast('복사에 실패했습니다. 화면을 캡처해주세요.');
+                setTimeout(closeUserQrCodeModal, 3000);
             }
         }
     }
@@ -3876,7 +3880,6 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     
     // QR 코드 모달
     userSettingsQrBtn?.addEventListener('click', openUserQrCodeModal);
-    userQrCloseBtn?.addEventListener('click', closeUserQrCodeModal);
     userCopyQrButton?.addEventListener('click', copyUserQrCode);
     
     // 관리자 인증 모달
