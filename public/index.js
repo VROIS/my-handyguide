@@ -3462,7 +3462,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
         }
     }
     
-    // 푸시 알림 상태 초기화
+    // 푸시 알림 상태 초기화 (기본값: 활성화)
     async function initUserPushToggle() {
         if (!userPushToggle || !userPushStatusText) return;
         
@@ -3488,11 +3488,70 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
             const subscription = await registration.pushManager.getSubscription();
             
             if (subscription) {
+                // 이미 구독중 - 토글 ON
                 userPushToggle.checked = true;
                 userPushStatusText.textContent = '알림이 켜져 있습니다';
             } else {
-                userPushToggle.checked = false;
-                userPushStatusText.textContent = '알림을 켜려면 토글을 누르세요';
+                // 구독 없음 - 자동으로 구독 시도 (기본값: 활성화)
+                const user = await checkUserAuth();
+                if (user && permission !== 'denied') {
+                    // 로그인 상태면 자동 구독 시도
+                    userPushToggle.checked = true;
+                    userPushStatusText.textContent = '알림 설정 중...';
+                    
+                    // 권한 요청
+                    const newPermission = await Notification.requestPermission();
+                    if (newPermission === 'granted') {
+                        try {
+                            // VAPID 공개키
+                            const vapidPublicKey = 'BEuc2WPE8n32XPc_uDZ_Na-vSgVvx_P4uRsSFuTYi-oD1kobkIBKtSFbtnneebC3wt8OnknpizRM98NCLnuHa38';
+                            const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+                            
+                            // 푸시 구독 생성
+                            const newSubscription = await registration.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey
+                            });
+                            
+                            // 서버에 구독 정보 전송
+                            const response = await fetch('/api/push/subscribe', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                credentials: 'include',
+                                body: JSON.stringify({
+                                    endpoint: newSubscription.endpoint,
+                                    keys: {
+                                        p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(newSubscription.getKey('p256dh')))),
+                                        auth: btoa(String.fromCharCode.apply(null, new Uint8Array(newSubscription.getKey('auth'))))
+                                    },
+                                    userAgent: navigator.userAgent
+                                })
+                            });
+                            
+                            if (response.ok) {
+                                userPushStatusText.textContent = '알림이 켜져 있습니다';
+                            } else {
+                                throw new Error('서버 구독 등록 실패');
+                            }
+                        } catch (subError) {
+                            console.error('자동 푸시 구독 오류:', subError);
+                            userPushToggle.checked = false;
+                            userPushStatusText.textContent = '알림을 켜려면 토글을 누르세요';
+                        }
+                    } else if (newPermission === 'denied') {
+                        userPushToggle.checked = false;
+                        userPushToggle.disabled = true;
+                        userPushStatusText.textContent = '알림이 차단되어 있습니다 (브라우저 설정에서 허용 필요)';
+                    } else {
+                        // 사용자가 권한 요청을 무시함
+                        userPushToggle.checked = false;
+                        userPushStatusText.textContent = '알림을 켜려면 토글을 누르세요';
+                    }
+                } else {
+                    // 로그인 안됨 - 토글 OFF
+                    userPushToggle.checked = false;
+                    userPushStatusText.textContent = '로그인 후 알림을 받을 수 있습니다';
+                }
             }
         } catch (error) {
             console.error('푸시 상태 확인 오류:', error);
