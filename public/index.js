@@ -130,6 +130,80 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastAudioClickTime = 0;
     
     // ═══════════════════════════════════════════════════════════════
+    // 🌐 구글 번역 완료 대기 시스템 (2025-12-06)
+    // 목적: 모든 TTS는 구글 번역 완료 후에 재생
+    // 패턴: MutationObserver로 body의 translated-ltr/rtl 클래스 감지
+    // ═══════════════════════════════════════════════════════════════
+    let translationState = {
+        complete: false,
+        observer: null,
+        timeoutId: null
+    };
+    
+    function initTranslationWatcher() {
+        const userLang = localStorage.getItem('appLanguage') || 'ko';
+        
+        if (userLang === 'ko') {
+            translationState.complete = true;
+            console.log('[Translation] 한국어 - 번역 대기 불필요');
+            return;
+        }
+        
+        const hasTranslated = document.body.classList.contains('translated-ltr') ||
+                              document.body.classList.contains('translated-rtl');
+        if (hasTranslated) {
+            translationState.complete = true;
+            console.log('[Translation] 이미 번역 완료됨');
+            return;
+        }
+        
+        translationState.complete = false;
+        translationState.observer = new MutationObserver((mutations) => {
+            const hasTranslatedNow = document.body.classList.contains('translated-ltr') ||
+                                     document.body.classList.contains('translated-rtl');
+            if (hasTranslatedNow) {
+                console.log('[Translation] 🌐 번역 완료 감지!');
+                translationState.complete = true;
+                translationState.observer?.disconnect();
+                window.dispatchEvent(new CustomEvent('appTranslationComplete'));
+            }
+        });
+        
+        translationState.observer.observe(document.body, { 
+            attributes: true, 
+            attributeFilter: ['class'] 
+        });
+        
+        translationState.timeoutId = setTimeout(() => {
+            if (!translationState.complete) {
+                console.log('[Translation] 번역 타임아웃 - 원본 사용');
+                translationState.complete = true;
+                translationState.observer?.disconnect();
+                window.dispatchEvent(new CustomEvent('appTranslationComplete', { detail: { timeout: true } }));
+            }
+        }, 3000);
+    }
+    
+    async function waitForTranslation() {
+        const userLang = localStorage.getItem('appLanguage') || 'ko';
+        if (userLang === 'ko' || translationState.complete) {
+            return;
+        }
+        
+        console.log('[TTS] 번역 완료 대기 중...');
+        await new Promise(resolve => {
+            const handler = () => {
+                window.removeEventListener('appTranslationComplete', handler);
+                resolve();
+            };
+            window.addEventListener('appTranslationComplete', handler);
+            setTimeout(resolve, 3500);
+        });
+    }
+    
+    initTranslationWatcher();
+    
+    // ═══════════════════════════════════════════════════════════════
     // 🌐 사용자 언어 감지 (DB + 구글 번역 쿠키)
     // 목적: 추천모음 클릭/공유 시 해당 언어로 공유페이지 자동 번역
     // 우선순위: DB preferredLanguage > 쿠키 > 기본값(한국어)
@@ -1037,8 +1111,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (pauseIcon) pauseIcon.style.display = 'none';
         }
         
-        function playAudio(text) {
+        async function playAudio(text) {
             stopAudio();
+            
+            // 🌐 구글 번역 완료 대기 (번역된 텍스트로 TTS 재생)
+            await waitForTranslation();
             
             // ⚠️ **핵심 로직 - 절대 수정 금지!** (2025-10-03 치명적 버그 해결)
             // 
@@ -3197,7 +3274,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    function speakNext() {
+    async function speakNext() {
+        // 🌐 구글 번역 완료 대기 (번역된 텍스트로 TTS 재생)
+        await waitForTranslation();
+        
         if (utteranceQueue.length === 0) {
             isSpeaking = false;
             updateAudioButton('play');
