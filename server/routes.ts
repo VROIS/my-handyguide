@@ -1937,7 +1937,7 @@ self.addEventListener('fetch', (event) => {
   app.get('/invite', (req, res) => {
     const refCode = req.query.ref || '';
     const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const qrImageUrl = `${baseUrl}/attached_assets/손앱QR_1764977526427.png`;
+    const qrImageUrl = `${baseUrl}/qr-code.png`;
     const redirectUrl = refCode ? `${baseUrl}/?ref=${refCode}` : baseUrl;
     
     res.send(`<!DOCTYPE html>
