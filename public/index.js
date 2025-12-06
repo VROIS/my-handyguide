@@ -1427,9 +1427,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const typeIcon = getNotificationIcon(notification.type);
             
             return `
-                <div class="notification-item flex items-start gap-3 p-3 rounded-lg cursor-pointer transition hover:bg-gray-50 ${isRead ? 'opacity-60' : 'bg-blue-50/50'}"
+                <div class="notification-item flex items-start gap-3 p-3 rounded-lg ${isRead ? 'opacity-60' : 'bg-blue-50/50'}"
                      data-notification-id="${notification.id}"
-                     data-link="${notification.link || ''}"
                      data-testid="notification-item-${notification.id}">
                     <div class="flex-shrink-0 w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
                         ${typeIcon}
@@ -1439,32 +1438,28 @@ document.addEventListener('DOMContentLoaded', () => {
                         <p class="text-sm text-gray-600 truncate">${notification.body || ''}</p>
                         <p class="text-xs text-gray-400 mt-1">${timeAgo}</p>
                     </div>
-                    ${!isRead ? '<span class="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-2"></span>' : ''}
+                    <button class="notification-delete-btn flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition"
+                            data-notification-id="${notification.id}"
+                            data-testid="button-delete-notification-${notification.id}">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
                 </div>
             `;
         }).join('');
         
-        // 알림 클릭 이벤트
-        notificationList.querySelectorAll('.notification-item').forEach(item => {
-            item.addEventListener('click', async () => {
-                const notificationId = parseInt(item.dataset.notificationId);
-                const link = item.dataset.link;
+        // X 버튼 클릭 이벤트 (알림 삭제)
+        notificationList.querySelectorAll('.notification-delete-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const notificationId = parseInt(btn.dataset.notificationId);
                 
-                await markNotificationRead(notificationId);
+                await deleteNotification(notificationId);
                 updateNotificationBadge();
                 
-                if (link) {
-                    closeNotificationModal();
-                    if (link.startsWith('/') || link.startsWith('http')) {
-                        window.open(link, '_blank');
-                    } else {
-                        window.location.href = link;
-                    }
-                } else {
-                    // 링크가 없으면 읽음 표시만 하고 새로고침
-                    const notifications = await fetchNotifications();
-                    renderNotifications(notifications);
-                }
+                const notifications = await fetchNotifications();
+                renderNotifications(notifications);
             });
         });
     }
@@ -1511,6 +1506,18 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         } catch (error) {
             console.warn('알림 읽음 처리 실패:', error);
+        }
+    }
+    
+    async function deleteNotification(notificationId) {
+        try {
+            await fetch(`/api/notifications/${notificationId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+        } catch (error) {
+            console.warn('알림 삭제 실패:', error);
         }
     }
     

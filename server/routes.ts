@@ -3022,6 +3022,38 @@ self.addEventListener('fetch', (event) => {
     }
   });
 
+  // 개별 알림 삭제
+  app.delete('/api/notifications/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req.user);
+      const notificationId = req.params.id;
+      
+      if (!notificationId) {
+        return res.status(400).json({ error: '유효하지 않은 알림 ID입니다.' });
+      }
+      
+      // 해당 사용자의 알림만 삭제 (본인 알림인 경우)
+      await db.delete(notifications)
+        .where(and(
+          eq(notifications.id, notificationId),
+          eq(notifications.userId, userId)
+        ));
+      
+      // 전체 공지(userId가 null)인 경우 읽음 처리만
+      await db.update(notifications)
+        .set({ isRead: true })
+        .where(and(
+          eq(notifications.id, notificationId),
+          isNull(notifications.userId)
+        ));
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('알림 삭제 오류:', error);
+      res.status(500).json({ error: '알림 삭제에 실패했습니다.' });
+    }
+  });
+
   // 푸시 구독 등록
   app.post('/api/push/subscribe', isAuthenticated, async (req: any, res) => {
     try {
