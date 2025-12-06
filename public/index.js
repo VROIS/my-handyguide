@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const notificationList = document.getElementById('notificationList');
     const emptyNotificationMessage = document.getElementById('emptyNotificationMessage');
     const closeNotificationModalBtn = document.getElementById('closeNotificationModalBtn');
-    const markAllReadBtn = document.getElementById('markAllReadBtn');
+    const deleteAllNotificationsBtn = document.getElementById('deleteAllNotificationsBtn');
     const notificationBadge = document.getElementById('notificationBadge');
     let notificationModalOpenedFromProfile = false;
     
@@ -1515,20 +1515,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    async function markAllNotificationsRead() {
+    async function deleteAllNotifications() {
         try {
-            await fetch('/api/notifications/mark-read', {
-                method: 'POST',
+            await fetch('/api/notifications/delete-all', {
+                method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({})
+                credentials: 'include'
             });
             updateNotificationBadge();
             const notifications = await fetchNotifications();
             renderNotifications(notifications);
-            showToast('모든 알림을 읽음으로 표시했습니다');
+            showToast('모든 알림을 삭제했습니다');
         } catch (error) {
-            console.warn('전체 읽음 처리 실패:', error);
+            console.warn('전체 삭제 실패:', error);
         }
     }
     
@@ -1545,11 +1544,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeNotificationModal() {
         if (!notificationModal) return;
         notificationModal.classList.add('hidden');
-        
-        if (notificationModalOpenedFromProfile) {
-            notificationModalOpenedFromProfile = false;
-            window.open('/profile.html', '_blank');
-        }
+        notificationModalOpenedFromProfile = false;
     }
     
     function startNotificationPolling() {
@@ -1574,7 +1569,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 알림 모달 이벤트 리스너
     closeNotificationModalBtn?.addEventListener('click', closeNotificationModal);
-    markAllReadBtn?.addEventListener('click', markAllNotificationsRead);
+    deleteAllNotificationsBtn?.addEventListener('click', deleteAllNotifications);
     
     // 모달 바깥 클릭 시 닫기
     notificationModal?.addEventListener('click', (e) => {
@@ -3634,7 +3629,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
                 
                 if (response.ok) {
                     userPushStatusText.textContent = '알림이 켜져 있습니다';
-                    showToast('푸시 알림이 활성화되었습니다! 🔔');
+                    showToast('푸시 알림이 활성화되었습니다');
                 } else {
                     throw new Error('서버 구독 등록 실패');
                 }
