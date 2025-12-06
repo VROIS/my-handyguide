@@ -92,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const notificationList = document.getElementById('notificationList');
     const emptyNotificationMessage = document.getElementById('emptyNotificationMessage');
     const closeNotificationModalBtn = document.getElementById('closeNotificationModalBtn');
-    const deleteAllNotificationsBtn = document.getElementById('deleteAllNotificationsBtn');
     const notificationBadge = document.getElementById('notificationBadge');
     let notificationModalOpenedFromProfile = false;
     
@@ -1569,7 +1568,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 알림 모달 이벤트 리스너
     closeNotificationModalBtn?.addEventListener('click', closeNotificationModal);
-    deleteAllNotificationsBtn?.addEventListener('click', deleteAllNotifications);
     
     // 모달 바깥 클릭 시 닫기
     notificationModal?.addEventListener('click', (e) => {
