@@ -980,13 +980,13 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 플랫폼별 최적 음성 우선순위 (Windows → iOS → Android/Chrome)
             const voicePriority = {
-                'ko-KR': ['Microsoft Heami', 'Yuna', 'Google 한국의'],
-                'en-US': ['Microsoft Zira', 'Samantha', 'Google US English'],
-                'ja-JP': ['Microsoft Haruka', 'Kyoko', 'Google 日本語'],
-                'zh-CN': ['Microsoft Huihui', 'Ting-Ting', 'Google 普通话'],
-                'fr-FR': ['Microsoft Hortense', 'Thomas', 'Google français'],
-                'de-DE': ['Microsoft Hedda', 'Anna', 'Google Deutsch'],
-                'es-ES': ['Microsoft Helena', 'Monica', 'Google español']
+                'ko-KR': ['Yuna', 'Microsoft Heami', 'Google 한국어', 'Korean', '한국어'],
+                'en-US': ['Samantha', 'Microsoft Zira', 'Google US English', 'English'],
+                'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'],
+                'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'],
+                'fr-FR': ['Thomas', 'Microsoft Hortense', 'Google français', 'French'],
+                'de-DE': ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'],
+                'es-ES': ['Monica', 'Microsoft Helena', 'Google español', 'Spanish']
             };
             
             let targetVoice = null;
@@ -2225,13 +2225,13 @@ document.addEventListener('DOMContentLoaded', () => {
         let voiceName = null;
         
         const voicePriority = {
-            'ko-KR': ['Microsoft Heami', 'Yuna', 'Google 한국어'],
-            'en-US': ['Microsoft Zira', 'Samantha', 'Google US English'],
-            'ja-JP': ['Microsoft Haruka', 'Kyoko', 'Google 日本語'],
-            'zh-CN': ['Microsoft Huihui', 'Ting-Ting', 'Google 普通话'],
-            'fr-FR': ['Microsoft Hortense', 'Thomas', 'Google français'],
-            'de-DE': ['Microsoft Hedda', 'Anna', 'Google Deutsch'],
-            'es-ES': ['Microsoft Helena', 'Monica', 'Google español']
+            'ko-KR': ['Yuna', 'Microsoft Heami', 'Google 한국어', 'Korean', '한국어'],
+            'en-US': ['Samantha', 'Microsoft Zira', 'Google US English', 'English'],
+            'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'],
+            'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'],
+            'fr-FR': ['Thomas', 'Microsoft Hortense', 'Google français', 'French'],
+            'de-DE': ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'],
+            'es-ES': ['Monica', 'Microsoft Helena', 'Google español', 'Spanish']
         };
         
         const allVoices = synth.getVoices();
@@ -3242,13 +3242,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             // 모든 언어에 대해 voicePriority에서 음성 선택
             const voicePriority = {
-                'ko-KR': ['Microsoft Heami', 'Yuna', 'Google 한국어'],
-                'en-US': ['Microsoft Zira', 'Samantha', 'Google US English'],
-                'ja-JP': ['Microsoft Haruka', 'Kyoko', 'Google 日本語'],
-                'zh-CN': ['Microsoft Huihui', 'Ting-Ting', 'Google 普通话'],
-                'fr-FR': ['Microsoft Hortense', 'Thomas', 'Google français'],
-                'de-DE': ['Microsoft Hedda', 'Anna', 'Google Deutsch'],
-                'es-ES': ['Microsoft Helena', 'Monica', 'Google español']
+                'ko-KR': ['Yuna', 'Microsoft Heami', 'Google 한국어', 'Korean', '한국어'],
+                'en-US': ['Samantha', 'Microsoft Zira', 'Google US English', 'English'],
+                'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'],
+                'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'],
+                'fr-FR': ['Thomas', 'Microsoft Hortense', 'Google français', 'French'],
+                'de-DE': ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'],
+                'es-ES': ['Monica', 'Microsoft Helena', 'Google español', 'Spanish']
             };
             
             const allVoices = synth.getVoices();

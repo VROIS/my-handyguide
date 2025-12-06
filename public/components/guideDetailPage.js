@@ -258,13 +258,13 @@ const guideDetailPage = {
         
         // 플랫폼별 최적 음성 우선순위 (Microsoft → iOS → Chrome/Google)
         const voicePriority = {
-            'ko-KR': ['Microsoft Heami', 'Yuna', 'Google 한국어'],
-            'en-US': ['Microsoft Zira', 'Samantha', 'Google US English'],
-            'ja-JP': ['Microsoft Haruka', 'Kyoko', 'Google 日本語'],
-            'zh-CN': ['Microsoft Huihui', 'Ting-Ting', 'Google 普通话'],
-            'fr-FR': ['Microsoft Hortense', 'Thomas', 'Google français'],
-            'de-DE': ['Microsoft Hedda', 'Anna', 'Google Deutsch'],
-            'es-ES': ['Microsoft Helena', 'Monica', 'Google español']
+            'ko-KR': ['Yuna', 'Microsoft Heami', 'Google 한국어', 'Korean', '한국어'],
+            'en-US': ['Samantha', 'Microsoft Zira', 'Google US English', 'English'],
+            'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'],
+            'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'],
+            'fr-FR': ['Thomas', 'Microsoft Hortense', 'Google français', 'French'],
+            'de-DE': ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'],
+            'es-ES': ['Monica', 'Microsoft Helena', 'Google español', 'Spanish']
         };
         
         const allVoices = this._state.voices;
