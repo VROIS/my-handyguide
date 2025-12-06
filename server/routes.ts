@@ -1945,25 +1945,10 @@ self.addEventListener('fetch', (event) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>손안에 가이드</title>
     <meta property="og:image" content="${qrImageUrl}">
-    <meta property="og:image:width" content="800">
-    <meta property="og:image:height" content="800">
-    <meta property="og:type" content="website">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:image" content="${qrImageUrl}">
-    <script>
-        // 즉시 메인 앱으로 리다이렉트
-        window.location.href = "${redirectUrl}";
-    </script>
+    <script>window.location.href = "${redirectUrl}";</script>
 </head>
-<body style="font-family: -apple-system, sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; background: #FFFEFA;">
-    <div style="text-align: center; padding: 2rem;">
-        <img src="${qrImageUrl}" alt="손안에 가이드 QR" style="width: 200px; height: 200px; border-radius: 50%;">
-        <p style="margin-top: 1rem; color: #4285F4; font-size: 1.2rem;">손안에 가이드로 이동 중...</p>
-        <p style="color: #666; font-size: 0.9rem;">자동으로 이동하지 않으면 <a href="${redirectUrl}" style="color: #4285F4;">여기를 클릭</a>하세요.</p>
-    </div>
-</body>
+<body></body>
 </html>`);
   });
 
