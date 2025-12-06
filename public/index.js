@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeNotificationModalBtn = document.getElementById('closeNotificationModalBtn');
     const markAllReadBtn = document.getElementById('markAllReadBtn');
     const notificationBadge = document.getElementById('notificationBadge');
+    let notificationModalOpenedFromProfile = false;
     
     // Admin Settings Page Elements
     const adminSettingsPage = document.getElementById('adminSettingsPage');
@@ -1544,6 +1545,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function closeNotificationModal() {
         if (!notificationModal) return;
         notificationModal.classList.add('hidden');
+        
+        if (notificationModalOpenedFromProfile) {
+            notificationModalOpenedFromProfile = false;
+            window.open('/profile.html', '_blank');
+        }
     }
     
     function startNotificationPolling() {
@@ -1577,12 +1583,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // 프로필 버튼 클릭 → 로그인된 경우 알림 모달, 아니면 프로필 페이지
+    // 프로필 버튼 클릭 → 읽지 않은 알림이 있으면 모달 먼저, 없으면 바로 프로필 페이지
     profileBtn?.addEventListener('click', async () => {
         const user = await checkUserAuth();
-        if (user) {
-            openNotificationModal();
-        } else {
+        if (!user) {
+            window.open('/profile.html', '_blank');
+            return;
+        }
+        
+        try {
+            const response = await fetch('/api/notifications/unread-count', {
+                credentials: 'include'
+            });
+            const data = await response.json();
+            const unreadCount = data.count || 0;
+            
+            if (unreadCount > 0) {
+                notificationModalOpenedFromProfile = true;
+                openNotificationModal();
+            } else {
+                window.open('/profile.html', '_blank');
+            }
+        } catch (error) {
+            console.warn('알림 수 확인 실패:', error);
             window.open('/profile.html', '_blank');
         }
     });
