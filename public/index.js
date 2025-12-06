@@ -3265,12 +3265,32 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
         }
     }
     
-    // QR 코드 복사 + 3초 후 자동 닫힘
+    // QR 코드 복사 + 리워드 지급 + 3초 후 자동 닫힘
     async function copyUserQrCode() {
         const qrImage = document.getElementById('user-qr-image');
         if (!qrImage) {
             showToast('QR 코드 이미지를 찾을 수 없습니다');
             return;
+        }
+        
+        // 리워드 API 호출 함수 (복사 성공 후 실행)
+        async function claimQrCopyReward() {
+            try {
+                const response = await fetch('/api/profile/qr-copy-reward', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        showToast(`QR 복사 완료! +2 크레딧 (잔액: ${data.balance})`);
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.log('QR 리워드 미지급 (비회원 또는 오류)');
+            }
+            return false;
         }
         
         try {
@@ -3287,13 +3307,20 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
                     await navigator.clipboard.write([
                         new ClipboardItem({ 'image/png': blob })
                     ]);
-                    showToast('QR 코드가 복사되었습니다!');
+                    // 리워드 지급 시도 (가입자만 성공)
+                    const rewarded = await claimQrCopyReward();
+                    if (!rewarded) {
+                        showToast('QR 코드가 복사되었습니다!');
+                    }
                     setTimeout(closeUserQrCodeModal, 3000);
                 } catch (e) {
                     // Fallback: 앱 URL 복사
                     const appUrl = window.location.origin;
                     await navigator.clipboard.writeText(appUrl);
-                    showToast('앱 주소가 복사되었습니다!');
+                    const rewarded = await claimQrCopyReward();
+                    if (!rewarded) {
+                        showToast('앱 주소가 복사되었습니다!');
+                    }
                     setTimeout(closeUserQrCodeModal, 3000);
                 }
             }, 'image/png');
@@ -3303,7 +3330,10 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
             try {
                 const appUrl = window.location.origin;
                 await navigator.clipboard.writeText(appUrl);
-                showToast('앱 주소가 복사되었습니다!');
+                const rewarded = await claimQrCopyReward();
+                if (!rewarded) {
+                    showToast('앱 주소가 복사되었습니다!');
+                }
                 setTimeout(closeUserQrCodeModal, 3000);
             } catch (e) {
                 showToast('복사에 실패했습니다. 화면을 캡처해주세요.');

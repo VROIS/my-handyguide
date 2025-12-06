@@ -507,6 +507,30 @@ router.get('/profile/referral-code', async (req: Request, res: Response) => {
   }
 });
 
+// 🎁 QR 복사 리워드 API (2025-12-06)
+router.post('/profile/qr-copy-reward', async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId((req as any).user);
+    
+    if (!userId) {
+      return res.status(401).json({ error: '로그인이 필요합니다.', success: false });
+    }
+
+    const newBalance = await creditService.grantQrCopyReward(userId);
+    console.log(`🎁 QR 복사 리워드 지급: ${userId}, 잔액: ${newBalance}`);
+
+    res.json({ 
+      success: true, 
+      reward: 2,
+      balance: newBalance,
+      message: 'QR 복사 리워드 2 크레딧이 지급되었습니다!'
+    });
+  } catch (error: any) {
+    console.error('QR copy reward error:', error);
+    res.status(500).json({ error: 'Failed to grant reward', success: false });
+  }
+});
+
 // 🌐 사용자 선호 언어 조회/업데이트 (2025-12-03)
 router.get('/profile/language', async (req: Request, res: Response) => {
   try {
