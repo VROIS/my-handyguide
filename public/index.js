@@ -3440,49 +3440,156 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     }
     
     // 푸시 알림 상태 초기화
-    function initUserPushToggle() {
+    async function initUserPushToggle() {
         if (!userPushToggle || !userPushStatusText) return;
         
+        // 브라우저 지원 여부 확인
+        if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+            userPushToggle.disabled = true;
+            userPushStatusText.textContent = '이 브라우저는 알림을 지원하지 않습니다';
+            return;
+        }
+        
         // 현재 푸시 알림 권한 상태 확인
-        if ('Notification' in window) {
-            const permission = Notification.permission;
-            if (permission === 'granted') {
+        const permission = Notification.permission;
+        if (permission === 'denied') {
+            userPushToggle.checked = false;
+            userPushToggle.disabled = true;
+            userPushStatusText.textContent = '알림이 차단되어 있습니다 (브라우저 설정에서 허용 필요)';
+            return;
+        }
+        
+        // 서비스 워커 구독 상태 확인
+        try {
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.getSubscription();
+            
+            if (subscription) {
                 userPushToggle.checked = true;
                 userPushStatusText.textContent = '알림이 켜져 있습니다';
-            } else if (permission === 'denied') {
-                userPushToggle.checked = false;
-                userPushStatusText.textContent = '알림이 차단되어 있습니다';
             } else {
                 userPushToggle.checked = false;
                 userPushStatusText.textContent = '알림을 켜려면 토글을 누르세요';
             }
-        } else {
-            userPushToggle.disabled = true;
-            userPushStatusText.textContent = '이 브라우저는 알림을 지원하지 않습니다';
+        } catch (error) {
+            console.error('푸시 상태 확인 오류:', error);
+            userPushToggle.checked = false;
+            userPushStatusText.textContent = '알림 상태를 확인할 수 없습니다';
         }
+    }
+    
+    // VAPID 공개키를 Uint8Array로 변환
+    function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+            outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
     }
     
     // 푸시 알림 토글 핸들러
     async function handleUserPushToggle() {
-        if (!('Notification' in window)) {
-            showToast('이 브라우저는 알림을 지원하지 않습니다');
+        if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
+            showToast('이 브라우저는 푸시 알림을 지원하지 않습니다');
+            userPushToggle.checked = false;
+            return;
+        }
+        
+        // 로그인 여부 확인
+        const user = await checkUserAuth();
+        if (!user) {
+            showToast('푸시 알림을 사용하려면 로그인이 필요합니다');
+            userPushToggle.checked = false;
+            userPushStatusText.textContent = '로그인 필요';
             return;
         }
         
         if (userPushToggle.checked) {
             // 알림 권한 요청
             const permission = await Notification.requestPermission();
-            if (permission === 'granted') {
-                userPushStatusText.textContent = '알림이 켜졌습니다';
-                showToast('푸시 알림이 활성화되었습니다');
-            } else {
+            if (permission !== 'granted') {
                 userPushToggle.checked = false;
-                userPushStatusText.textContent = permission === 'denied' ? '알림이 차단되어 있습니다' : '알림 권한을 허용해주세요';
+                userPushStatusText.textContent = permission === 'denied' 
+                    ? '알림이 차단되어 있습니다 (브라우저 설정에서 허용 필요)' 
+                    : '알림 권한을 허용해주세요';
                 showToast('알림 권한이 필요합니다');
+                return;
+            }
+            
+            try {
+                userPushStatusText.textContent = '알림 설정 중...';
+                
+                // 서비스 워커 등록 확인
+                const registration = await navigator.serviceWorker.ready;
+                
+                // VAPID 공개키 가져오기
+                const vapidPublicKey = 'BEuc2WPE8n32XPc_uDZ_Na-vSgVvx_P4uRsSFuTYi-oD1kobkIBKtSFbtnneebC3wt8OnknpizRM98NCLnuHa38';
+                const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+                
+                // 푸시 구독 생성
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey
+                });
+                
+                // 서버에 구독 정보 전송
+                const response = await fetch('/api/push/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        endpoint: subscription.endpoint,
+                        keys: {
+                            p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh')))),
+                            auth: btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth'))))
+                        },
+                        userAgent: navigator.userAgent
+                    })
+                });
+                
+                if (response.ok) {
+                    userPushStatusText.textContent = '알림이 켜져 있습니다';
+                    showToast('푸시 알림이 활성화되었습니다! 🔔');
+                } else {
+                    throw new Error('서버 구독 등록 실패');
+                }
+            } catch (error) {
+                console.error('푸시 구독 오류:', error);
+                userPushToggle.checked = false;
+                userPushStatusText.textContent = '알림 설정에 실패했습니다';
+                showToast('푸시 알림 설정에 실패했습니다');
             }
         } else {
-            userPushStatusText.textContent = '알림이 꺼져 있습니다';
-            showToast('푸시 알림이 비활성화되었습니다');
+            // 푸시 구독 해제
+            try {
+                userPushStatusText.textContent = '알림 해제 중...';
+                
+                const registration = await navigator.serviceWorker.ready;
+                const subscription = await registration.pushManager.getSubscription();
+                
+                if (subscription) {
+                    // 서버에서 구독 해제
+                    await fetch('/api/push/unsubscribe', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({ endpoint: subscription.endpoint })
+                    });
+                    
+                    // 브라우저에서 구독 해제
+                    await subscription.unsubscribe();
+                }
+                
+                userPushStatusText.textContent = '알림이 꺼져 있습니다';
+                showToast('푸시 알림이 비활성화되었습니다');
+            } catch (error) {
+                console.error('푸시 구독 해제 오류:', error);
+                userPushStatusText.textContent = '알림 해제에 실패했습니다';
+                showToast('알림 해제에 실패했습니다');
+            }
         }
     }
     
@@ -4111,6 +4218,76 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
         }, 9000);
     }
 
+    // 🔔 관리자 전체 알림 발송
+    async function handleAdminSendNotification() {
+        const typeEl = document.getElementById('adminNotificationType');
+        const titleEl = document.getElementById('adminNotificationTitle');
+        const messageEl = document.getElementById('adminNotificationMessage');
+        const linkEl = document.getElementById('adminNotificationLink');
+        const sendBtn = document.getElementById('adminSendNotificationBtn');
+        const resultEl = document.getElementById('adminNotificationResult');
+        
+        const type = typeEl?.value;
+        const title = titleEl?.value?.trim();
+        const message = messageEl?.value?.trim();
+        const link = linkEl?.value?.trim() || null;
+        
+        if (!title || !message) {
+            showToast('제목과 내용을 입력해주세요.');
+            return;
+        }
+        
+        // 관리자 비밀번호 확인
+        const adminPassword = localStorage.getItem('adminPassword') || '';
+        if (!adminPassword) {
+            showToast('관리자 인증이 필요합니다.');
+            return;
+        }
+        
+        if (sendBtn) sendBtn.disabled = true;
+        showToast('알림 발송 중...');
+        
+        try {
+            const response = await fetch('/api/admin/notifications/broadcast', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    type,
+                    title,
+                    message,
+                    link,
+                    adminPassword
+                })
+            });
+            
+            const data = await response.json();
+            
+            if (response.ok && data.success) {
+                showToast(`알림 발송 완료! (푸시: ${data.pushSent}명)`);
+                if (resultEl) {
+                    resultEl.textContent = `✅ 발송 완료: 푸시 ${data.pushSent}명 성공, ${data.pushFailed}명 실패`;
+                    resultEl.className = 'text-sm text-center text-green-600';
+                    resultEl.classList.remove('hidden');
+                }
+                // 폼 초기화
+                if (titleEl) titleEl.value = '';
+                if (messageEl) messageEl.value = '';
+                if (linkEl) linkEl.value = '';
+            } else {
+                throw new Error(data.error || '알림 발송 실패');
+            }
+        } catch (error) {
+            console.error('알림 발송 오류:', error);
+            showToast('알림 발송에 실패했습니다.');
+            if (resultEl) {
+                resultEl.textContent = `❌ 발송 실패: ${error.message}`;
+                resultEl.className = 'text-sm text-center text-red-600';
+                resultEl.classList.remove('hidden');
+            }
+        } finally {
+            if (sendBtn) sendBtn.disabled = false;
+        }
+    }
 
     // --- Event Listeners (디바운스 적용) ---
     startCameraFromFeaturesBtn?.addEventListener('click', handleStartFeaturesClick);
@@ -4279,6 +4456,10 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     adminResetPromptsBtn?.addEventListener('click', resetPrompts);
     adminGenerateImageBtn?.addEventListener('click', handleGenerateImageDemo);
     adminGenerateVideoBtn?.addEventListener('click', handleGenerateVideoDemo);
+    
+    // 🔔 관리자 알림 발송 버튼
+    const adminSendNotificationBtn = document.getElementById('adminSendNotificationBtn');
+    adminSendNotificationBtn?.addEventListener('click', handleAdminSendNotification);
 
     // Auth Modal Event Listeners
     closeAuthModalBtn?.addEventListener('click', () => {

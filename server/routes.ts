@@ -18,6 +18,7 @@ import crypto from "crypto";
 import { generateShareHtml } from "./html-template";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import profileRoutes from "./profileRoutes";
+import { notificationService } from "./notificationService";
 
 // Configure multer for image uploads
 const upload = multer({
@@ -3102,6 +3103,46 @@ self.addEventListener('fetch', (event) => {
     } catch (error) {
       console.error('푸시 재구독 오류:', error);
       res.status(500).json({ error: '푸시 재구독에 실패했습니다.' });
+    }
+  });
+
+  // 관리자 전체 알림 발송 (관리자 인증 필요)
+  app.post('/api/admin/notifications/broadcast', async (req: any, res) => {
+    try {
+      const { type, title, message, link, adminPassword } = req.body;
+      
+      // 관리자 비밀번호 확인
+      const expectedPassword = process.env.ADMIN_PASSWORD || 'admin123';
+      if (adminPassword !== expectedPassword) {
+        return res.status(403).json({ error: '관리자 권한이 없습니다.' });
+      }
+      
+      if (!type || !title || !message) {
+        return res.status(400).json({ error: '알림 유형, 제목, 내용은 필수입니다.' });
+      }
+      
+      // 알림 생성 + 전체 푸시 발송
+      const result = await notificationService.createAndSendNotification({
+        userId: null, // null = 전체 공지
+        type: type as 'content' | 'event' | 'update' | 'urgent',
+        title,
+        message,
+        link: link || null
+      });
+      
+      console.log(`📢 관리자 전체 알림 발송: ${title}`);
+      console.log(`   - 알림 ID: ${result.notificationId}`);
+      console.log(`   - 푸시 발송: 성공 ${result.pushResult?.sent || 0}, 실패 ${result.pushResult?.failed || 0}`);
+      
+      res.json({
+        success: true,
+        notificationId: result.notificationId,
+        pushSent: result.pushResult?.sent || 0,
+        pushFailed: result.pushResult?.failed || 0
+      });
+    } catch (error) {
+      console.error('관리자 알림 발송 오류:', error);
+      res.status(500).json({ error: '알림 발송에 실패했습니다.' });
     }
   });
 
