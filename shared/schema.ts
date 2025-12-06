@@ -271,3 +271,70 @@ export type InsertUserActivityLog = z.infer<typeof insertUserActivityLogSchema>;
 export type UserActivityLog = typeof userActivityLogs.$inferSelect;
 export type InsertCashbackRequest = z.infer<typeof insertCashbackRequestSchema>;
 export type CashbackRequest = typeof cashbackRequests.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🔔 알림 테이블 (Notifications Table)
+// ═══════════════════════════════════════════════════════════════════════════════
+// 
+// 목적: 인앱 알림 저장 (YouTube 스타일 알림 벨)
+// 
+// 알림 유형:
+// - reward: 리워드 발생 (QR 복사, 추천 보너스, 충전 보너스)
+// - content: 새 콘텐츠 (추천모음 업데이트)
+// - event: 이벤트 공지
+// - update: 앱 업데이트
+// - urgent: 긴급 알림
+// 
+// 최근 변경: 2025-12-06 - 알림 시스템 추가
+// ═══════════════════════════════════════════════════════════════════════════════
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'cascade' }), // null이면 전체 공지
+  type: varchar("type").notNull(), // 'reward' | 'content' | 'event' | 'update' | 'urgent'
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  icon: varchar("icon").default('bell'), // lucide icon name
+  link: text("link"), // 클릭 시 이동할 링크
+  isRead: boolean("is_read").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 📱 푸시 구독 테이블 (Push Subscriptions Table)
+// ═══════════════════════════════════════════════════════════════════════════════
+// 
+// 목적: 웹 푸시 알림을 위한 구독 정보 저장
+// 
+// 저장 정보:
+// - endpoint: 브라우저 푸시 서버 URL
+// - keys: 암호화 키 (p256dh, auth)
+// 
+// 최근 변경: 2025-12-06 - 웹 푸시 시스템 추가
+// ═══════════════════════════════════════════════════════════════════════════════
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+  endpoint: text("endpoint").notNull(),
+  p256dh: text("p256dh").notNull(), // public key
+  auth: text("auth").notNull(), // auth secret
+  userAgent: text("user_agent"), // 디바이스 식별용
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Insert schemas for notifications
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  isRead: true,
+  createdAt: true,
+});
+
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types for notifications
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+export type Notification = typeof notifications.$inferSelect;
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;

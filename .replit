@@ -101,3 +101,9 @@ author = "agent"
 task = "shell.exec"
 args = "npm run dev"
 waitForPort = 5000
+
+[userenv]
+
+[userenv.shared]
+VAPID_PUBLIC_KEY = "BMvlBO3MLJzdB7QGT2KicE0etNf1YH-frZ-KFg5WTzwA7-DmFdBnUj3NKImpFeRqxeiqycDWfGhIvQ70pNe877o"
+VITE_VAPID_PUBLIC_KEY = "BMvlBO3MLJzdB7QGT2KicE0etNf1YH-frZ-KFg5WTzwA7-DmFdBnUj3NKImpFeRqxeiqycDWfGhIvQ70pNe877o"
