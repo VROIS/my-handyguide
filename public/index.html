@@ -998,10 +998,10 @@
 
         <!-- QR 코드 공유 모달 (하드코딩 이미지 + 추천 코드 링크 복사) -->
         <div id="user-qr-code-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
-            <div class="bg-white w-72 rounded-2xl p-6 shadow-2xl text-center">
-                <!-- 원형 QR 이미지 (하드코딩) -->
-                <div class="w-48 h-48 mx-auto mb-5 rounded-full bg-white flex items-center justify-center overflow-hidden shadow-lg border-4 border-gray-100">
-                    <img id="user-qr-image" src="/qr-code.png" alt="손안에 가이드 QR" class="w-full h-full object-cover">
+            <div class="bg-white w-80 rounded-2xl p-6 shadow-2xl text-center">
+                <!-- QR 이미지 (전체 표시, 잘림 없음) -->
+                <div class="w-64 h-64 mx-auto mb-5 bg-white flex items-center justify-center">
+                    <img id="user-qr-image" src="/qr-code.png" alt="손안에 가이드 QR" class="w-full h-full object-contain">
                 </div>
                 <!-- 복사 버튼 (제미니 블루) -->
                 <button id="user-copy-qr-button" class="w-full py-3 rounded-xl text-white text-lg font-semibold transition hover:opacity-90" style="background-color: #4285F4;">복사</button>
