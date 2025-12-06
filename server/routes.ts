@@ -1947,7 +1947,6 @@ self.addEventListener('fetch', (event) => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>손안에 가이드 - 친구 초대</title>
     <meta property="og:title" content="손안에 가이드">
-    <meta property="og:description" content="AI가 만들어주는 나만의 여행 가이드! 친구가 초대했어요.">
     <meta property="og:image" content="${qrImageUrl}">
     <meta property="og:image:width" content="512">
     <meta property="og:image:height" content="512">
