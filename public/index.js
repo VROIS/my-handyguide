@@ -3994,9 +3994,9 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
                     <div class="flex-1 min-w-0">
                         <p class="font-medium text-gray-900 truncate">${share.name}</p>
                         <div class="flex items-center gap-3 mt-1">
-                            <span class="text-xs text-gray-500">📥 ${share.downloadCount || 0}회</span>
+                            <span class="text-xs text-gray-500">${share.downloadCount || 0}회 다운로드</span>
                             <span class="text-xs text-gray-400">${new Date(share.createdAt).toLocaleDateString()}</span>
-                            ${share.featured ? '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">⭐ Featured</span>' : ''}
+                            ${share.featured ? '<span class="text-xs bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">Featured</span>' : ''}
                         </div>
                     </div>
                     ${!share.featured ? `
@@ -4004,7 +4004,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
                             onclick="addFeaturedById('${share.id}')" 
                             class="ml-3 px-3 py-1.5 bg-yellow-500 text-white text-sm font-medium rounded hover:bg-yellow-600 transition-colors whitespace-nowrap"
                             data-testid="button-add-featured-${share.id}">
-                            ⭐ 추가
+                            추가
                         </button>
                     ` : `
                         <span class="ml-3 px-3 py-1.5 bg-gray-200 text-gray-500 text-sm font-medium rounded cursor-not-allowed whitespace-nowrap">
@@ -4046,10 +4046,10 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
                     <span class="text-sm font-medium text-gray-800">${page.name}</span>
                     <div class="flex items-center gap-2">
                         <button onclick="editFeatured('${page.id}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
-                            ✏️ 편집
+                            편집
                         </button>
                         <button onclick="removeFeatured('${page.id}')" class="text-red-500 hover:text-red-700 text-sm font-medium">
-                            ✕ 제거
+                            제거
                         </button>
                     </div>
                 </div>
@@ -4077,7 +4077,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
             const data = await response.json();
             
             if (response.ok) {
-                showToast('⭐ Featured에 추가되었습니다!');
+                showToast('Featured에 추가되었습니다!');
                 await loadFeaturedList();
                 // 검색 결과 다시 로드해서 "이미 추가됨" 표시
                 const searchInput = document.getElementById('shareSearchInput');
