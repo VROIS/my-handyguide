@@ -3,20 +3,6 @@ import * as gemini from './geminiService.js';
 import { optimizeImage } from './imageOptimizer.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ═══════════════════════════════════════════════════════════════
-    // 🎁 추천 코드 시스템 (앱 진입 시 즉시 실행)
-    // ═══════════════════════════════════════════════════════════════
-    (function checkAndSaveReferralCode() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const refCode = urlParams.get('ref');
-        if (refCode) {
-            localStorage.setItem('pendingReferralCode', refCode);
-            console.log('🎁 추천 코드 저장:', refCode);
-            const cleanUrl = window.location.origin + window.location.pathname;
-            window.history.replaceState({}, document.title, cleanUrl);
-        }
-    })();
-    
     // DOM Elements
     const video = document.getElementById('camera-feed');
     const canvas = document.getElementById('capture-canvas');
@@ -98,9 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const userAdminAuthConfirmBtn = document.getElementById('userAdminAuthConfirmBtn');
     const userAdminAuthMessage = document.getElementById('user-admin-auth-message');
     const userQrCodeModal = document.getElementById('user-qr-code-modal');
-    const userCopyQrLinkButton = document.getElementById('user-copy-qr-link-button');
-    
-    let currentQrShareUrl = ''; // 현재 QR에 포함된 URL 저장
+    const userQrCloseBtn = document.getElementById('userQrCloseBtn');
+    const userCopyQrButton = document.getElementById('user-copy-qr-button');
     
     // Admin Settings Page Elements
     const adminSettingsPage = document.getElementById('adminSettingsPage');
@@ -303,7 +288,7 @@ document.addEventListener('DOMContentLoaded', () => {
             authModal.classList.remove('pointer-events-none');
             authModal.classList.add('pointer-events-auto');
         }
-        showToast('무료 체험이 끝났습니다. 로그인하면 10 크레딧을 드려요!');
+        showToast('무료 체험이 끝났습니다. 로그인하면 35 크레딧을 드려요!');
     }
 
     function showChargeModal() {
@@ -3266,15 +3251,11 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
         }
     }
     
-    // QR 코드 모달 열기 (하드코딩 이미지 사용)
-    async function openUserQrCodeModal() {
-        if (!userQrCodeModal) return;
-        
-        userQrCodeModal.classList.remove('hidden');
-        
-        // 앱 메인 URL 설정 (QR 이미지는 하드코딩이므로 기본 URL만)
-        currentQrShareUrl = window.location.origin;
-        console.log('📱 QR 모달 열기, URL:', currentQrShareUrl);
+    // QR 코드 모달 열기
+    function openUserQrCodeModal() {
+        if (userQrCodeModal) {
+            userQrCodeModal.classList.remove('hidden');
+        }
     }
     
     // QR 코드 모달 닫기
@@ -3284,42 +3265,46 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
         }
     }
     
-    // 링크 복사 버튼 클릭 + 크레딧 적립
-    async function copyQrLinkAndEarnCredits() {
-        if (!currentQrShareUrl) {
-            showToast('링크를 생성 중입니다. 잠시 후 다시 시도해주세요.');
+    // QR 코드 복사
+    async function copyUserQrCode() {
+        const qrImage = document.getElementById('user-qr-image');
+        if (!qrImage) {
+            showToast('QR 코드 이미지를 찾을 수 없습니다');
             return;
         }
         
         try {
-            // 1. 클립보드에 복사
-            await navigator.clipboard.writeText(currentQrShareUrl);
-            console.log('📋 링크 복사됨:', currentQrShareUrl);
+            // 이미지를 캔버스로 복사
+            const canvas = document.createElement('canvas');
+            canvas.width = qrImage.naturalWidth || 250;
+            canvas.height = qrImage.naturalHeight || 250;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(qrImage, 0, 0);
             
-            // 2. 크레딧 적립 API 호출
-            const response = await fetch('/api/profile/qr-share-reward', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include'
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                showToast(`링크 복사 완료! +${data.creditsAwarded} 크레딧 적립 🎁`);
-                console.log('🎁 크레딧 적립:', data);
-            } else {
-                // 비로그인 등의 경우에도 복사는 성공
-                showToast('링크가 복사되었습니다!');
-            }
-            
-            // 3. 2초 후 모달 닫기
-            setTimeout(() => {
-                closeUserQrCodeModal();
-            }, 2000);
-            
+            // Blob으로 변환 후 클립보드에 복사
+            canvas.toBlob(async (blob) => {
+                try {
+                    await navigator.clipboard.write([
+                        new ClipboardItem({ 'image/png': blob })
+                    ]);
+                    showToast('QR 코드가 복사되었습니다!');
+                } catch (e) {
+                    // Fallback: 앱 URL 복사
+                    const appUrl = window.location.origin;
+                    await navigator.clipboard.writeText(appUrl);
+                    showToast('앱 주소가 복사되었습니다: ' + appUrl);
+                }
+            }, 'image/png');
         } catch (error) {
-            console.error('링크 복사 실패:', error);
-            showToast('링크 복사에 실패했습니다.');
+            console.error('QR 복사 실패:', error);
+            // Fallback: 앱 URL 복사
+            try {
+                const appUrl = window.location.origin;
+                await navigator.clipboard.writeText(appUrl);
+                showToast('앱 주소가 복사되었습니다');
+            } catch (e) {
+                showToast('복사에 실패했습니다. 화면을 캡처해주세요.');
+            }
         }
     }
     
@@ -3889,13 +3874,10 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
         window.open('https://youtu.be/JJ65XZvBgsk', '_blank');
     });
     
-    // QR 코드 모달 (동적 QR 카드 생성 + 이미지 저장)
+    // QR 코드 모달
     userSettingsQrBtn?.addEventListener('click', openUserQrCodeModal);
-    userCopyQrLinkButton?.addEventListener('click', copyQrLinkAndEarnCredits);
-    // 모달 배경 클릭 시 닫기
-    userQrCodeModal?.addEventListener('click', (e) => {
-        if (e.target === userQrCodeModal) closeUserQrCodeModal();
-    });
+    userQrCloseBtn?.addEventListener('click', closeUserQrCodeModal);
+    userCopyQrButton?.addEventListener('click', copyUserQrCode);
     
     // 관리자 인증 모달
     userAdminAuthBtn?.addEventListener('click', openUserAdminAuthModal);
@@ -4117,36 +4099,6 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
         }
     });
     
-    // 🎁 추천 코드 보너스 적용 (회원가입 완료 시)
-    async function applyPendingReferralBonus() {
-        const pendingCode = localStorage.getItem('pendingReferralCode');
-        if (!pendingCode) return;
-        
-        try {
-            console.log('🎁 추천 보너스 적용 시도:', pendingCode);
-            const response = await fetch('/api/referral/signup-bonus', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',
-                body: JSON.stringify({ referrerCode: pendingCode })
-            });
-            if (response.ok) {
-                const result = await response.json();
-                localStorage.removeItem('pendingReferralCode');
-                console.log('🎁 추천 보너스 결과:', result);
-                if (result.newUserBonus) {
-                    showToast('🎁 가입 보너스 +10 크레딧이 지급되었습니다!');
-                }
-            } else {
-                const errorData = await response.json().catch(() => ({}));
-                console.log('🎁 추천 보너스 실패:', errorData.error || response.status);
-                localStorage.removeItem('pendingReferralCode');
-            }
-        } catch (error) {
-            console.error('추천 보너스 처리 실패:', error);
-        }
-    }
-    
     // OAuth 팝업 닫힌 후 인증 상태 확인 및 Featured Gallery 열기
     async function checkAuthAndOpenPendingUrl() {
         try {
@@ -4155,9 +4107,6 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
                 console.log('✅ 인증 성공!');
                 // 인증 모달 닫기
                 authModal?.classList.add('hidden');
-                
-                // 🎁 추천 코드 보너스 자동 적용 (신규 가입자)
-                await applyPendingReferralBonus();
                 
                 // 🌐 인증 후 DB에서 선호 언어 로드
                 await loadUserLanguage();

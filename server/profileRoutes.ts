@@ -143,35 +143,6 @@ router.post('/profile/use-credits', async (req: Request, res: Response) => {
   }
 });
 
-// 🎁 QR 공유 크레딧 적립 (링크 복사 시 +2 크레딧)
-router.post('/profile/qr-share-reward', async (req: Request, res: Response) => {
-  try {
-    const userId = getUserId((req as any).user);
-    
-    if (!userId) {
-      return res.status(401).json({ error: '로그인이 필요합니다.', success: false });
-    }
-
-    // 2 크레딧 적립
-    const user = await storage.addCredits(
-      userId,
-      2,
-      'qr_share_reward',
-      'QR 공유 보상 🎁'
-    );
-
-    res.json({ 
-      success: true, 
-      creditsAwarded: 2,
-      newBalance: user.credits,
-      message: '+2 크레딧 적립!'
-    });
-  } catch (error: any) {
-    console.error('QR share reward error:', error);
-    res.status(500).json({ error: 'Failed to award QR share credits', success: false });
-  }
-});
-
 router.get('/profile/exchange-rate', async (req: Request, res: Response) => {
   try {
     const rates = await getAllRates();

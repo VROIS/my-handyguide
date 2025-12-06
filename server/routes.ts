@@ -1928,31 +1928,6 @@ self.addEventListener('fetch', (event) => {
   });
   
   /**
-   * 🎁 GET /invite - QR 전달하기용 초대 페이지
-   * 
-   * 목적: 메신저 미리보기에 원형 QR 이미지 표시
-   * - og:image에 QR 이미지 설정
-   * - 페이지 접속 시 메인 앱으로 리다이렉트 (추천 코드 유지)
-   */
-  app.get('/invite', (req, res) => {
-    const refCode = req.query.ref || '';
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const qrImageUrl = `${baseUrl}/qr-code.png`;
-    const redirectUrl = refCode ? `${baseUrl}/?ref=${refCode}` : baseUrl;
-    
-    res.send(`<!DOCTYPE html>
-<html lang="ko">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta property="og:image" content="${qrImageUrl}">
-    <script>window.location.href = "${redirectUrl}";</script>
-</head>
-<body></body>
-</html>`);
-  });
-
-  /**
    * 📄 GET /s/:id - 짧은 URL로 HTML 페이지 직접 서빙
    * 
    * ⚠️ DEPRECATED: 이 라우트는 server/index.ts로 이동됨!
