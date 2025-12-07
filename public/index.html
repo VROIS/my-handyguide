@@ -1372,6 +1372,21 @@
                     setTimeout(() => {
                         landingPage.classList.add('hidden');
                         featuresPage.classList.add('visible');
+                        
+                        // 🔧 기능페이지 전환 후 Google Translate 재활성화 (2025-12-07)
+                        if (selectedLang !== 'ko') {
+                            setTimeout(() => {
+                                try {
+                                    if (window.google?.translate?.TranslateService) {
+                                        window.google.translate.TranslateService.getInstance().translate('ko', selectedLang);
+                                        console.log('🌐 Google Translate 재활성화:', selectedLang);
+                                    }
+                                } catch (e) {
+                                    console.log('⚠️ Google Translate 서비스 호출 실패, 새로고침 시도');
+                                    window.location.reload();
+                                }
+                            }, 500);
+                        }
                     }, 300);
                 }
             });
