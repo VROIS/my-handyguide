@@ -8,33 +8,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const landingLanguageSelect = document.getElementById('landingLanguageSelect');
     const landingStartBtn = document.getElementById('landingStartBtn');
     
-    // 🆕 Landing Page Logic - 언어 선택 후 메인 앱으로 이동
+    // 🆕 Landing Page Logic - 언어 선택 후 기능 설명 페이지로 이동
     if (landingPage && landingLanguageSelect && landingStartBtn) {
-        // 이전에 언어 선택한 적 있으면 랜딩페이지 스킵
-        const savedLang = localStorage.getItem('appLanguage');
-        if (savedLang) {
-            landingPage.style.display = 'none';
-        }
+        // 랜딩페이지는 항상 고정 표시 (localStorage 체크 제거)
         
-        // 시작 버튼 클릭
+        // 시작 버튼 클릭 → 언어 적용 + 기능 설명 페이지로 이동
         landingStartBtn.addEventListener('click', () => {
             const selectedLang = landingLanguageSelect.value;
             
             // 언어 저장
             localStorage.setItem('appLanguage', selectedLang);
             
-            // 랜딩페이지 숨기고 앱 시작
-            landingPage.style.opacity = '0';
-            landingPage.style.transition = 'opacity 0.5s ease-out';
+            // 구글 번역 즉시 적용 (LanguageHelper 사용)
+            if (typeof LanguageHelper !== 'undefined' && LanguageHelper.applyLanguage) {
+                LanguageHelper.applyLanguage(selectedLang);
+            }
             
-            setTimeout(() => {
-                landingPage.style.display = 'none';
-                
-                // 구글 번역 적용 (LanguageHelper 사용)
-                if (typeof LanguageHelper !== 'undefined' && LanguageHelper.applyLanguage) {
-                    LanguageHelper.applyLanguage(selectedLang);
-                }
-            }, 500);
+            // 랜딩페이지 즉시 숨김 (애니메이션 없음)
+            landingPage.style.display = 'none';
+            
+            // 기능 설명 페이지로 이동
+            if (featuresPage) {
+                featuresPage.classList.remove('hidden');
+            }
         });
     }
     
