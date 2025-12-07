@@ -27,15 +27,21 @@ const SharePageTranslation = {
         'es': 'es-ES'
     },
 
-    // 플랫폼별 최적 음성 우선순위
-    VOICE_PRIORITY: {
-        'ko-KR': ['Yuna', 'Microsoft Heami', 'Google 한국어', 'Korean', '한국어'],
+    // 플랫폼별 최적 음성 우선순위 (2025-12-07: 한국어 iOS/Android 분기)
+    // 주의: 이 객체는 런타임에 getVoicePriority()로 동적 생성
+    VOICE_PRIORITY_BASE: {
         'en-US': ['Samantha', 'Microsoft Zira', 'Google US English', 'English'],
         'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'],
         'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'],
         'fr-FR': ['Thomas', 'Microsoft Hortense', 'Google français', 'French'],
         'de-DE': ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'],
         'es-ES': ['Monica', 'Microsoft Helena', 'Google español', 'Spanish']
+    },
+    
+    // 한국어 음성 우선순위 (플랫폼별 분기)
+    getKoreanVoicePriority: function() {
+        const isIOS = /iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
+        return isIOS ? ['Sora', 'Yuna', 'Korean', '한국어'] : ['Microsoft Heami', 'Korean', '한국어'];
     },
 
     // 인라인 스크립트 반환 (standard-template.ts에서 사용)

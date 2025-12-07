@@ -1055,9 +1055,10 @@ document.addEventListener('DOMContentLoaded', () => {
         function getVoiceForLanguage(userLang, allVoices) {
             const langCode = langCodeMap[userLang] || 'ko-KR';
             
-            // 플랫폼별 최적 음성 우선순위 (Windows → iOS → Android/Chrome)
+            // 플랫폼별 최적 음성 우선순위 (2025-12-07: 한국어 iOS/Android 분기)
+            const isIOS = /iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
             const voicePriority = {
-                'ko-KR': ['Yuna', 'Microsoft Heami', 'Google 한국어', 'Korean', '한국어'],
+                'ko-KR': isIOS ? ['Sora', 'Yuna', 'Korean', '한국어'] : ['Microsoft Heami', 'Korean', '한국어'],
                 'en-US': ['Samantha', 'Microsoft Zira', 'Google US English', 'English'],
                 'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'],
                 'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'],
@@ -2304,8 +2305,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         let voiceName = null;
         
+        // 플랫폼별 최적 음성 우선순위 (2025-12-07: 한국어 iOS/Android 분기)
+        const isIOS = /iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
         const voicePriority = {
-            'ko-KR': ['Yuna', 'Microsoft Heami', 'Google 한국어', 'Korean', '한국어'],
+            'ko-KR': isIOS ? ['Sora', 'Yuna', 'Korean', '한국어'] : ['Microsoft Heami', 'Korean', '한국어'],
             'en-US': ['Samantha', 'Microsoft Zira', 'Google US English', 'English'],
             'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'],
             'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'],
@@ -3323,9 +3326,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('[TTS] 저장된 음성 사용:', targetVoice.name);
             }
         } else {
-            // 모든 언어에 대해 voicePriority에서 음성 선택
+            // 모든 언어에 대해 voicePriority에서 음성 선택 (2025-12-07: 한국어 iOS/Android 분기)
+            const isIOS = /iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
             const voicePriority = {
-                'ko-KR': ['Yuna', 'Microsoft Heami', 'Google 한국어', 'Korean', '한국어'],
+                'ko-KR': isIOS ? ['Sora', 'Yuna', 'Korean', '한국어'] : ['Microsoft Heami', 'Korean', '한국어'],
                 'en-US': ['Samantha', 'Microsoft Zira', 'Google US English', 'English'],
                 'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'],
                 'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'],

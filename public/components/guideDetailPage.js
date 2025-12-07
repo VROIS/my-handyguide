@@ -256,9 +256,10 @@ const guideDetailPage = {
         const fullLang = langMap[userLang] || 'ko-KR';
         const langCode = fullLang.substring(0, 2);
         
-        // 플랫폼별 최적 음성 우선순위 (Microsoft → iOS → Chrome/Google)
+        // 플랫폼별 최적 음성 우선순위 (2025-12-07: 한국어 iOS/Android 분기)
+        const isIOS = /iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
         const voicePriority = {
-            'ko-KR': ['Yuna', 'Microsoft Heami', 'Google 한국어', 'Korean', '한국어'],
+            'ko-KR': isIOS ? ['Sora', 'Yuna', 'Korean', '한국어'] : ['Microsoft Heami', 'Korean', '한국어'],
             'en-US': ['Samantha', 'Microsoft Zira', 'Google US English', 'English'],
             'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'],
             'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'],
