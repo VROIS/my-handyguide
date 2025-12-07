@@ -139,7 +139,21 @@ const guideDetailPage = {
         onClose: null,
         // 🌐 2025-12-04: 번역 완료 대기 상태
         translationComplete: true,
-        translationObserver: null
+        translationObserver: null,
+        // 🔊 2025-12-07: DB 기반 음성 설정 캐시
+        voiceConfigsCache: null,
+        voiceConfigsLoading: false
+    },
+    
+    // 🔊 하드코딩 기본값 (오프라인 fallback)
+    _defaultVoicePriorities: {
+        'ko-KR': { ios: ['Sora', 'Yuna', 'Korean', '한국어'], default: ['Microsoft Heami', 'Korean', '한국어'] },
+        'en-US': { default: ['Samantha', 'Microsoft Zira', 'Google US English', 'English'] },
+        'ja-JP': { default: ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'] },
+        'zh-CN': { default: ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'] },
+        'fr-FR': { default: ['Thomas', 'Microsoft Hortense', 'Google français', 'French'] },
+        'de-DE': { default: ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'] },
+        'es-ES': { default: ['Monica', 'Microsoft Helena', 'Google español', 'Spanish'] }
     },
 
     // 초기화
@@ -167,6 +181,9 @@ const guideDetailPage = {
             speechSynthesis.onvoiceschanged = () => self._populateVoiceList();
         }
 
+        // 🔊 2025-12-07: DB에서 음성 설정 로드
+        this._loadVoiceConfigsFromDB();
+
         // 이벤트 리스너
         this._els.backBtn.addEventListener('click', () => self.close());
         this._els.audioBtn.addEventListener('click', () => self._toggleAudio());
@@ -176,6 +193,69 @@ const guideDetailPage = {
         this._initTranslationWatcher();
 
         console.log('[GuideDetailPage] Initialized');
+    },
+    
+    // 🔊 DB에서 음성 설정 로드
+    _loadVoiceConfigsFromDB: async function() {
+        if (this._state.voiceConfigsCache) return this._state.voiceConfigsCache;
+        if (this._state.voiceConfigsLoading) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            return this._state.voiceConfigsCache || null;
+        }
+        
+        this._state.voiceConfigsLoading = true;
+        try {
+            const response = await fetch('/api/voice-configs');
+            if (response.ok) {
+                const configs = await response.json();
+                this._state.voiceConfigsCache = {};
+                for (const config of configs) {
+                    if (!this._state.voiceConfigsCache[config.langCode]) {
+                        this._state.voiceConfigsCache[config.langCode] = {};
+                    }
+                    this._state.voiceConfigsCache[config.langCode][config.platform] = {
+                        priorities: config.voicePriorities,
+                        excludeVoices: config.excludeVoices || []
+                    };
+                }
+                console.log('🔊 [GuideDetailPage Voice DB] 설정 로드 완료:', Object.keys(this._state.voiceConfigsCache));
+            }
+        } catch (error) {
+            console.warn('🔊 [GuideDetailPage Voice DB] 로드 실패, 기본값 사용:', error.message);
+        }
+        this._state.voiceConfigsLoading = false;
+        return this._state.voiceConfigsCache;
+    },
+    
+    // 🔊 플랫폼 감지
+    _detectPlatform: function() {
+        const ua = navigator.userAgent;
+        if (/iPhone|iPad|iPod|Mac/.test(ua)) return 'ios';
+        if (/Android/.test(ua)) return 'android';
+        if (/Windows/.test(ua)) return 'windows';
+        return 'default';
+    },
+    
+    // 🔊 DB 기반 음성 우선순위 가져오기
+    _getVoicePriorityFromDB: function(langCode) {
+        const platform = this._detectPlatform();
+        
+        // DB 캐시 확인
+        if (this._state.voiceConfigsCache && this._state.voiceConfigsCache[langCode]) {
+            const config = this._state.voiceConfigsCache[langCode][platform] || this._state.voiceConfigsCache[langCode]['default'];
+            if (config) {
+                return { priorities: config.priorities, excludeVoices: config.excludeVoices };
+            }
+        }
+        
+        // 기본값 사용 (오프라인/로드 실패)
+        const fallback = this._defaultVoicePriorities[langCode];
+        if (fallback) {
+            const priorities = fallback[platform] || fallback['default'] || fallback[Object.keys(fallback)[0]];
+            return { priorities, excludeVoices: [] };
+        }
+        
+        return { priorities: [], excludeVoices: [] };
     },
 
     // 🌐 번역 완료 감지 (MutationObserver)
@@ -240,7 +320,7 @@ const guideDetailPage = {
     },
     
     // 언어별 음성 선택 (플랫폼별 최적 음성 우선순위)
-    // ⚠️ 2025-12-04 표준화: Microsoft → iOS → Chrome/Google fallback
+    // ⚠️ 2025-12-07 DB 기반: _getVoicePriorityFromDB() 사용, excludeVoices 필터링
     _getVoiceForLanguage: function(userLang) {
         // 짧은 형식 (ko, en) → 긴 형식 (ko-KR, en-US) 변환
         const langMap = {
@@ -256,35 +336,32 @@ const guideDetailPage = {
         const fullLang = langMap[userLang] || 'ko-KR';
         const langCode = fullLang.substring(0, 2);
         
-        // 플랫폼별 최적 음성 우선순위 (2025-12-07: 한국어 iOS/Android 분기)
-        const isIOS = /iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
-        const voicePriority = {
-            'ko-KR': isIOS ? ['Sora', 'Yuna', 'Korean', '한국어'] : ['Microsoft Heami', 'Korean', '한국어'],
-            'en-US': ['Samantha', 'Microsoft Zira', 'Google US English', 'English'],
-            'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'],
-            'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'],
-            'fr-FR': ['Thomas', 'Microsoft Hortense', 'Google français', 'French'],
-            'de-DE': ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'],
-            'es-ES': ['Monica', 'Microsoft Helena', 'Google español', 'Spanish']
-        };
+        // 🔊 DB 기반 음성 우선순위 가져오기
+        const voiceConfig = this._getVoicePriorityFromDB(fullLang);
+        const priorities = voiceConfig.priorities;
+        const excludeVoices = voiceConfig.excludeVoices;
         
         const allVoices = this._state.voices;
         let targetVoice = null;
         
-        // 우선순위대로 음성 찾기
-        const priorities = voicePriority[fullLang] || [];
+        // 우선순위대로 음성 찾기 (제외 목록 적용)
         for (const voiceName of priorities) {
-            targetVoice = allVoices.find(v => v.name.includes(voiceName));
+            targetVoice = allVoices.find(v => 
+                v.name.includes(voiceName) && !excludeVoices.some(ex => v.name.includes(ex))
+            );
             if (targetVoice) break;
         }
         
-        // 우선순위에 없으면 언어 코드로 찾기
+        // 우선순위에 없으면 언어 코드로 찾기 (제외 목록 적용)
         if (!targetVoice) {
-            targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode));
+            targetVoice = allVoices.find(v => 
+                v.lang.replace('_', '-').startsWith(langCode) && !excludeVoices.some(ex => v.name.includes(ex))
+            );
         }
         
         // 디버깅 로그
         console.log('[TTS] userLang:', userLang, 'fullLang:', fullLang, 'langCode:', langCode);
+        console.log('[TTS] DB priorities:', priorities, 'excludeVoices:', excludeVoices);
         console.log('[TTS] Selected voice:', targetVoice?.name, targetVoice?.lang);
         
         return targetVoice || allVoices[0];
