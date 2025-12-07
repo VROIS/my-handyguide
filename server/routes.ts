@@ -7,7 +7,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupGoogleAuth } from "./googleAuth";
 import { setupKakaoAuth } from "./kakaoAuth";
 import { generateLocationBasedContent, getLocationName, generateShareLinkDescription, generateCinematicPrompt, optimizeAudioScript, type GuideContent, type DreamShotPrompt } from "./gemini";
-import { insertGuideSchema, insertShareLinkSchema, insertSharedHtmlPageSchema, creditTransactions, users, notifications, pushSubscriptions, insertNotificationSchema, insertPushSubscriptionSchema } from "@shared/schema";
+import { insertGuideSchema, insertShareLinkSchema, insertSharedHtmlPageSchema, creditTransactions, users, notifications, pushSubscriptions, insertNotificationSchema, insertPushSubscriptionSchema, voiceConfigs } from "@shared/schema";
 import webpush from "web-push";
 import { eq, and, or, isNull } from "drizzle-orm";
 import { GoogleGenAI } from "@google/genai";
@@ -102,6 +102,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({
       googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || ''
     });
+  });
+  
+  // ═══════════════════════════════════════════════════════════════
+  // 🔊 Voice Configs API (TTS 음성 설정)
+  // ═══════════════════════════════════════════════════════════════
+  // 목적: TTS 음성 우선순위를 플랫폼/언어별로 제공
+  // 프론트엔드에서 음성 선택 시 사용
+  // ═══════════════════════════════════════════════════════════════
+  
+  app.get('/api/voice-configs', async (req, res) => {
+    try {
+      const configs = await db.select().from(voiceConfigs).where(eq(voiceConfigs.isActive, true));
+      res.json(configs);
+    } catch (error) {
+      console.error('음성 설정 조회 오류:', error);
+      res.status(500).json({ error: '음성 설정을 불러오는 중 오류가 발생했습니다.' });
+    }
+  });
+  
+  app.get('/api/voice-configs/:langCode', async (req, res) => {
+    try {
+      const { langCode } = req.params;
+      const configs = await db.select().from(voiceConfigs)
+        .where(and(
+          eq(voiceConfigs.langCode, langCode),
+          eq(voiceConfigs.isActive, true)
+        ));
+      
+      if (configs.length === 0) {
+        return res.status(404).json({ error: `언어 코드 '${langCode}'에 대한 설정을 찾을 수 없습니다.` });
+      }
+      
+      res.json(configs);
+    } catch (error) {
+      console.error('음성 설정 조회 오류:', error);
+      res.status(500).json({ error: '음성 설정을 불러오는 중 오류가 발생했습니다.' });
+    }
+  });
+  
+  app.get('/api/voice-configs/:langCode/:platform', async (req, res) => {
+    try {
+      const { langCode, platform } = req.params;
+      const configs = await db.select().from(voiceConfigs)
+        .where(and(
+          eq(voiceConfigs.langCode, langCode),
+          eq(voiceConfigs.platform, platform),
+          eq(voiceConfigs.isActive, true)
+        ));
+      
+      if (configs.length === 0) {
+        const defaultConfigs = await db.select().from(voiceConfigs)
+          .where(and(
+            eq(voiceConfigs.langCode, langCode),
+            eq(voiceConfigs.platform, 'default'),
+            eq(voiceConfigs.isActive, true)
+          ));
+        
+        if (defaultConfigs.length === 0) {
+          return res.status(404).json({ error: `언어 '${langCode}', 플랫폼 '${platform}'에 대한 설정을 찾을 수 없습니다.` });
+        }
+        
+        return res.json(defaultConfigs[0]);
+      }
+      
+      res.json(configs[0]);
+    } catch (error) {
+      console.error('음성 설정 조회 오류:', error);
+      res.status(500).json({ error: '음성 설정을 불러오는 중 오류가 발생했습니다.' });
+    }
   });
   
   // ═══════════════════════════════════════════════════════════════
