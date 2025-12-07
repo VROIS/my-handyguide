@@ -391,8 +391,9 @@
             <img src="images/app-logo.png" alt="MYHANDY GUIDE" class="max-w-[80%] max-h-[90%] object-contain">
         </div>
         
-        <!-- 하단 언어선택 영역 (50%) - admin-settings.html 언어섹션 그대로 -->
+        <!-- 하단 언어선택 영역 (50%) - admin-settings.html 언어섹션 그대로 복사 -->
         <div class="flex-1 flex flex-col justify-center px-4 sm:px-8 max-w-md mx-auto w-full">
+            <!-- 🌐 언어 선택 섹션 -->
             <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-lg shadow-sm text-white">
                 <div class="flex items-center gap-3 mb-4">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -400,7 +401,7 @@
                     </svg>
                     <h2 class="text-lg font-semibold">언어 / Language</h2>
                 </div>
-                <select id="landingLanguageSelect" class="notranslate w-full px-4 py-3 rounded-lg bg-white/20 text-white border border-white/30 font-semibold focus:outline-none focus:ring-2 focus:ring-white/50 cursor-pointer" style="color-scheme: dark;" data-testid="select-landing-language">
+                <select id="languageSelect" class="notranslate w-full px-4 py-3 rounded-lg bg-white/20 text-white border border-white/30 font-semibold focus:outline-none focus:ring-2 focus:ring-white/50" style="color-scheme: dark;">
                     <option value="ko" style="color: #1f2937;">🇰🇷 한국어</option>
                     <option value="en" style="color: #1f2937;">🇺🇸 English</option>
                     <option value="ja" style="color: #1f2937;">🇯🇵 日本語</option>
@@ -409,7 +410,7 @@
                     <option value="de" style="color: #1f2937;">🇩🇪 Deutsch</option>
                     <option value="es" style="color: #1f2937;">🇪🇸 Español</option>
                 </select>
-                <p class="text-xs opacity-80 mt-2">※ 언어 선택 시 자동으로 시작됩니다</p>
+                <p class="text-xs opacity-80 mt-2">※ 앱 전체 언어를 변경합니다</p>
             </div>
         </div>
     </div>

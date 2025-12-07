@@ -5,7 +5,7 @@ import { optimizeImage } from './imageOptimizer.js';
 document.addEventListener('DOMContentLoaded', () => {
     // 🆕 Landing Page Elements (2025-12-07)
     const landingPage = document.getElementById('landingPage');
-    const landingLanguageSelect = document.getElementById('landingLanguageSelect');
+    const landingLanguageSelect = document.getElementById('languageSelect');
     
     // 🆕 Landing Page Logic - 언어 선택 시 즉시 적용 + 기능 설명 페이지로 이동
     if (landingPage && landingLanguageSelect) {
