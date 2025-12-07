@@ -385,43 +385,32 @@
 </head>
 <body style="background-color: #FFFEFA;">
     <!-- 🆕 New Landing Page (2025-12-07) -->
-    <div id="landingPage" class="fixed inset-0 z-[10000] flex flex-col" style="background: linear-gradient(to bottom, #e8f4fc 0%, #f0f8ff 50%, #ffffff 100%);">
-        <!-- 상단 이미지 영역 (65%) -->
-        <div class="flex-1 relative overflow-hidden" style="flex: 0 0 65%;">
-            <img src="images/landing-bg.jpg" alt="손안의 가이드" class="absolute inset-0 w-full h-full object-cover object-top">
+    <div id="landingPage" class="fixed inset-0 z-[10000] flex flex-col" style="background: #f9fafb;">
+        <!-- 상단 로고 영역 (50%) -->
+        <div class="flex items-center justify-center" style="flex: 0 0 50%;">
+            <img src="images/app-logo.png" alt="MYHANDY GUIDE" class="max-w-[80%] max-h-[90%] object-contain">
         </div>
         
-        <!-- 하단 언어선택 영역 (35%) -->
-        <div class="bg-white px-6 py-8 flex flex-col justify-center" style="flex: 0 0 35%;">
-            <p class="text-center text-gray-600 text-sm mb-4">Language Setting & Start (Default: English)</p>
-            
-            <!-- 언어 선택 드롭다운 -->
-            <div class="relative mb-6">
-                <div class="absolute left-4 top-1/2 -translate-y-1/2 text-[#4A9FD4]">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <!-- 하단 언어선택 영역 (50%) - admin-settings.html 언어섹션 그대로 -->
+        <div class="flex-1 flex flex-col justify-center px-4 sm:px-8 max-w-md mx-auto w-full">
+            <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-lg shadow-sm text-white">
+                <div class="flex items-center gap-3 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/>
                     </svg>
+                    <h2 class="text-lg font-semibold">언어 / Language</h2>
                 </div>
-                <select id="landingLanguageSelect" class="notranslate w-full pl-12 pr-10 py-4 rounded-xl border-2 border-[#4A9FD4] text-[#4A9FD4] font-semibold text-lg focus:outline-none focus:ring-2 focus:ring-[#4A9FD4]/50 appearance-none bg-white cursor-pointer" data-testid="select-landing-language">
-                    <option value="en" style="color: #1f2937;">🇺🇸 English</option>
+                <select id="landingLanguageSelect" class="notranslate w-full px-4 py-3 rounded-lg bg-white/20 text-white border border-white/30 font-semibold focus:outline-none focus:ring-2 focus:ring-white/50 cursor-pointer" style="color-scheme: dark;" data-testid="select-landing-language">
                     <option value="ko" style="color: #1f2937;">🇰🇷 한국어</option>
+                    <option value="en" style="color: #1f2937;">🇺🇸 English</option>
                     <option value="ja" style="color: #1f2937;">🇯🇵 日本語</option>
                     <option value="zh-CN" style="color: #1f2937;">🇨🇳 中文 (简体)</option>
                     <option value="fr" style="color: #1f2937;">🇫🇷 Français</option>
                     <option value="de" style="color: #1f2937;">🇩🇪 Deutsch</option>
                     <option value="es" style="color: #1f2937;">🇪🇸 Español</option>
                 </select>
-                <div class="absolute right-4 top-1/2 -translate-y-1/2 text-[#4A9FD4] pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                    </svg>
-                </div>
+                <p class="text-xs opacity-80 mt-2">※ 언어 선택 시 자동으로 시작됩니다</p>
             </div>
-            
-            <!-- 시작 버튼 -->
-            <button id="landingStartBtn" class="w-full py-4 bg-[#4A9FD4] text-white font-bold text-lg rounded-xl hover:bg-[#3A8FC4] transition-colors shadow-lg" data-testid="button-landing-start">
-                시작하기
-            </button>
         </div>
     </div>
     
