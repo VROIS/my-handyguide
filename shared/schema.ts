@@ -338,3 +338,42 @@ export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 export type Notification = typeof notifications.$inferSelect;
 export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
 export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🔊 음성 설정 테이블 (Voice Configs Table)
+// ═══════════════════════════════════════════════════════════════════════════════
+// 
+// 목적: TTS 음성 우선순위를 플랫폼/언어별로 DB에서 관리
+// 
+// 핵심 기능:
+// 1. 플랫폼별 분기 (iOS, Android, Windows, default)
+// 2. 언어별 음성 우선순위 배열 관리
+// 3. 문제 있는 음성 제외 목록 관리
+// 4. 코드 수정 없이 관리자 페이지에서 설정 변경 가능
+// 
+// 사용 시나리오:
+// - TTS 재생 시 해당 언어+플랫폼 설정 조회
+// - voice_priorities 순서대로 음성 검색
+// - exclude_voices에 있는 음성은 스킵
+// 
+// 최근 변경: 2025-12-07 - 음성 최적화 시스템 추가
+// ═══════════════════════════════════════════════════════════════════════════════
+export const voiceConfigs = pgTable("voice_configs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  langCode: varchar("lang_code").notNull(), // 'ko-KR', 'en-US', 'ja-JP', 'zh-CN', 'fr-FR', 'de-DE', 'es-ES'
+  platform: varchar("platform").notNull(), // 'ios', 'android', 'windows', 'default'
+  voicePriorities: text("voice_priorities").array().notNull(), // ['Sora', 'Yuna', 'Korean', '한국어']
+  excludeVoices: text("exclude_voices").array(), // ['Google 한국어'] - 제외할 음성
+  isActive: boolean("is_active").default(true),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Insert schema for voice configs
+export const insertVoiceConfigSchema = createInsertSchema(voiceConfigs).omit({
+  id: true,
+  updatedAt: true,
+});
+
+// Types for voice configs
+export type InsertVoiceConfig = z.infer<typeof insertVoiceConfigSchema>;
+export type VoiceConfig = typeof voiceConfigs.$inferSelect;
