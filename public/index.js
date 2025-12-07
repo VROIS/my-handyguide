@@ -4896,23 +4896,24 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     });
 
     if ('serviceWorker' in navigator) {
+        let isReloading = false;
+        
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/service-worker.js')
               .then(reg => {
                   console.log('SW registered: ', reg);
                   
-                  // 새 버전 감지 시 자동 업데이트
+                  // 새 버전 감지 시 자동 업데이트 (무한 새로고침 방지)
                   reg.addEventListener('updatefound', () => {
                       const newWorker = reg.installing;
                       newWorker.addEventListener('statechange', () => {
-                          if (newWorker.state === 'activated') {
+                          if (newWorker.state === 'activated' && !isReloading) {
                               // 새 버전이 활성화되면 자동으로 페이지 새로고침
                               if (!navigator.serviceWorker.controller) {
                                   // 첫 설치일 경우 새로고침하지 않음
                                   return;
                               }
-                              console.log('🔄 새 버전 업데이트 완료, 페이지 새로고침...');
-                              window.location.reload();
+                              console.log('🔄 새 버전 업데이트 완료');
                           }
                       });
                   });
@@ -4920,9 +4921,18 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
               .catch(err => console.log('SW registration failed: ', err));
         });
         
-        // Service Worker 제어권 변경 감지 (백그라운드 업데이트)
+        // Service Worker 제어권 변경 감지 (백그라운드 업데이트) - 무한 새로고침 방지
+        // 세션당 한 번만 새로고침 허용
+        const swReloadKey = 'sw_reload_done';
         navigator.serviceWorker.addEventListener('controllerchange', () => {
+            if (isReloading) return;
+            if (sessionStorage.getItem(swReloadKey)) {
+                console.log('🔄 Service Worker 업데이트됨 (이미 새로고침됨, 스킵)');
+                return;
+            }
             console.log('🔄 Service Worker 업데이트됨, 페이지 새로고침...');
+            isReloading = true;
+            sessionStorage.setItem(swReloadKey, 'true');
             window.location.reload();
         });
     }
