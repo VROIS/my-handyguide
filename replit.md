@@ -77,27 +77,40 @@ This critical component handles the parsing of guide data from HTML to ensure th
 -   **OpenID Client**: OpenID Connect client.
 -   **connect-pg-simple**: PostgreSQL session store.
 
-# TTS 음성 최적화 설정 (2025-12 확정, 4개월 테스트 완료)
+# TTS 음성 최적화 설정 (2025-12-07 업데이트)
 
-## 한국어 (ko-KR) - 특수 케이스
-- **문제**: 오프라인 모바일에서 기기 설정 따라가는 문제 있음
-- **해결**: Yuna 최우선 + 다중 fallback
-- **최적 순서**: `['Yuna', 'Microsoft Heami', 'Google 한국어', 'Korean', '한국어']`
-  - Yuna: iOS/macOS 최우선 (오프라인 대응)
-  - Microsoft Heami: Windows Edge
-  - Google 한국어: Chrome 온라인
-  - Korean, 한국어: WebView/기타 fallback
+## 한국어 (ko-KR) - 플랫폼별 분기 (2025-12-07 수정)
+- **문제**: "Google 한국어" 음성이 오프라인 모바일에서 문제 발생
+- **해결**: iOS/Android 플랫폼별 분기 적용, Google 한국어 완전 제외
+
+### iOS/macOS 설정
+```javascript
+const isIOS = /iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
+// iOS: ['Sora', 'Yuna', 'Korean', '한국어']
+```
+- **Sora**: iOS 17+ 최신 고품질 음성 (최우선)
+- **Yuna**: iOS/macOS 기존 고품질 음성
+- **Korean, 한국어**: WebView/기타 fallback
+
+### Android/Windows 설정
+```javascript
+// Android/Windows: ['Microsoft Heami', 'Korean', '한국어']
+```
+- **Microsoft Heami**: Windows Edge 고품질 음성
+- ❌ **Google 한국어 제외** (오프라인 문제 해결)
+- **Korean, 한국어**: fallback
 
 ## 전체 언어 우선순위 전략
-1. **1순위**: iOS/macOS 음성 (Yuna, Samantha, Kyoko, Ting-Ting, Thomas, Anna, Monica)
+1. **1순위**: iOS/macOS 음성 (Sora, Yuna, Samantha, Kyoko, Ting-Ting, Thomas, Anna, Monica)
 2. **2순위**: Windows Edge 음성 (Microsoft Heami, Zira, Haruka, Huihui, Hortense, Hedda, Helena)
-3. **3순위**: Chrome/Android 음성 (Google 시리즈)
+3. **3순위**: Chrome/Android 음성 (Google 시리즈 - 한국어 제외)
 4. **4순위**: 일반 fallback (Korean, English, Japanese 등)
 
 ## 전체 voicePriority 설정값
 ```javascript
+const isIOS = /iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
 const voicePriority = {
-    'ko-KR': ['Yuna', 'Microsoft Heami', 'Google 한국어', 'Korean', '한국어'],
+    'ko-KR': isIOS ? ['Sora', 'Yuna', 'Korean', '한국어'] : ['Microsoft Heami', 'Korean', '한국어'],
     'en-US': ['Samantha', 'Microsoft Zira', 'Google US English', 'English'],
     'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'],
     'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'],
@@ -108,15 +121,16 @@ const voicePriority = {
 ```
 
 ## 적용 파일 (6곳) - 반드시 동일하게 유지!
-- `server/standard-template.ts` (라인 521-529)
-- `public/index.js` (라인 982-990, 2227-2235, 3244-3252)
-- `public/components/guideDetailPage.js` (라인 260-268)
-- `public/components/sharePageTranslation.js` (라인 32-39)
+- `server/standard-template.ts` (라인 523-533)
+- `public/index.js` (라인 1062-1071, 2311-2321, 3332-3342) - 3곳
+- `public/components/guideDetailPage.js` (라인 262-272)
+- `public/components/sharePageTranslation.js` (라인 33-48)
 
 ## 주의사항
 - v2.js는 실패한 로직이므로 수정 금지
 - 모든 파일에서 동일한 설정 유지 필수
 - 새 언어 추가 시 6곳 모두 업데이트 필요
+- 한국어만 플랫폼별 분기, 다른 언어는 기존 설정 유지
 
 # 구글 번역 후 TTS 통일 규칙 (2025-12-06)
 
