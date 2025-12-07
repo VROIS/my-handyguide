@@ -3,6 +3,41 @@ import * as gemini from './geminiService.js';
 import { optimizeImage } from './imageOptimizer.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 🆕 Landing Page Elements (2025-12-07)
+    const landingPage = document.getElementById('landingPage');
+    const landingLanguageSelect = document.getElementById('landingLanguageSelect');
+    const landingStartBtn = document.getElementById('landingStartBtn');
+    
+    // 🆕 Landing Page Logic - 언어 선택 후 메인 앱으로 이동
+    if (landingPage && landingLanguageSelect && landingStartBtn) {
+        // 이전에 언어 선택한 적 있으면 랜딩페이지 스킵
+        const savedLang = localStorage.getItem('appLanguage');
+        if (savedLang) {
+            landingPage.style.display = 'none';
+        }
+        
+        // 시작 버튼 클릭
+        landingStartBtn.addEventListener('click', () => {
+            const selectedLang = landingLanguageSelect.value;
+            
+            // 언어 저장
+            localStorage.setItem('appLanguage', selectedLang);
+            
+            // 랜딩페이지 숨기고 앱 시작
+            landingPage.style.opacity = '0';
+            landingPage.style.transition = 'opacity 0.5s ease-out';
+            
+            setTimeout(() => {
+                landingPage.style.display = 'none';
+                
+                // 구글 번역 적용 (LanguageHelper 사용)
+                if (typeof LanguageHelper !== 'undefined' && LanguageHelper.applyLanguage) {
+                    LanguageHelper.applyLanguage(selectedLang);
+                }
+            }, 500);
+        });
+    }
+    
     // DOM Elements
     const video = document.getElementById('camera-feed');
     const canvas = document.getElementById('capture-canvas');
