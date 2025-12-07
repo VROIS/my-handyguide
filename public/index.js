@@ -3,33 +3,8 @@ import * as gemini from './geminiService.js';
 import { optimizeImage } from './imageOptimizer.js';
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 🆕 Landing Page Elements (2025-12-07)
-    const landingPage = document.getElementById('landingPage');
-    const landingLanguageSelect = document.getElementById('languageSelect');
-    
-    // 🆕 Landing Page Logic - 언어 선택 시 즉시 적용 + 기능 설명 페이지로 이동
-    if (landingPage && landingLanguageSelect) {
-        // 언어 선택 change 이벤트 → 즉시 적용 + 기능 설명 페이지로 이동
-        landingLanguageSelect.addEventListener('change', () => {
-            const selectedLang = landingLanguageSelect.value;
-            
-            // 언어 저장
-            localStorage.setItem('appLanguage', selectedLang);
-            
-            // 구글 번역 즉시 적용 (LanguageHelper 사용)
-            if (typeof LanguageHelper !== 'undefined' && LanguageHelper.applyLanguage) {
-                LanguageHelper.applyLanguage(selectedLang);
-            }
-            
-            // 랜딩페이지 즉시 숨김
-            landingPage.style.display = 'none';
-            
-            // 기능 설명 페이지로 이동
-            if (featuresPage) {
-                featuresPage.classList.remove('hidden');
-            }
-        });
-    }
+    // 🌐 언어 선택 바인딩 (admin-settings.html과 동일)
+    LanguageHelper.bindLanguageSelect('languageSelect');
     
     // DOM Elements
     const video = document.getElementById('camera-feed');
