@@ -392,7 +392,7 @@
         </div>
         
         <!-- 하단 언어선택 영역 (50%) - admin-settings.html 언어섹션 그대로 복사 -->
-        <div class="flex-1 flex flex-col justify-center px-4 sm:px-8 max-w-md mx-auto w-full">
+        <div class="flex-1 flex flex-col justify-start pt-4 px-4 sm:px-8 max-w-md mx-auto w-full">
             <!-- 🌐 언어 선택 섹션 -->
             <div class="bg-gradient-to-r from-blue-500 to-blue-600 p-6 rounded-lg shadow-sm text-white">
                 <div class="flex items-center gap-3 mb-4">
@@ -1238,6 +1238,11 @@
     </div>
 
 <script src="language-helper.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        LanguageHelper.bindLanguageSelect('languageSelect');
+    });
+</script>
 <script type="module" src="./index.js?v=20251102-7"></script>
 
 <!-- Google Translate Widget (숨김) -->
