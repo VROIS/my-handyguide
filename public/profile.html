@@ -450,6 +450,11 @@
             } catch (error) {
                 console.error('Profile load error:', error);
                 showToast('프로필을 불러오는데 실패했습니다.');
+                // 에러 발생 시에도 로딩 상태 해제
+                document.getElementById('profileLoading').classList.add('hidden');
+                document.getElementById('profileContent').classList.remove('hidden');
+                document.getElementById('guestView').classList.remove('hidden');
+                document.getElementById('userView').classList.add('hidden');
             }
         }
 
@@ -528,6 +533,10 @@
                 }
             } catch (error) {
                 console.error('Pages load error:', error);
+                // 에러 발생 시에도 로딩 상태 해제
+                document.getElementById('pagesLoading').classList.add('hidden');
+                document.getElementById('pagesList').classList.remove('hidden');
+                document.getElementById('noPagesMsg').classList.remove('hidden');
             }
         }
 
@@ -581,6 +590,9 @@
                 }
             } catch (error) {
                 console.error('Transactions load error:', error);
+                // 에러 발생 시에도 로딩 상태 해제
+                document.getElementById('transactionsLoading').classList.add('hidden');
+                document.getElementById('noTransactions').classList.remove('hidden');
             }
         }
 
