@@ -1328,6 +1328,16 @@
             'es': '🇪🇸 Español'
         };
         
+        // 🔧 새로고침 후 기능페이지로 바로 이동 (2025-12-07)
+        const landingVisited = localStorage.getItem('landingVisited');
+        if (landingVisited === 'true' && landingPage && featuresPage) {
+            landingPage.classList.add('hidden');
+            featuresPage.classList.add('visible');
+            // 한번 사용 후 초기화 (다음 방문 시 랜딩 표시)
+            localStorage.removeItem('landingVisited');
+            console.log('🔄 랜딩페이지 스킵 → 기능페이지 표시');
+        }
+        
         // 저장된 언어가 있으면 드롭다운 텍스트에 반영
         const savedLanguage = localStorage.getItem('appLanguage');
         if (savedLanguage && selectedLangText && langLabels[savedLanguage]) {
@@ -1349,46 +1359,32 @@
             });
         }
         
-        // 언어 선택 시 → setLanguage 호출 → 기능페이지로 이동
+        // 언어 선택 시 → googtrans 쿠키 설정 → 페이지 새로고침 (2025-12-07 수정)
         dropdownItems.forEach(item => {
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const selectedLang = item.getAttribute('data-value');
-                const langText = item.textContent;
                 
-                // 드롭다운 닫기 + 텍스트 업데이트
-                if (selectedLangText) selectedLangText.textContent = langText;
+                // 드롭다운 닫기
                 dropdownList.classList.remove('open');
                 dropdownArrow?.classList.remove('open');
                 
-                // 언어 적용 (Google Translate 연동)
+                // 언어 저장 (LanguageHelper + localStorage)
                 LanguageHelper.setLanguage(selectedLang);
                 
-                // 랜딩페이지 숨기고 기능페이지로 이동
-                if (landingPage && featuresPage) {
-                    landingPage.style.transition = 'opacity 0.3s ease-out';
-                    landingPage.style.opacity = '0';
-                    
-                    setTimeout(() => {
-                        landingPage.classList.add('hidden');
-                        featuresPage.classList.add('visible');
-                        
-                        // 🔧 기능페이지 전환 후 Google Translate 재활성화 (2025-12-07)
-                        if (selectedLang !== 'ko') {
-                            setTimeout(() => {
-                                try {
-                                    if (window.google?.translate?.TranslateService) {
-                                        window.google.translate.TranslateService.getInstance().translate('ko', selectedLang);
-                                        console.log('🌐 Google Translate 재활성화:', selectedLang);
-                                    }
-                                } catch (e) {
-                                    console.log('⚠️ Google Translate 서비스 호출 실패, 새로고침 시도');
-                                    window.location.reload();
-                                }
-                            }, 500);
-                        }
-                    }, 300);
+                // 랜딩페이지 방문 완료 표시 (새로고침 후 기능페이지로 이동하도록)
+                localStorage.setItem('landingVisited', 'true');
+                
+                // 🔧 Google Translate 쿠키 설정 후 새로고침 (2025-12-07)
+                if (selectedLang !== 'ko') {
+                    // googtrans 쿠키 설정 (도메인 레벨 + 루트 패스)
+                    document.cookie = `googtrans=/ko/${selectedLang}; path=/`;
+                    document.cookie = `googtrans=/ko/${selectedLang}; path=/; domain=${window.location.hostname}`;
+                    console.log('🌐 Google Translate 쿠키 설정:', selectedLang);
                 }
+                
+                // 페이지 새로고침으로 번역 적용
+                window.location.reload();
             });
         });
     });
