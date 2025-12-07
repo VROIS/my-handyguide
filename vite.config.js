@@ -38,7 +38,10 @@ export default defineConfig({
           'tailwind.css',
           'admin-dashboard.html',
           'user-guide.html',
-          'profile.html'
+          'profile.html',
+          'language-helper.js',
+          'sw-share.js',
+          'admin-settings.html'
         ];
         
         filesToCopy.forEach(file => {
@@ -73,6 +76,34 @@ export default defineConfig({
             fs.copyFileSync(
               path.join(sharedTemplateDir, file),
               path.join(destSharedTemplateDir, file)
+            );
+          });
+        }
+        
+        const imagesDir = path.resolve(__dirname, 'public/images');
+        const destImagesDir = path.resolve(__dirname, 'dist/public/images');
+        if (fs.existsSync(imagesDir)) {
+          if (!fs.existsSync(destImagesDir)) {
+            fs.mkdirSync(destImagesDir, { recursive: true });
+          }
+          fs.readdirSync(imagesDir).forEach(file => {
+            fs.copyFileSync(
+              path.join(imagesDir, file),
+              path.join(destImagesDir, file)
+            );
+          });
+        }
+        
+        const componentsDir = path.resolve(__dirname, 'public/components');
+        const destComponentsDir = path.resolve(__dirname, 'dist/public/components');
+        if (fs.existsSync(componentsDir)) {
+          if (!fs.existsSync(destComponentsDir)) {
+            fs.mkdirSync(destComponentsDir, { recursive: true });
+          }
+          fs.readdirSync(componentsDir).forEach(file => {
+            fs.copyFileSync(
+              path.join(componentsDir, file),
+              path.join(destComponentsDir, file)
             );
           });
         }
