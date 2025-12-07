@@ -77,60 +77,68 @@ This critical component handles the parsing of guide data from HTML to ensure th
 -   **OpenID Client**: OpenID Connect client.
 -   **connect-pg-simple**: PostgreSQL session store.
 
-# TTS 음성 최적화 설정 (2025-12-07 업데이트)
+# TTS 음성 최적화 설정 (2025-12-07 DB 기반 시스템으로 전환)
 
-## 한국어 (ko-KR) - 플랫폼별 분기 (2025-12-07 수정)
+## 시스템 아키텍처
+TTS 음성 우선순위 설정은 이제 **PostgreSQL 데이터베이스의 `voice_configs` 테이블**에서 관리됩니다. 이를 통해 코드 수정 없이 음성 설정을 변경할 수 있습니다.
+
+### 데이터베이스 스키마 (voice_configs)
+```typescript
+{
+  id: serial,                    // Primary key
+  languageCode: varchar(10),     // 예: 'ko-KR', 'en-US'
+  platform: varchar(20),         // 'ios' 또는 'other' (Android/Windows)
+  voicePriorities: text[],       // 음성 우선순위 배열
+  excludeVoices: text[],         // 제외할 음성 배열 (예: ['Google 한국어'])
+  isActive: boolean              // 활성화 상태
+}
+```
+
+### API 엔드포인트
+- **GET /api/voice-configs**: 활성화된 모든 음성 설정 조회
+- 응답 형식: `VoiceConfig[]` 배열
+
+### 프론트엔드 로딩 방식
+1. 앱 초기화 시 `/api/voice-configs` API 호출
+2. 설정을 메모리에 캐싱 (`voiceConfigsCache`)
+3. API 실패 시 하드코딩된 기본값 사용 (오프라인 fallback)
+
+## 기본 음성 설정값 (DB에 저장됨)
+
+### 한국어 (ko-KR) - 플랫폼별 분기
 - **문제**: "Google 한국어" 음성이 오프라인 모바일에서 문제 발생
-- **해결**: iOS/Android 플랫폼별 분기 적용, Google 한국어 완전 제외
+- **해결**: iOS/Android 플랫폼별 분기 적용, Google 한국어는 `excludeVoices`에 추가
 
-### iOS/macOS 설정
-```javascript
-const isIOS = /iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
-// iOS: ['Sora', 'Yuna', 'Korean', '한국어']
-```
-- **Sora**: iOS 17+ 최신 고품질 음성 (최우선)
-- **Yuna**: iOS/macOS 기존 고품질 음성
-- **Korean, 한국어**: WebView/기타 fallback
+| 플랫폼 | voicePriorities | excludeVoices |
+|--------|-----------------|---------------|
+| iOS/macOS | ['Sora', 'Yuna', 'Korean', '한국어'] | [] |
+| Android/Windows | ['Microsoft Heami', 'Korean', '한국어'] | ['Google 한국어'] |
 
-### Android/Windows 설정
-```javascript
-// Android/Windows: ['Microsoft Heami', 'Korean', '한국어']
-```
-- **Microsoft Heami**: Windows Edge 고품질 음성
-- ❌ **Google 한국어 제외** (오프라인 문제 해결)
-- **Korean, 한국어**: fallback
+### 전체 언어별 설정 (DB 기준)
+| 언어 | iOS 우선순위 | Other 우선순위 |
+|------|-------------|----------------|
+| ko-KR | Sora, Yuna, Korean, 한국어 | Microsoft Heami, Korean, 한국어 |
+| en-US | Samantha, Microsoft Zira, Google US English, English | (동일) |
+| ja-JP | Kyoko, Microsoft Haruka, Google 日本語, Japanese | (동일) |
+| zh-CN | Ting-Ting, Microsoft Huihui, Google 普通话, Chinese | (동일) |
+| fr-FR | Thomas, Microsoft Hortense, Google français, French | (동일) |
+| de-DE | Anna, Microsoft Hedda, Google Deutsch, German | (동일) |
+| es-ES | Monica, Microsoft Helena, Google español, Spanish | (동일) |
 
-## 전체 언어 우선순위 전략
-1. **1순위**: iOS/macOS 음성 (Sora, Yuna, Samantha, Kyoko, Ting-Ting, Thomas, Anna, Monica)
-2. **2순위**: Windows Edge 음성 (Microsoft Heami, Zira, Haruka, Huihui, Hortense, Hedda, Helena)
-3. **3순위**: Chrome/Android 음성 (Google 시리즈 - 한국어 제외)
-4. **4순위**: 일반 fallback (Korean, English, Japanese 등)
+## DB 기반 시스템 적용 파일 (2곳)
+- `public/index.js` - `loadVoiceConfigsFromDB()`, `getVoicePriorityFromDB()` 함수
+- `public/components/guideDetailPage.js` - `_loadVoiceConfigsFromDB()`, `_getVoicePriorityFromDB()` 함수
 
-## 전체 voicePriority 설정값
-```javascript
-const isIOS = /iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
-const voicePriority = {
-    'ko-KR': isIOS ? ['Sora', 'Yuna', 'Korean', '한국어'] : ['Microsoft Heami', 'Korean', '한국어'],
-    'en-US': ['Samantha', 'Microsoft Zira', 'Google US English', 'English'],
-    'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'],
-    'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'],
-    'fr-FR': ['Thomas', 'Microsoft Hortense', 'Google français', 'French'],
-    'de-DE': ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'],
-    'es-ES': ['Monica', 'Microsoft Helena', 'Google español', 'Spanish']
-};
-```
-
-## 적용 파일 (6곳) - 반드시 동일하게 유지!
-- `server/standard-template.ts` (라인 523-533)
-- `public/index.js` (라인 1062-1071, 2311-2321, 3332-3342) - 3곳
-- `public/components/guideDetailPage.js` (라인 262-272)
-- `public/components/sharePageTranslation.js` (라인 33-48)
+## 하드코딩 유지 파일 (오프라인 호환성)
+공유 페이지는 오프라인에서도 동작해야 하므로 하드코딩 유지:
+- `server/standard-template.ts` - 공유 HTML 생성 시 음성 설정 포함
+- `public/components/sharePageTranslation.js` - 공유 페이지 TTS
 
 ## 주의사항
 - v2.js는 실패한 로직이므로 수정 금지
-- 모든 파일에서 동일한 설정 유지 필수
-- 새 언어 추가 시 6곳 모두 업데이트 필요
-- 한국어만 플랫폼별 분기, 다른 언어는 기존 설정 유지
+- 새 언어 추가 시 DB에 레코드 추가 (ios/other 플랫폼별 2개)
+- API 실패 시 자동으로 기본값 fallback
+- 한국어만 플랫폼별로 다른 excludeVoices 적용
 
 # 구글 번역 후 TTS 통일 규칙 (2025-12-06)
 
