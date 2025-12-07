@@ -417,14 +417,7 @@
         </div>
     </div>
     
-    <!-- 기존 커튼 레이어 (백업용 숨김) -->
-    <div id="curtain-layer" class="hidden">
-        <div id="curtain-left" class="curtain"></div>
-        <div id="curtain-right" class="curtain"></div>
-        <div class="splash-logo">
-             <span class="logo-dot">손</span>안에 가이드
-        </div>
-    </div>
+    <!-- 커튼 레이어 제거됨 (2025-12-07) -->
     
     <video id="camera-feed" class="full-screen-bg" autoplay playsinline muted></video>
     <canvas id="capture-canvas" class="hidden"></canvas>
@@ -1246,31 +1239,18 @@
         const featuresPage = document.getElementById('featuresPage');
         const languageSelect = document.getElementById('languageSelect');
         
-        // 이미 언어 선택한 적 있으면 랜딩페이지 스킵
-        const hasSelectedLanguage = localStorage.getItem('appLanguage');
-        if (hasSelectedLanguage && landingPage && featuresPage) {
-            landingPage.classList.add('hidden');
-            featuresPage.classList.add('visible');
+        // 저장된 언어가 있으면 드롭다운에 반영 (랜딩페이지는 유지)
+        const savedLanguage = localStorage.getItem('appLanguage');
+        if (savedLanguage && languageSelect) {
+            languageSelect.value = savedLanguage;
         }
         
-        // 언어 선택 시 랜딩페이지 닫고 기능페이지로 이동
-        if (languageSelect && landingPage && featuresPage) {
+        // 언어 선택 시 언어만 저장 (랜딩페이지 유지)
+        if (languageSelect) {
             languageSelect.addEventListener('change', (e) => {
                 const selectedLang = e.target.value;
                 LanguageHelper.setLanguage(selectedLang);
-                
-                // 랜딩페이지 닫기 (페이드 아웃)
-                landingPage.style.transition = 'opacity 0.3s ease-out';
-                landingPage.style.opacity = '0';
-                
-                setTimeout(() => {
-                    landingPage.classList.add('hidden');
-                    featuresPage.classList.add('visible');
-                }, 300);
             });
-        } else {
-            // 폴백: 기존 바인딩
-            LanguageHelper.bindLanguageSelect('languageSelect');
         }
     });
 </script>
@@ -1308,49 +1288,6 @@
     }
 </style>
 
-<!-- Landing Page Animation Script (Surgically Transplanted) -->
-<script>
-    window.addEventListener('load', () => {
-        const logo = document.querySelector('.splash-logo');
-        const curtainLeft = document.getElementById('curtain-left');
-        const curtainRight = document.getElementById('curtain-right');
-        const curtainLayer = document.getElementById('curtain-layer');
-        const featuresPage = document.getElementById('featuresPage');
-        const archivePage = document.getElementById('archivePage');
-        if (!logo || !curtainLeft || !curtainRight || !curtainLayer || !featuresPage) return;
-
-        // ✨ 보관함 직접 접속 (#archive) - 커튼 건너뛰기 (2025-10-28)
-        if (window.location.hash === '#archive') {
-            // 커튼 즉시 제거 (애니메이션 없음)
-            curtainLayer.style.display = 'none';
-            // archivePage는 index.js에서 표시됨
-            return;
-        }
-
-        // --- 기존 커튼 애니메이션 (해시 없을 때만) ---
-        
-        // 1. Logo appears
-        setTimeout(() => {
-            logo.classList.add('visible');
-        }, 100);
-
-        // 2. Logo fades out and we make the features page visible *behind* the curtain
-        setTimeout(() => {
-            logo.classList.remove('visible');
-            featuresPage.classList.add('visible'); // Make it visible but it's still covered
-        }, 1500); 
-
-        // 3. Curtains open
-        setTimeout(() => {
-            curtainLeft.classList.add('open');
-            curtainRight.classList.add('open');
-        }, 2000);
-
-        // 4. Remove the curtain layer after animation is complete
-        setTimeout(() => {
-            curtainLayer.style.display = 'none';
-        }, 3000); 
-    });
-</script>
+<!-- 커튼 효과 제거됨 (2025-12-07) -->
 </body>
 </html>
