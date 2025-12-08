@@ -364,70 +364,51 @@
         #featuresPage .cta-button:hover {
             background-color: #3367D6;
         }
-        /* 커스텀 드롭다운 스타일 (2025-12-07) */
-        .custom-dropdown {
-            position: relative;
-            width: 100%;
-        }
-        .custom-dropdown-btn {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            background: rgba(255,255,255,0.2);
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 0.5rem;
-            color: white;
-            font-weight: 600;
-            text-align: left;
-            cursor: pointer;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .custom-dropdown-btn:focus {
-            outline: none;
-            box-shadow: 0 0 0 2px rgba(255,255,255,0.5);
-        }
-        .custom-dropdown-list {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            margin-top: 0.25rem;
-            background: white;
-            border-radius: 0.5rem;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-            max-height: 0;
-            overflow: hidden;
-            opacity: 0;
-            transition: max-height 0.3s ease, opacity 0.2s ease;
-            z-index: 200;
-        }
-        .custom-dropdown-list.open {
-            max-height: 350px;
+        /* 언어 선택 스크롤 리스트 (2025-12-08 고정 리스트 + 스크롤) */
+        .language-scroll-list {
+            max-height: 160px;
             overflow-y: auto;
-            opacity: 1;
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        .custom-dropdown-item {
-            padding: 0.75rem 1rem;
+        .language-scroll-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        .language-scroll-list::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .language-scroll-list::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        .language-item {
+            padding: 0.875rem 1rem;
             color: #1f2937;
             cursor: pointer;
             transition: background-color 0.15s ease;
             font-weight: 500;
+            border-bottom: 1px solid #f3f4f6;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
-        .custom-dropdown-item:hover {
-            background-color: #f3f4f6;
+        .language-item:last-child {
+            border-bottom: none;
         }
-        .custom-dropdown-item:first-child {
-            border-radius: 0.5rem 0.5rem 0 0;
+        .language-item:hover {
+            background-color: #f0f7ff;
         }
-        .custom-dropdown-item:last-child {
-            border-radius: 0 0 0.5rem 0.5rem;
+        .language-item.selected {
+            background-color: #e0efff;
+            color: #1d4ed8;
         }
-        .dropdown-arrow {
-            transition: transform 0.2s ease;
+        .language-item:first-child {
+            border-radius: 0.75rem 0.75rem 0 0;
         }
-        .dropdown-arrow.open {
-            transform: rotate(180deg);
+        .language-item:last-child {
+            border-radius: 0 0 0.75rem 0.75rem;
         }
 
         /* 공유 모달 스타일 */
@@ -452,41 +433,32 @@
 <body style="background-color: #FFFEFA;">
     <!-- 🆕 New Landing Page (2025-12-07) - 모바일 최적화 -->
     <div id="landingPage" class="h-screen flex flex-col" style="background: #f9fafb; position: relative; z-index: 100;">
-        <!-- 상단 로고 영역 - 35vh (2025-12-08 UX 최적화) -->
-        <div class="flex items-center justify-center" style="height: 35vh; flex-shrink: 0;">
+        <!-- 상단 로고 영역 - 45vh (2025-12-08 UX 최적화) -->
+        <div class="flex items-center justify-center" style="height: 45vh; flex-shrink: 0;">
             <img src="images/landing-logo.jpg" alt="손안의 가이드 - Your Expert in Hand" class="max-w-[85%] h-full object-contain">
         </div>
         
-        <!-- 하단 언어선택 영역 - 언어 창을 최대한 위로 (2025-12-08 UX 최적화) -->
-        <div class="flex-1 overflow-y-auto px-4 pt-2">
+        <!-- 하단 언어선택 영역 - 고정 리스트 + 스크롤 (2025-12-08 UX 최적화) -->
+        <div class="flex-1 px-4 pt-2">
             <div class="max-w-md mx-auto w-full">
-                <!-- 🌐 언어 선택 섹션 - 제미니 블루 컬러, 높이 축소 -->
+                <!-- 🌐 언어 선택 섹션 - 심플 헤더 -->
                 <div class="p-4 rounded-lg shadow-sm text-white" style="background: linear-gradient(to right, #4285F4, #3B78E7);">
-                    <div class="flex items-center gap-2 mb-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <div class="flex items-center gap-2 mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/>
                         </svg>
-                        <h2 class="text-lg font-semibold">언어 / Language</h2>
+                        <h2 class="text-base font-semibold">언어 선택</h2>
                     </div>
-                    <!-- 커스텀 드롭다운 (2025-12-07) -->
-                    <div class="custom-dropdown notranslate" id="languageDropdown">
-                        <button type="button" class="custom-dropdown-btn" id="dropdownBtn">
-                            <span id="selectedLangText">🇰🇷 한국어</span>
-                            <svg class="dropdown-arrow w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                            </svg>
-                        </button>
-                        <div class="custom-dropdown-list" id="dropdownList">
-                            <div class="custom-dropdown-item" data-value="ko">🇰🇷 한국어</div>
-                            <div class="custom-dropdown-item" data-value="en">🇺🇸 English</div>
-                            <div class="custom-dropdown-item" data-value="ja">🇯🇵 日本語</div>
-                            <div class="custom-dropdown-item" data-value="zh-CN">🇨🇳 中文 (简体)</div>
-                            <div class="custom-dropdown-item" data-value="fr">🇫🇷 Français</div>
-                            <div class="custom-dropdown-item" data-value="de">🇩🇪 Deutsch</div>
-                            <div class="custom-dropdown-item" data-value="es">🇪🇸 Español</div>
-                        </div>
+                    <!-- 고정 리스트 + 스크롤 (2025-12-08) -->
+                    <div class="language-scroll-list notranslate" id="languageScrollList">
+                        <div class="language-item selected" data-value="ko" data-testid="lang-ko">🇰🇷 한국어</div>
+                        <div class="language-item" data-value="en" data-testid="lang-en">🇺🇸 English</div>
+                        <div class="language-item" data-value="ja" data-testid="lang-ja">🇯🇵 日本語</div>
+                        <div class="language-item" data-value="zh-CN" data-testid="lang-zh">🇨🇳 中文 (简体)</div>
+                        <div class="language-item" data-value="fr" data-testid="lang-fr">🇫🇷 Français</div>
+                        <div class="language-item" data-value="de" data-testid="lang-de">🇩🇪 Deutsch</div>
+                        <div class="language-item" data-value="es" data-testid="lang-es">🇪🇸 Español</div>
                     </div>
-                    <p class="text-xs opacity-80 mt-2">※ 앱 전체 언어를 변경합니다</p>
                 </div>
             </div>
         </div>
@@ -1322,62 +1294,38 @@
     document.addEventListener('DOMContentLoaded', () => {
         const landingPage = document.getElementById('landingPage');
         const featuresPage = document.getElementById('featuresPage');
-        const dropdownBtn = document.getElementById('dropdownBtn');
-        const dropdownList = document.getElementById('dropdownList');
-        const dropdownArrow = dropdownBtn?.querySelector('.dropdown-arrow');
-        const selectedLangText = document.getElementById('selectedLangText');
-        const dropdownItems = document.querySelectorAll('.custom-dropdown-item');
-        
-        const langLabels = {
-            'ko': '🇰🇷 한국어',
-            'en': '🇺🇸 English',
-            'ja': '🇯🇵 日本語',
-            'zh-CN': '🇨🇳 中文 (简体)',
-            'fr': '🇫🇷 Français',
-            'de': '🇩🇪 Deutsch',
-            'es': '🇪🇸 Español'
-        };
+        const languageScrollList = document.getElementById('languageScrollList');
+        const languageItems = document.querySelectorAll('.language-item');
         
         // 🔧 새로고침 후 기능페이지로 바로 이동 (2025-12-07)
         const landingVisited = localStorage.getItem('landingVisited');
         if (landingVisited === 'true' && landingPage && featuresPage) {
             landingPage.classList.add('hidden');
             featuresPage.classList.add('visible');
-            // 한번 사용 후 초기화 (다음 방문 시 랜딩 표시)
             localStorage.removeItem('landingVisited');
             console.log('🔄 랜딩페이지 스킵 → 기능페이지 표시');
         }
         
-        // 저장된 언어가 있으면 드롭다운 텍스트에 반영
+        // 저장된 언어가 있으면 해당 항목에 selected 클래스 추가
         const savedLanguage = localStorage.getItem('appLanguage');
-        if (savedLanguage && selectedLangText && langLabels[savedLanguage]) {
-            selectedLangText.textContent = langLabels[savedLanguage];
-        }
-        
-        // 드롭다운 열기/닫기
-        if (dropdownBtn && dropdownList) {
-            dropdownBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                dropdownList.classList.toggle('open');
-                dropdownArrow?.classList.toggle('open');
-            });
-            
-            // 외부 클릭 시 닫기
-            document.addEventListener('click', () => {
-                dropdownList.classList.remove('open');
-                dropdownArrow?.classList.remove('open');
+        if (savedLanguage) {
+            languageItems.forEach(item => {
+                item.classList.remove('selected');
+                if (item.getAttribute('data-value') === savedLanguage) {
+                    item.classList.add('selected');
+                }
             });
         }
         
-        // 언어 선택 시 → googtrans 쿠키 설정 → 페이지 새로고침 (2025-12-07 수정)
-        dropdownItems.forEach(item => {
+        // 언어 선택 시 → googtrans 쿠키 설정 → 페이지 새로고침 (2025-12-08 스크롤 리스트)
+        languageItems.forEach(item => {
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const selectedLang = item.getAttribute('data-value');
                 
-                // 드롭다운 닫기
-                dropdownList.classList.remove('open');
-                dropdownArrow?.classList.remove('open');
+                // 선택된 항목 하이라이트
+                languageItems.forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
                 
                 // 언어 저장 (LanguageHelper + localStorage)
                 LanguageHelper.setLanguage(selectedLang);
@@ -1387,7 +1335,6 @@
                 
                 // 🔧 Google Translate 쿠키 설정 후 새로고침 (2025-12-07)
                 if (selectedLang !== 'ko') {
-                    // googtrans 쿠키 설정 (도메인 레벨 + 루트 패스)
                     document.cookie = `googtrans=/ko/${selectedLang}; path=/`;
                     document.cookie = `googtrans=/ko/${selectedLang}; path=/; domain=${window.location.hostname}`;
                     console.log('🌐 Google Translate 쿠키 설정:', selectedLang);
