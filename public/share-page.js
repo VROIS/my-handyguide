@@ -234,28 +234,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // === 보관함에서 그대로 복사한 TTS 시스템 ===
 
-// iOS에 최적화된 음성 선택 함수 (2025-12-08 Yuna 음성 문제 해결)
+// ⭐ 2025-12-08: 한국어 하드코딩 (Yuna/Sora 우선순위)
 function getOptimalKoreanVoice() {
     const allVoices = synth.getVoices();
-    const isIOS = /iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
+    const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
     
-    // iOS: Yuna 우선, Android: Microsoft Heami 우선
-    const priorityList = isIOS 
-        ? ['Yuna', 'Microsoft Heami', 'Google 한국어']
-        : ['Microsoft Heami', 'Yuna', 'Google 한국어'];
+    // Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
+    const targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                     || koVoices.find(v => v.name.includes('Sora'))
+                     || koVoices.find(v => v.name.includes('유나'))
+                     || koVoices.find(v => v.name.includes('소라'))
+                     || koVoices.find(v => v.name.includes('Heami'))
+                     || koVoices[0];
     
-    for (const voiceName of priorityList) {
-        const voice = allVoices.find(v => v.name.includes(voiceName));
-        if (voice) {
-            console.log('🎤 [한국어음성선택]', isIOS ? 'iOS' : 'Android', '→', voice.name);
-            return voice;
-        }
-    }
-    
-    // Fallback: 한국어 첫 번째 음성
-    const koVoice = allVoices.find(v => v.lang.startsWith('ko'));
-    console.log('🎤 [한국어음성-Fallback]', koVoice?.name || 'default');
-    return koVoice;
+    console.log('🎤 [한국어 하드코딩] 음성:', targetVoice?.name || 'default', '(전체 한국어 음성:', koVoices.length + '개)');
+    return targetVoice;
 }
 
 function resetSpeechState() {

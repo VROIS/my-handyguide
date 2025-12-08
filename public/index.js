@@ -1233,12 +1233,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const userLang = localStorage.getItem('appLanguage') || 'ko';
             const langCode = langCodeMap[userLang] || 'ko-KR';
             
-            // 모든 언어에 대해 voicePriority에서 음성 선택
-            const targetVoice = getVoiceForLanguage(userLang, synth.getVoices());
-            currentUtterance.voice = targetVoice;
-            currentUtterance.lang = langCode;
-            currentUtterance.rate = 1.0;
-            console.log('🎤 [음성재생]', langCode, '음성:', targetVoice?.name || 'default');
+            // ⭐ 2025-12-08: 한국어만 하드코딩 (Yuna/Sora 우선순위)
+            if (userLang === 'ko') {
+                const allVoices = synth.getVoices();
+                const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
+                // Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
+                const targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                                 || koVoices.find(v => v.name.includes('Sora'))
+                                 || koVoices.find(v => v.name.includes('유나'))
+                                 || koVoices.find(v => v.name.includes('소라'))
+                                 || koVoices.find(v => v.name.includes('Heami'))
+                                 || koVoices[0];
+                currentUtterance.voice = targetVoice;
+                currentUtterance.lang = 'ko-KR';
+                currentUtterance.rate = 1.0;
+                console.log('🎤 [한국어 하드코딩] 음성:', targetVoice?.name || 'default');
+            } else {
+                // 다른 6개 언어는 기존 DB 기반 유지
+                const targetVoice = getVoiceForLanguage(userLang, synth.getVoices());
+                currentUtterance.voice = targetVoice;
+                currentUtterance.lang = langCode;
+                currentUtterance.rate = 1.0;
+                console.log('🎤 [음성재생]', langCode, '음성:', targetVoice?.name || 'default');
+            }
             
             const playIcon = document.getElementById('play-icon');
             const pauseIcon = document.getElementById('pause-icon');

@@ -47,10 +47,19 @@ if (includeAudio) {
     window.playAudio = function(text) {
         window.stopAudio();
         currentUtterance = new SpeechSynthesisUtterance(text);
-        const koVoice = voices.find(v => v.lang.startsWith('ko'));
-        if (koVoice) currentUtterance.voice = koVoice;
+        
+        // ⭐ 2025-12-08: 한국어 하드코딩 (Yuna/Sora 우선순위)
+        const koVoices = voices.filter(v => v.lang.startsWith('ko'));
+        const targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                         || koVoices.find(v => v.name.includes('Sora'))
+                         || koVoices.find(v => v.name.includes('유나'))
+                         || koVoices.find(v => v.name.includes('소라'))
+                         || koVoices.find(v => v.name.includes('Heami'))
+                         || koVoices[0];
+        if (targetVoice) currentUtterance.voice = targetVoice;
         currentUtterance.lang = 'ko-KR';
         currentUtterance.rate = 1.0;
+        console.log('🎤 [한국어 하드코딩] 음성:', targetVoice?.name || 'default');
         
         const playIcon = document.getElementById('play-icon');
         const pauseIcon = document.getElementById('pause-icon');

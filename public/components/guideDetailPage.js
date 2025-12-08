@@ -544,14 +544,29 @@ const guideDetailPage = {
         
         // 🎤 저장된 voiceName으로 음성 찾기 (없으면 언어별 기본 음성)
         let targetVoice = null;
-        if (savedVoiceName) {
-            targetVoice = voices.find(v => v.name === savedVoiceName || v.name.includes(savedVoiceName));
-            console.log('[TTS] Using saved voice:', savedVoiceName, '→', targetVoice?.name);
-        }
-        if (!targetVoice) {
-            const shortLang = fullLang.substring(0, 2);
-            targetVoice = this._getVoiceForLanguage(shortLang === 'zh' ? 'zh-CN' : shortLang);
-            console.log('[TTS] Fallback to language default:', fullLang, '→', targetVoice?.name);
+        
+        // ⭐ 2025-12-08: 한국어만 하드코딩 (Yuna/Sora 우선순위)
+        const shortLang = fullLang.substring(0, 2);
+        if (shortLang === 'ko') {
+            const koVoices = voices.filter(v => v.lang.startsWith('ko'));
+            // Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
+            targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                       || koVoices.find(v => v.name.includes('Sora'))
+                       || koVoices.find(v => v.name.includes('유나'))
+                       || koVoices.find(v => v.name.includes('소라'))
+                       || koVoices.find(v => v.name.includes('Heami'))
+                       || koVoices[0];
+            console.log('[TTS] 한국어 하드코딩:', targetVoice?.name);
+        } else {
+            // 다른 언어: 저장된 음성 사용, 없으면 언어별 기본 음성
+            if (savedVoiceName) {
+                targetVoice = voices.find(v => v.name === savedVoiceName || v.name.includes(savedVoiceName));
+                console.log('[TTS] Using saved voice:', savedVoiceName, '→', targetVoice?.name);
+            }
+            if (!targetVoice) {
+                targetVoice = this._getVoiceForLanguage(shortLang === 'zh' ? 'zh-CN' : shortLang);
+                console.log('[TTS] Fallback to language default:', fullLang, '→', targetVoice?.name);
+            }
         }
         
         this._state.currentUtterance.voice = targetVoice;
