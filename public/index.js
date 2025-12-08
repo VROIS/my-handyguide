@@ -1179,7 +1179,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         function populateVoiceList() {
-            const userLang = appData.language || 'ko'; // 저장된 언어 사용 (localStorage 대신)
+            const userLang = localStorage.getItem('appLanguage') || 'ko'; // 🌐 현재 선택 언어 우선
             const allVoices = synth.getVoices();
             
             // 선택 언어에 맞는 음성 필터링
@@ -1229,8 +1229,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             currentUtterance = new SpeechSynthesisUtterance(cleanText);
             
-            // 선택 언어에 맞는 음성 자동 선택 (저장된 언어 사용)
-            const userLang = appData.language || 'ko';
+            // 선택 언어에 맞는 음성 자동 선택 (🌐 현재 선택 언어 우선)
+            const userLang = localStorage.getItem('appLanguage') || 'ko';
             const langCode = langCodeMap[userLang] || 'ko-KR';
             
             // 모든 언어에 대해 voicePriority에서 음성 선택
