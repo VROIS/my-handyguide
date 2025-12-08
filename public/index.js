@@ -3420,33 +3420,45 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('[TTS] 저장된 음성 사용:', targetVoice.name);
             }
         } else {
-            // 🔊 DB 기반 음성 우선순위 사용 (2025-12-07)
-            const voiceConfig = getVoicePriorityFromDB(langCode);
-            const priorities = voiceConfig.priorities;
-            const excludeVoices = voiceConfig.excludeVoices;
-            
+            // ⭐ 2025-12-08: 한국어만 하드코딩 (Yuna/Sora 우선순위)
             const allVoices = synth.getVoices();
             let targetVoice = null;
             
-            // 우선순위대로 음성 찾기 (제외 목록 적용)
-            for (const voiceName of priorities) {
-                targetVoice = allVoices.find(v => 
-                    v.name.includes(voiceName) && !excludeVoices.some(ex => v.name.includes(ex))
-                );
-                if (targetVoice) break;
-            }
-            
-            // 우선순위에 없으면 언어 코드로 찾기
-            if (!targetVoice) {
-                targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
+            if (langCode === 'ko-KR') {
+                const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
+                // Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
+                targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                           || koVoices.find(v => v.name.includes('Sora'))
+                           || koVoices.find(v => v.name.includes('유나'))
+                           || koVoices.find(v => v.name.includes('소라'))
+                           || koVoices.find(v => v.name.includes('Heami'))
+                           || koVoices[0];
+                console.log('🎤 [한국어 하드코딩] 음성:', targetVoice?.name || 'default');
+            } else {
+                // 다른 6개 언어는 DB 기반 유지
+                const voiceConfig = getVoicePriorityFromDB(langCode);
+                const priorities = voiceConfig.priorities;
+                const excludeVoices = voiceConfig.excludeVoices;
+                
+                // 우선순위대로 음성 찾기 (제외 목록 적용)
+                for (const voiceName of priorities) {
+                    targetVoice = allVoices.find(v => 
+                        v.name.includes(voiceName) && !excludeVoices.some(ex => v.name.includes(ex))
+                    );
+                    if (targetVoice) break;
+                }
+                
+                // 우선순위에 없으면 언어 코드로 찾기
+                if (!targetVoice) {
+                    targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
+                }
+                console.log('[TTS] 언어:', langCode, '음성:', targetVoice?.name || 'default');
             }
             
             utterance.voice = targetVoice || null;
             utterance.lang = langCode;
             utterance.rate = 0.9;
             utterance.pitch = 1.0;
-            
-            console.log('[TTS] 언어:', langCode, '음성:', targetVoice?.name || 'default');
         }
         
         utterance.onend = () => {
