@@ -790,16 +790,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         try {
           const { localId, title, description, imageDataUrl, latitude, longitude, locationName, aiGeneratedContent, voiceLang, voiceName } = guideItem;
           
-          if (!title || !imageDataUrl) {
-            console.error(`❌ 필수 필드 누락: title=${title}, imageDataUrl=${!!imageDataUrl}`);
+          // 🎤 음성 가이드: imageDataUrl 없어도 저장 가능 (title + description만 필요)
+          if (!title || (!imageDataUrl && !description)) {
+            console.error(`❌ 필수 필드 누락: title=${title}, imageDataUrl=${!!imageDataUrl}, description=${!!description}`);
             continue; // Skip invalid items
           }
           
           // ✨ (2025-11-22) 수정: Base64를 그대로 guides DB에 저장 (원래 설계)
-          // 파일 저장 제거 → guides DB에 이미지+텍스트 한 덩어리로 저장
-          // 공유 페이지 생성 시 buildSharePageFromGuides()에서 직접 사용
-          const imageUrl = imageDataUrl; // Base64 그대로 유지
-          console.log(`✅ guides DB에 Base64 저장: ${title} (${imageUrl.substring(0, 50)}...)`);
+          // 🎤 음성 가이드는 imageDataUrl이 null일 수 있음
+          const imageUrl = imageDataUrl || null;
+          if (imageDataUrl) {
+            console.log(`✅ guides DB에 Base64 저장: ${title} (${imageUrl.substring(0, 50)}...)`);
+          } else {
+            console.log(`🎤 음성 가이드 저장: ${title} (이미지 없음)`);
+          }
           
           // guides DB 저장
           const guideData = {
