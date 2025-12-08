@@ -66,6 +66,11 @@ const LanguageHelper = {
     
     // 4. 🌐 DB에 저장 (로그인된 사용자만)
     this.saveToDatabase(lang);
+    
+    // 5. 🎤 음성 인식 언어도 동시 업데이트
+    if (window.updateRecognitionLang) {
+      window.updateRecognitionLang();
+    }
   },
   
   /**

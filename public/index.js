@@ -1948,10 +1948,34 @@ document.addEventListener('DOMContentLoaded', () => {
         
         if (recognition) {
             recognition.continuous = false;
-            recognition.lang = 'ko-KR';
+            // 🌐 선택된 언어에 맞춰 음성 인식 언어 설정
+            recognition.lang = getRecognitionLang();
             recognition.interimResults = false;
             recognition.maxAlternatives = 1;
         }
+        
+        // 🌐 언어 코드 매핑 함수 (ko → ko-KR, fr → fr-FR 등)
+        function getRecognitionLang() {
+            const userLang = localStorage.getItem('appLanguage') || 'ko';
+            const langMap = {
+                'ko': 'ko-KR',
+                'en': 'en-US',
+                'ja': 'ja-JP',
+                'zh': 'zh-CN',
+                'fr': 'fr-FR',
+                'de': 'de-DE',
+                'es': 'es-ES'
+            };
+            return langMap[userLang] || 'ko-KR';
+        }
+        
+        // 🌐 전역 함수로 등록 (언어 변경 시 호출)
+        window.updateRecognitionLang = function() {
+            if (recognition) {
+                recognition.lang = getRecognitionLang();
+                console.log('🌐 음성 인식 언어 변경:', recognition.lang);
+            }
+        };
         
         // 인증 성공 후 authModal 자동 닫기 (2025-10-26)
         checkAuthStatusAndCloseModal();
