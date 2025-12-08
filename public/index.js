@@ -55,6 +55,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const audioBtn = document.getElementById('audioBtn');
     const textToggleBtn = document.getElementById('textToggleBtn');
     const saveBtn = document.getElementById('saveBtn');
+    const voiceModeLogo = document.getElementById('voiceModeLogo');
+    const voiceQueryInfo = document.getElementById('voiceQueryInfo');
+    const voiceQueryText = document.getElementById('voiceQueryText');
+    const detailMicBtn = document.getElementById('detailMicBtn');
 
     // Archive Page Elements
     const archiveBackBtn = document.getElementById('archiveBackBtn');
@@ -2293,6 +2297,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         showDetailPage();
         
+        // 🎨 이미지 모드: 음성 모드 요소 숨기기
+        detailPage.classList.remove('bg-friendly');
+        if (voiceModeLogo) voiceModeLogo.classList.add('hidden');
+        if (voiceQueryInfo) voiceQueryInfo.classList.add('hidden');
+        
         currentContent = { imageDataUrl: dataUrl, description: '' };
         
         resultImage.src = dataUrl;
@@ -2407,6 +2416,39 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
     
+    // 🎤 상세페이지에서 다시 질문하기 (페이지 이동 없이)
+    async function handleDetailMicClick() {
+        if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
+        if (isRecognizing) return recognition.stop();
+        
+        // 🔒 사용량 제한 체크 (AI 호출 전)
+        const canProceed = await checkUsageLimit('detail');
+        if (!canProceed) return;
+        
+        isRecognizing = true;
+        detailMicBtn?.classList.add('mic-listening');
+        recognition.start();
+
+        recognition.onresult = (event) => {
+            processTextQuery(event.results[0][0].transcript);
+        };
+
+        recognition.onerror = (event) => {
+            console.error('Speech recognition error:', event.error);
+            const messages = {
+                'no-speech': '음성을 듣지 못했어요. 다시 시도해볼까요?',
+                'not-allowed': '마이크 사용 권한이 필요합니다.',
+                'service-not-allowed': '마이크 사용 권한이 필요합니다.'
+            };
+            showToast(messages[event.error] || '음성 인식 중 오류가 발생했습니다.');
+        };
+        
+        recognition.onend = () => {
+            isRecognizing = false;
+            detailMicBtn?.classList.remove('mic-listening');
+        };
+    }
+    
     async function processTextQuery(prompt) {
         cameFromArchive = false;
         if (synth.speaking || synth.pending) synth.cancel();
@@ -2417,10 +2459,24 @@ document.addEventListener('DOMContentLoaded', () => {
         detailPage.classList.add('bg-friendly');
         saveBtn.disabled = true;
 
-        currentContent = { imageDataUrl: null, description: '' };
+        // 🎤 음성 모드: 질문 키워드 저장 + 로고 워터마크 표시
+        currentContent = { imageDataUrl: null, description: '', voiceQuery: prompt };
 
         resultImage.src = '';
         resultImage.classList.add('hidden');
+        
+        // 🎨 로고 워터마크 표시 (음성 모드)
+        if (voiceModeLogo) voiceModeLogo.classList.remove('hidden');
+        
+        // 🎤 질문 키워드 표시 (위치 대신)
+        if (voiceQueryInfo && voiceQueryText) {
+            voiceQueryText.textContent = prompt;
+            voiceQueryInfo.classList.remove('hidden');
+        }
+        // 위치 정보는 숨김
+        const locationInfo = document.getElementById('locationInfo');
+        if (locationInfo) locationInfo.classList.add('hidden');
+        
         loader.classList.remove('hidden');
         textOverlay.classList.add('hidden');
         textOverlay.classList.remove('animate-in');
@@ -4669,6 +4725,10 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     shootBtn?.addEventListener('click', () => debounceClick('shoot', capturePhoto, 800));
     uploadBtn?.addEventListener('click', () => uploadInput.click());
     micBtn?.addEventListener('click', () => debounceClick('mic', handleMicButtonClick, 500));
+    
+    // 🎤 상세페이지 마이크 버튼 (다시 질문) - 메인페이지와 동일 로직
+    detailMicBtn?.addEventListener('click', () => debounceClick('detailMic', handleDetailMicClick, 500));
+    
     archiveBtn?.addEventListener('click', () => debounceClick('archive', showArchivePage, 300));
     uploadInput?.addEventListener('change', handleFileSelect);
     

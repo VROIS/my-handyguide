@@ -350,6 +350,35 @@
             color: #9ca3af;
             opacity: 1;
         }
+        /* 🎨 음성 모드 로고 워터마크 (2025-12-08) */
+        .voice-mode-logo {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 400px;
+            height: auto;
+            object-fit: contain;
+            opacity: 0.06;
+            z-index: 1;
+            pointer-events: none;
+        }
+        #detailPage.bg-friendly .voice-mode-logo {
+            display: block;
+        }
+        #detailPage.bg-friendly #detailMicBtn {
+            display: flex !important;
+        }
+        /* 마이크 버튼 애니메이션 (메인페이지와 동일) */
+        #detailMicBtn.mic-listening {
+            animation: pulse-mic 1.5s ease-in-out infinite;
+            background-color: rgba(66, 133, 244, 0.8) !important;
+        }
+        @keyframes pulse-mic {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(66, 133, 244, 0.4); }
+            50% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(66, 133, 244, 0); }
+        }
         .loader-blue { 
             border: 4px solid rgba(66, 133, 244, 0.2); 
             border-top-color: var(--gemini-blue);
@@ -743,6 +772,8 @@
     <!-- Detail Page -->
     <div id="detailPage" class="ui-layer">
         <img id="resultImage" src="" alt="분석된 이미지" class="full-screen-bg">
+        <!-- 🎨 음성 모드용 로고 워터마크 배경 (bg-friendly에서만 표시) -->
+        <img id="voiceModeLogo" src="/images/landing-logo.jpg" alt="" class="voice-mode-logo hidden">
         <header class="header-safe-area">
             <button id="backBtn" class="w-12 h-12 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl absolute top-1/2 left-4 -translate-y-1/2" aria-label="뒤로가기">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -759,18 +790,32 @@
                 <p id="loadingText" class="readable-on-image text-lg mt-4 font-semibold text-center px-4">잠시만 기다려주세요...</p>
             </div>
             <div id="textOverlay" class="text-content hidden">
-                <!-- 📍 위치 정보 표시 (2025-10-26) -->
+                <!-- 📍 위치 정보 표시 (이미지 모드) -->
                 <div id="locationInfo" class="hidden mb-4 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md" data-testid="location-info">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gemini-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
                         <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
                     </svg>
                     <span id="locationName" class="text-base font-semibold text-gray-800" data-testid="location-name"></span>
                 </div>
+                <!-- 🎤 질문 키워드 표시 (음성 모드) -->
+                <div id="voiceQueryInfo" class="hidden mb-4 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md" data-testid="voice-query-info">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gemini-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
+                        <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
+                    </svg>
+                    <span id="voiceQueryText" class="text-base font-semibold text-gray-800" data-testid="voice-query-text"></span>
+                </div>
                 <p id="descriptionText" class="readable-on-image text-xl leading-relaxed"></p>
             </div>
         </div>
         <footer id="detailFooter" class="footer-safe-area hidden" style="background: transparent;">
-             <button id="audioBtn" aria-label="오디오 재생" class="w-16 h-16 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl">
+            <!-- 🎤 다시 질문 버튼 (음성 모드에서만 표시) -->
+            <button id="detailMicBtn" aria-label="다시 질문하기" class="w-16 h-16 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                </svg>
+            </button>
+            <button id="audioBtn" aria-label="오디오 재생" class="w-16 h-16 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
                     <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.648c1.295.748 1.295 2.538 0 3.286L7.279 20.99c-1.25.717-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
                 </svg>
