@@ -3986,11 +3986,7 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     
     // QR 코드 복사 + 리워드 지급 + 3초 후 자동 닫힘
     async function copyUserQrCode() {
-        const qrImage = document.getElementById('user-qr-image');
-        if (!qrImage) {
-            showToast('QR 코드 이미지를 찾을 수 없습니다');
-            return;
-        }
+        const appUrl = window.location.origin;
         
         // 리워드 API 호출 함수 (복사 성공 후 실행)
         async function claimQrCopyReward() {
@@ -4012,53 +4008,51 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
             return false;
         }
         
-        try {
-            // 이미지를 캔버스로 복사
-            const canvas = document.createElement('canvas');
-            canvas.width = qrImage.naturalWidth || 250;
-            canvas.height = qrImage.naturalHeight || 250;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(qrImage, 0, 0);
-            
-            // Blob으로 변환 후 클립보드에 복사
-            canvas.toBlob(async (blob) => {
-                try {
-                    await navigator.clipboard.write([
-                        new ClipboardItem({ 'image/png': blob })
-                    ]);
-                    // 리워드 지급 시도 (가입자만 성공)
-                    const rewarded = await claimQrCopyReward();
-                    if (!rewarded) {
-                        showToast('QR 코드가 복사되었습니다!');
-                    }
-                    setTimeout(closeUserQrCodeModal, 3000);
-                } catch (e) {
-                    // Fallback: 앱 URL 복사
-                    const appUrl = window.location.origin;
-                    await navigator.clipboard.writeText(appUrl);
-                    const rewarded = await claimQrCopyReward();
-                    if (!rewarded) {
-                        showToast('앱 주소가 복사되었습니다!');
-                    }
-                    setTimeout(closeUserQrCodeModal, 3000);
-                }
-            }, 'image/png');
-        } catch (error) {
-            console.error('QR 복사 실패:', error);
-            // Fallback: 앱 URL 복사
+        // 복사 성공 후 처리
+        async function onCopySuccess() {
+            const rewarded = await claimQrCopyReward();
+            if (!rewarded) {
+                showToast('앱 주소가 복사되었습니다!');
+            }
+            setTimeout(closeUserQrCodeModal, 3000);
+        }
+        
+        // 방법 1: navigator.clipboard.writeText (모바일 우선)
+        if (navigator.clipboard && navigator.clipboard.writeText) {
             try {
-                const appUrl = window.location.origin;
                 await navigator.clipboard.writeText(appUrl);
-                const rewarded = await claimQrCopyReward();
-                if (!rewarded) {
-                    showToast('앱 주소가 복사되었습니다!');
-                }
-                setTimeout(closeUserQrCodeModal, 3000);
+                console.log('✅ 클립보드 복사 성공 (writeText)');
+                await onCopySuccess();
+                return;
             } catch (e) {
-                showToast('복사에 실패했습니다. 화면을 캡처해주세요.');
-                setTimeout(closeUserQrCodeModal, 3000);
+                console.warn('writeText 실패, fallback 시도:', e);
             }
         }
+        
+        // 방법 2: execCommand fallback (iOS Safari 등)
+        try {
+            const textArea = document.createElement('textarea');
+            textArea.value = appUrl;
+            textArea.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;';
+            document.body.appendChild(textArea);
+            textArea.focus();
+            textArea.select();
+            
+            const success = document.execCommand('copy');
+            document.body.removeChild(textArea);
+            
+            if (success) {
+                console.log('✅ 클립보드 복사 성공 (execCommand)');
+                await onCopySuccess();
+                return;
+            }
+        } catch (e) {
+            console.warn('execCommand 실패:', e);
+        }
+        
+        // 모든 방법 실패
+        showToast('복사에 실패했습니다. 화면을 캡처해주세요.');
+        setTimeout(closeUserQrCodeModal, 3000);
     }
     
     // 관리자 인증 모달 열기
