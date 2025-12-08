@@ -4934,4 +4934,68 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
             window.location.reload();
         });
     }
+
+    // 🎤 기기 음성 확인 팝업 (TTS 디버깅용)
+    const checkVoicesBtn = document.getElementById('checkVoicesBtn');
+    if (checkVoicesBtn) {
+        checkVoicesBtn.addEventListener('click', () => {
+            const synth = window.speechSynthesis;
+            
+            // 음성 목록 로드 대기
+            const getVoicesAndShow = () => {
+                const voices = synth.getVoices();
+                
+                // 한국어 음성 필터링
+                const koVoices = voices.filter(v => v.lang.startsWith('ko'));
+                const allVoices = voices;
+                
+                let html = '<div style="text-align: left; max-height: 400px; overflow-y: auto; font-size: 14px;">';
+                
+                // 기기 정보
+                html += '<div style="background: #f0f0f0; padding: 8px; border-radius: 6px; margin-bottom: 12px;">';
+                html += '<strong>📱 기기 정보:</strong><br>';
+                html += navigator.userAgent.substring(0, 80) + '...';
+                html += '</div>';
+                
+                // 한국어 음성
+                html += '<h3 style="color: #8B5CF6; font-weight: bold; margin-bottom: 8px;">🎤 한국어 음성 (' + koVoices.length + '개)</h3>';
+                
+                if (koVoices.length === 0) {
+                    html += '<p style="color: red; padding: 8px; background: #ffe0e0; border-radius: 4px;">❌ 한국어 음성이 없습니다!</p>';
+                } else {
+                    koVoices.forEach((v, i) => {
+                        html += '<div style="margin: 6px 0; padding: 10px; background: #f8f4ff; border-radius: 6px; border-left: 3px solid #8B5CF6;">';
+                        html += '<strong style="color: #8B5CF6;">' + (i+1) + '. ' + v.name + '</strong><br>';
+                        html += '<span style="color: #666;">언어: ' + v.lang + '</span><br>';
+                        html += '<span style="color: ' + (v.default ? 'green' : '#999') + ';">기본음성: ' + (v.default ? '✅ 예' : '❌ 아니오') + '</span>';
+                        html += '</div>';
+                    });
+                }
+                
+                // 전체 음성 개수
+                html += '<p style="margin-top: 16px; color: #666; font-size: 12px;">📊 전체 음성: ' + allVoices.length + '개</p>';
+                html += '</div>';
+                
+                // 팝업 표시
+                const modalDiv = document.createElement('div');
+                modalDiv.id = 'voiceCheckModal';
+                modalDiv.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;';
+                modalDiv.innerHTML = 
+                    '<div style="background: white; padding: 20px; border-radius: 16px; max-width: 100%; width: 400px; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">' +
+                        '<h2 style="margin: 0 0 16px 0; text-align: center; color: #333;">🎤 기기 음성 목록</h2>' +
+                        html +
+                        '<button onclick="document.getElementById(\'voiceCheckModal\').remove()" style="width: 100%; padding: 14px; margin-top: 16px; background: #8B5CF6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px;">닫기</button>' +
+                    '</div>';
+                document.body.appendChild(modalDiv);
+            };
+            
+            // 음성이 이미 로드되어 있으면 바로 표시
+            if (synth.getVoices().length > 0) {
+                getVoicesAndShow();
+            } else {
+                // 음성 로드 대기
+                synth.onvoiceschanged = getVoicesAndShow;
+            }
+        });
+    }
 });
