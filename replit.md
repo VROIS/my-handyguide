@@ -77,67 +77,95 @@ This critical component handles the parsing of guide data from HTML to ensure th
 -   **OpenID Client**: OpenID Connect client.
 -   **connect-pg-simple**: PostgreSQL session store.
 
-# TTS 음성 최적화 설정 (2025-12-07 DB 기반 시스템으로 전환)
+# ⭐ TTS 핵심 로직 (2025-12-08 최종 표준화)
+
+## 🎯 앱의 핵심 가치
+**"여행지에서 바로 선택한 언어로 듣는것 - 온/오프라인"**
+
+## 한국어 하드코딩 방식 (2025-12-08 확정)
+
+### 문제
+- DB의 `voice_name`이 NULL로 저장됨
+- 디바이스가 임의 음성 선택 → iPhone에서 Rocko(기계음) 선택 문제
+
+### 해결책
+**한국어만 하드코딩 분리**, 다른 6개 언어는 DB 기반 유지
+
+### 표준 코드 (5개 파일에 동일 적용)
+```javascript
+// ⭐ 2025-12-08: 한국어 하드코딩 (Yuna/Sora 우선순위)
+const allVoices = synth.getVoices();
+const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
+
+// Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
+const targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                 || koVoices.find(v => v.name.includes('Sora'))
+                 || koVoices.find(v => v.name.includes('유나'))
+                 || koVoices.find(v => v.name.includes('소라'))
+                 || koVoices.find(v => v.name.includes('Heami'))
+                 || koVoices[0];
+
+console.log('🎤 [한국어 하드코딩] 음성:', targetVoice?.name || 'default');
+```
+
+### 음성 우선순위 (플랫폼별 자동 선택)
+| 우선순위 | 음성 이름 | 플랫폼 |
+|---------|----------|--------|
+| 1 | Yuna | Apple iOS/macOS |
+| 2 | Sora | Apple iOS/macOS |
+| 3 | 유나 | Apple iOS/macOS (한글) |
+| 4 | 소라 | Apple iOS/macOS (한글) |
+| 5 | Heami | Microsoft Windows |
+| 6 | 첫 번째 ko 음성 | 기타 |
+
+### 적용 파일 (5곳) - 절대 수정 금지!
+1. `public/index.js` - `playAudio()` 함수 (1236줄)
+2. `public/index.js` - `speakNext()` 함수 (3430줄) ← 메인 앱 핵심!
+3. `public/share-page.js` - `getOptimalKoreanVoice()` 함수
+4. `public/components/guideDetailPage.js` - `_getVoiceForLanguage()` 함수
+5. `public/shared-template/v2.js` - 인라인 TTS 함수
+
+### 다른 6개 언어 (DB 기반 유지)
+| 언어 | 우선순위 |
+|------|----------|
+| en-US | Samantha, Microsoft Zira, Google US English |
+| ja-JP | Kyoko, Microsoft Haruka, Google 日本語 |
+| zh-CN | Ting-Ting, Microsoft Huihui, Google 普通话 |
+| fr-FR | Thomas, Microsoft Hortense, Google français |
+| de-DE | Anna, Microsoft Hedda, Google Deutsch |
+| es-ES | Monica, Microsoft Helena, Google español |
+
+---
+
+# TTS DB 기반 시스템 (다른 언어용)
 
 ## 시스템 아키텍처
-TTS 음성 우선순위 설정은 이제 **PostgreSQL 데이터베이스의 `voice_configs` 테이블**에서 관리됩니다. 이를 통해 코드 수정 없이 음성 설정을 변경할 수 있습니다.
+한국어 외 6개 언어는 **PostgreSQL 데이터베이스의 `voice_configs` 테이블**에서 관리됩니다.
 
 ### 데이터베이스 스키마 (voice_configs)
 ```typescript
 {
   id: serial,                    // Primary key
-  languageCode: varchar(10),     // 예: 'ko-KR', 'en-US'
-  platform: varchar(20),         // 'ios' 또는 'other' (Android/Windows)
+  languageCode: varchar(10),     // 예: 'en-US', 'ja-JP'
+  platform: varchar(20),         // 'ios' 또는 'other'
   voicePriorities: text[],       // 음성 우선순위 배열
-  excludeVoices: text[],         // 제외할 음성 배열 (예: ['Google 한국어'])
+  excludeVoices: text[],         // 제외할 음성 배열
   isActive: boolean              // 활성화 상태
 }
 ```
 
 ### API 엔드포인트
 - **GET /api/voice-configs**: 활성화된 모든 음성 설정 조회
-- 응답 형식: `VoiceConfig[]` 배열
 
-### 프론트엔드 로딩 방식
+### 프론트엔드 로딩
 1. 앱 초기화 시 `/api/voice-configs` API 호출
 2. 설정을 메모리에 캐싱 (`voiceConfigsCache`)
 3. API 실패 시 하드코딩된 기본값 사용 (오프라인 fallback)
 
-## 기본 음성 설정값 (DB에 저장됨)
-
-### 한국어 (ko-KR) - 플랫폼 통일 (2025-12-08 복원)
-- **문제**: iOS에서 Google 한국어 등 기계음 선택 문제
-- **해결**: 플랫폼 분기 제거, 12월 3일 원본 로직 복원
-
-| 플랫폼 | voicePriorities | excludeVoices |
-|--------|-----------------|---------------|
-| 모든 플랫폼 | **['Microsoft Heami', 'Yuna']** | [] |
-
-### 전체 언어별 설정 (DB 기준)
-| 언어 | 우선순위 |
-|------|----------|
-| ko-KR | **Microsoft Heami, Yuna** (플랫폼 통일) |
-| en-US | Samantha, Microsoft Zira, Google US English, English | (동일) |
-| ja-JP | Kyoko, Microsoft Haruka, Google 日本語, Japanese | (동일) |
-| zh-CN | Ting-Ting, Microsoft Huihui, Google 普通话, Chinese | (동일) |
-| fr-FR | Thomas, Microsoft Hortense, Google français, French | (동일) |
-| de-DE | Anna, Microsoft Hedda, Google Deutsch, German | (동일) |
-| es-ES | Monica, Microsoft Helena, Google español, Spanish | (동일) |
-
-## DB 기반 시스템 적용 파일 (2곳)
-- `public/index.js` - `loadVoiceConfigsFromDB()`, `getVoicePriorityFromDB()` 함수
-- `public/components/guideDetailPage.js` - `_loadVoiceConfigsFromDB()`, `_getVoicePriorityFromDB()` 함수
-
-## 하드코딩 유지 파일 (오프라인 호환성)
-공유 페이지는 오프라인에서도 동작해야 하므로 하드코딩 유지:
-- `server/standard-template.ts` - 공유 HTML 생성 시 음성 설정 포함
-- `public/components/sharePageTranslation.js` - 공유 페이지 TTS
-
 ## 주의사항
-- v2.js는 실패한 로직이므로 수정 금지
-- 새 언어 추가 시 DB에 레코드 추가 (ios/other 플랫폼별 2개)
+- **한국어는 반드시 하드코딩 로직 사용** (DB voice_name NULL 문제)
+- 새 언어 추가 시 DB에 레코드 추가 필요
 - API 실패 시 자동으로 기본값 fallback
-- 한국어만 플랫폼별로 다른 excludeVoices 적용
 
 # 구글 번역 후 TTS 통일 규칙 (2025-12-06)
 
