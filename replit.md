@@ -105,19 +105,18 @@ TTS 음성 우선순위 설정은 이제 **PostgreSQL 데이터베이스의 `voi
 
 ## 기본 음성 설정값 (DB에 저장됨)
 
-### 한국어 (ko-KR) - 플랫폼별 분기
-- **문제**: iOS에서 "Google 한국어" 등 기계음 선택 문제
-- **해결**: iOS는 **Yuna 음성만 강제 사용** (2025-12-08 수정)
+### 한국어 (ko-KR) - 플랫폼 통일 (2025-12-08 복원)
+- **문제**: iOS에서 Google 한국어 등 기계음 선택 문제
+- **해결**: 플랫폼 분기 제거, 12월 3일 원본 로직 복원
 
 | 플랫폼 | voicePriorities | excludeVoices |
 |--------|-----------------|---------------|
-| iOS/macOS | **['Yuna']** (단일 강제) | [] |
-| Android/Windows | ['Microsoft Heami', 'Korean', '한국어'] | ['Google 한국어'] |
+| 모든 플랫폼 | **['Microsoft Heami', 'Yuna']** | [] |
 
 ### 전체 언어별 설정 (DB 기준)
-| 언어 | iOS 우선순위 | Other 우선순위 |
-|------|-------------|----------------|
-| ko-KR | **Yuna** (단일) | Microsoft Heami, Korean, 한국어 |
+| 언어 | 우선순위 |
+|------|----------|
+| ko-KR | **Microsoft Heami, Yuna** (플랫폼 통일) |
 | en-US | Samantha, Microsoft Zira, Google US English, English | (동일) |
 | ja-JP | Kyoko, Microsoft Haruka, Google 日本語, Japanese | (동일) |
 | zh-CN | Ting-Ting, Microsoft Huihui, Google 普通话, Chinese | (동일) |
