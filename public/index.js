@@ -3666,20 +3666,23 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 법적 문서 및 FAQ 데이터
     const userSettingsLegalData = {
-        faq: `<h4>Q1. 앱이 처음에 바로 안 열리거나 화면이 하얗게 나와요.</h4>
-네트워크 상태를 확인해주세요. Wi-Fi나 모바일 데이터가 연결되어 있어야 정상적으로 사용할 수 있습니다.
+        faq: `<h4>Q1. 앱이 처음에 바로 안 열리거나 멈춘 것 같아요!</h4>
+🚀 조금만 기다려주세요! 앱을 처음 실행할 때 최신 기능을 준비하느라 약 3초 정도의 로딩 시간이 필요할 수 있습니다. 만약 계속 반응이 없다면 브라우저를 새로고침해 주세요. 또한, 이 앱은 크롬(Chrome) 브라우저에 최적화되어 있습니다. AI가 최고의 설명을 들려드리기 위해서는 카메라, 마이크, 위치 정보 권한 승인이 반드시 필요하니 꼭 허용해 주세요!
 
-<h4>Q2. 사진을 찍었는데 설명이 안 나와요.</h4>
-사진이 너무 어둡거나 흐리면 AI가 인식하기 어려울 수 있습니다. 밝은 곳에서 선명하게 다시 찍어보세요.
+<h4>Q2. AI 설명이 더 정확하게 나오게 하려면 어떻게 찍어야 하나요?</h4>
+📸 AI에게 힌트를 주세요! 사진을 찍으실 때, 단순히 대상만 찍기보다 <strong>작품의 이름표(캡션)</strong>나 가게의 간판/현판 글자가 함께 나오도록 촬영해 보세요. 글자 정보를 포함하면 AI가 훨씬 더 정확하고 깊이 있는 해설을 들려드릴 수 있답니다.
 
-<h4>Q3. 음성으로 질문하면 답변이 안 나와요.</h4>
-마이크 권한이 허용되어 있는지 확인해주세요. 설정 → 앱 → 손안에 가이드 → 권한에서 마이크를 허용해주세요.
+<h4>Q3. 한국어 말고 다른 언어로도 들을 수 있나요?</h4>
+🌍 설정이 필요할 수 있어요. 기본적으로 한국어에 최적화되어 있습니다. 만약 다른 언어를 선택하실 경우, 앱 내의 일부 음성 설명이 지원되지 않거나 매끄럽지 않을 수 있습니다. 원활한 청취를 위해 사용자님 <strong>모바일 기기의 '텍스트 읽어주기(TTS) 설정'</strong>을 해당 언어에 맞게 최적화해 주시는 것을 권장합니다.
 
-<h4>Q4. 저장한 가이드가 사라졌어요.</h4>
-보관함에 저장된 가이드는 기기에 저장됩니다. 브라우저 캐시를 삭제하면 데이터가 사라질 수 있으니 주의해주세요.
+<h4>Q4. 인터넷이 안 터지는 박물관이나 붐비는 여행지에서도 쓸 수 있나요?</h4>
+✈️ 물론입니다! 한 번 열어본 <strong>공유 페이지(링크)</strong>는 인터넷 연결이 끊겨도 완벽하게 재생됩니다. 여행 떠나기 전이나 숙소에서 미리 링크를 열어두기만 하면, 데이터 걱정 없이 어디서든 나만의 가이드를 즐길 수 있어요.
 
-<h4>Q5. 공유 링크가 작동하지 않아요.</h4>
-링크가 만료되었거나 삭제되었을 수 있습니다. 새로운 공유 링크를 생성해주세요.`,
+<h4>Q5. 크레딧은 어떻게 사용되고, 충전은 어떻게 하나요?</h4>
+💰 사진을 분석하고 해설을 만들 때마다 크레딧이 사용돼요. 처음 가입하시면 무료 크레딧을 드리고, 친구에게 이 앱을 추천해서 친구가 가입하면 두 분 모두에게 보너스 크레딧을 드립니다! 물론, 부족하면 언제든 프로필 페이지에서 충전할 수도 있어요.
+
+<h4>Q6. 저장한 가이드 내용을 수정할 수 있나요?</h4>
+😅 수정은 어려워요. 아쉽게도 한 번 만들어진 가이드는 내용 수정이 어렵습니다. 만약 설명이 마음에 들지 않는다면, 삭제 후 Q2번의 팁을 활용해 새로운 사진으로 다시 가이드를 생성해 보세요. 더 멋진 해설이 기다리고 있을지도 몰라요!`,
         
         terms: `<h4>1. 서비스 목적 및 범위</h4>
 '손안에 가이드'는 AI 기반 여행 가이드 서비스로, 사진 인식을 통해 장소 정보와 설명을 제공합니다.
@@ -5051,70 +5054,6 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
             isReloading = true;
             sessionStorage.setItem(swReloadKey, 'true');
             window.location.reload();
-        });
-    }
-
-    // 🎤 기기 음성 확인 팝업 (TTS 디버깅용)
-    const checkVoicesBtn = document.getElementById('checkVoicesBtn');
-    if (checkVoicesBtn) {
-        checkVoicesBtn.addEventListener('click', () => {
-            const synth = window.speechSynthesis;
-            
-            // 음성 목록 로드 대기
-            const getVoicesAndShow = () => {
-                const voices = synth.getVoices();
-                
-                // 한국어 음성 필터링
-                const koVoices = voices.filter(v => v.lang.startsWith('ko'));
-                const allVoices = voices;
-                
-                let html = '<div style="text-align: left; max-height: 400px; overflow-y: auto; font-size: 14px;">';
-                
-                // 기기 정보
-                html += '<div style="background: #f0f0f0; padding: 8px; border-radius: 6px; margin-bottom: 12px;">';
-                html += '<strong>📱 기기 정보:</strong><br>';
-                html += navigator.userAgent.substring(0, 80) + '...';
-                html += '</div>';
-                
-                // 한국어 음성
-                html += '<h3 style="color: #8B5CF6; font-weight: bold; margin-bottom: 8px;">🎤 한국어 음성 (' + koVoices.length + '개)</h3>';
-                
-                if (koVoices.length === 0) {
-                    html += '<p style="color: red; padding: 8px; background: #ffe0e0; border-radius: 4px;">❌ 한국어 음성이 없습니다!</p>';
-                } else {
-                    koVoices.forEach((v, i) => {
-                        html += '<div style="margin: 6px 0; padding: 10px; background: #f8f4ff; border-radius: 6px; border-left: 3px solid #8B5CF6;">';
-                        html += '<strong style="color: #8B5CF6;">' + (i+1) + '. ' + v.name + '</strong><br>';
-                        html += '<span style="color: #666;">언어: ' + v.lang + '</span><br>';
-                        html += '<span style="color: ' + (v.default ? 'green' : '#999') + ';">기본음성: ' + (v.default ? '✅ 예' : '❌ 아니오') + '</span>';
-                        html += '</div>';
-                    });
-                }
-                
-                // 전체 음성 개수
-                html += '<p style="margin-top: 16px; color: #666; font-size: 12px;">📊 전체 음성: ' + allVoices.length + '개</p>';
-                html += '</div>';
-                
-                // 팝업 표시
-                const modalDiv = document.createElement('div');
-                modalDiv.id = 'voiceCheckModal';
-                modalDiv.style.cssText = 'position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 10000; display: flex; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;';
-                modalDiv.innerHTML = 
-                    '<div style="background: white; padding: 20px; border-radius: 16px; max-width: 100%; width: 400px; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.3);">' +
-                        '<h2 style="margin: 0 0 16px 0; text-align: center; color: #333;">🎤 기기 음성 목록</h2>' +
-                        html +
-                        '<button onclick="document.getElementById(\'voiceCheckModal\').remove()" style="width: 100%; padding: 14px; margin-top: 16px; background: #8B5CF6; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 16px;">닫기</button>' +
-                    '</div>';
-                document.body.appendChild(modalDiv);
-            };
-            
-            // 음성이 이미 로드되어 있으면 바로 표시
-            if (synth.getVoices().length > 0) {
-                getVoicesAndShow();
-            } else {
-                // 음성 로드 대기
-                synth.onvoiceschanged = getVoicesAndShow;
-            }
         });
     }
 });
