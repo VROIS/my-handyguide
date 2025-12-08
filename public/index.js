@@ -98,6 +98,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const notificationBadge = document.getElementById('notificationBadge');
     let notificationModalOpenedFromProfile = false;
     
+    // Infographic Modal Elements
+    const infographicModal = document.getElementById('infographicModal');
+    const infographicImage = document.getElementById('infographicImage');
+    const closeInfographicModalBtn = document.getElementById('closeInfographicModalBtn');
+    const featureCard1 = document.getElementById('featureCard1');
+    
     // Admin Settings Page Elements
     const adminSettingsPage = document.getElementById('adminSettingsPage');
     const adminSettingsBackBtn = document.getElementById('adminSettingsBackBtn');
@@ -1777,6 +1783,37 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === notificationModal) {
             closeNotificationModal();
         }
+    });
+    
+    // 인포그래픽 모달 함수
+    function openInfographicModal(imageSrc) {
+        if (infographicModal && infographicImage) {
+            infographicImage.src = imageSrc;
+            infographicModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+    
+    function closeInfographicModal() {
+        if (infographicModal) {
+            infographicModal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    // 인포그래픽 모달 이벤트 리스너
+    closeInfographicModalBtn?.addEventListener('click', closeInfographicModal);
+    
+    // 인포그래픽 모달 바깥 클릭 시 닫기
+    infographicModal?.addEventListener('click', (e) => {
+        if (e.target === infographicModal || e.target.classList.contains('relative')) {
+            closeInfographicModal();
+        }
+    });
+    
+    // Feature Card 1 클릭 시 인포그래픽 모달 열기
+    featureCard1?.addEventListener('click', () => {
+        openInfographicModal('/images/infographic-feature1.png');
     });
     
     // 프로필 버튼 클릭 → 읽지 않은 알림이 있으면 모달 먼저, 없으면 바로 프로필 페이지
