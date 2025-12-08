@@ -603,6 +603,23 @@
         </div>
     </div>
 
+    <!-- 동영상 모달 -->
+    <div id="videoModal" class="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm flex items-center justify-center hidden" data-testid="modal-video">
+        <div class="relative w-full h-full flex items-center justify-center p-4">
+            <!-- 닫기 버튼 -->
+            <button id="closeVideoModalBtn" data-testid="button-close-video-modal" class="absolute top-4 right-4 z-10 p-3 bg-white/20 hover:bg-white/40 rounded-full text-white transition duration-300">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+            <!-- 동영상 플레이어 -->
+            <video id="featureVideo" data-testid="video-feature" class="max-w-full max-h-full rounded-lg shadow-2xl" controls autoplay>
+                <source src="/images/feature-video.mp4" type="video/mp4">
+                동영상을 재생할 수 없습니다.
+            </video>
+        </div>
+    </div>
+
     <!-- Features Page -->
     <div id="featuresPage" class="ui-layer bg-gray-50 text-gray-800">
         <div class="content-safe-area">
@@ -621,13 +638,14 @@
                             <p class="text-gray-600 feature-card-p text-sm">가고 싶은 곳을 20개까지 저장하고, 오프라인에서도 들으며 나만의 가이드북을 만드세요. 여행 후에는 감동을 다시 느껴보세요.</p>
                             <p class="text-blue-500 text-xs mt-2 flex items-center justify-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>자세히 보기</p>
                         </div>
-                        <!-- Feature 2: Image Recognition (메인 - 중앙) -->
-                        <div class="bg-gray-50 p-6 rounded-xl shadow-lg transform hover:-translate-y-2 transition duration-300">
+                        <!-- Feature 2: Image Recognition (메인 - 중앙) - 클릭 시 동영상 모달 -->
+                        <div id="featureCard2" data-testid="card-feature-2" class="bg-gray-50 p-6 rounded-xl shadow-lg transform hover:-translate-y-2 transition duration-300 cursor-pointer">
                             <div class="bg-blue-100 text-blue-600 rounded-full w-14 h-14 flex items-center justify-center mx-auto mb-4">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                             </div>
                             <h3 class="text-xl font-bold mb-2">사진 한 장이면 충분해요</h3>
                             <p class="text-gray-600 feature-card-p text-sm">궁금한 것을 바로 찍거나 갤러리에서 선택해보세요. 3초 내외로 풍부한 음성 해설과 텍스트가 바로 생성됩니다.</p>
+                            <p class="text-blue-500 text-xs mt-2 flex items-center justify-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>영상 보기</p>
                         </div>
                         <!-- Feature 3: Voice Question -->
                         <div class="bg-gray-50 p-6 rounded-xl shadow-lg transform hover:-translate-y-2 transition duration-300">

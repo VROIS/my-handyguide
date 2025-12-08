@@ -104,6 +104,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeInfographicModalBtn = document.getElementById('closeInfographicModalBtn');
     const featureCard1 = document.getElementById('featureCard1');
     
+    // Video Modal Elements
+    const videoModal = document.getElementById('videoModal');
+    const featureVideo = document.getElementById('featureVideo');
+    const closeVideoModalBtn = document.getElementById('closeVideoModalBtn');
+    const featureCard2 = document.getElementById('featureCard2');
+    
     // Admin Settings Page Elements
     const adminSettingsPage = document.getElementById('adminSettingsPage');
     const adminSettingsBackBtn = document.getElementById('adminSettingsBackBtn');
@@ -1814,6 +1820,39 @@ document.addEventListener('DOMContentLoaded', () => {
     // Feature Card 1 클릭 시 인포그래픽 모달 열기
     featureCard1?.addEventListener('click', () => {
         openInfographicModal('/images/infographic-feature1.png');
+    });
+    
+    // 동영상 모달 함수
+    function openVideoModal() {
+        if (videoModal && featureVideo) {
+            videoModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            featureVideo.currentTime = 0;
+            featureVideo.play();
+        }
+    }
+    
+    function closeVideoModal() {
+        if (videoModal && featureVideo) {
+            videoModal.classList.add('hidden');
+            document.body.style.overflow = '';
+            featureVideo.pause();
+        }
+    }
+    
+    // 동영상 모달 이벤트 리스너
+    closeVideoModalBtn?.addEventListener('click', closeVideoModal);
+    
+    // 동영상 모달 바깥 클릭 시 닫기
+    videoModal?.addEventListener('click', (e) => {
+        if (e.target === videoModal || e.target.classList.contains('relative')) {
+            closeVideoModal();
+        }
+    });
+    
+    // Feature Card 2 클릭 시 동영상 모달 열기
+    featureCard2?.addEventListener('click', () => {
+        openVideoModal();
     });
     
     // 프로필 버튼 클릭 → 읽지 않은 알림이 있으면 모달 먼저, 없으면 바로 프로필 페이지
