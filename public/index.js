@@ -3382,7 +3382,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 archiveGrid.classList.remove('hidden');
                 
                 archiveGrid.innerHTML = items.map(item => `
-                    <div class="archive-item relative ${selectedItemIds.includes(item.id) ? 'selected ring-2 ring-blue-500' : ''}" // ✅ .has → .includes 
+                    <div class="archive-item relative ${selectedItemIds.includes(item.id) ? 'selected ring-2 ring-blue-500' : ''}"
                          data-id="${item.id}" 
                          data-testid="card-archive-${item.id}"
                          tabindex="0">
@@ -3396,8 +3396,16 @@ document.addEventListener('DOMContentLoaded', () => {
                                  alt="Archive item" 
                                  class="w-full aspect-square object-cover rounded-lg">
                         ` : `
-                            <div class="w-full aspect-square bg-gradient-to-br from-blue-100 to-purple-100 rounded-lg flex items-center justify-center">
-                                <span class="text-3xl">💭</span>
+                            <!-- 🎤 음성 가이드 카드: 로고 워터마크 + 키워드 표시 -->
+                            <div class="w-full aspect-square bg-black rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
+                                <img src="/images/landing-logo.jpg" alt="내손가이드 로고" 
+                                     class="absolute inset-0 w-full h-full object-cover opacity-10">
+                                <div class="relative z-10 flex flex-col items-center justify-center p-3 text-center">
+                                    <svg class="w-8 h-8 text-gemini-blue mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                    </svg>
+                                    <span class="text-white text-xs line-clamp-2">${item.voiceQuery || '음성 질문'}</span>
+                                </div>
                             </div>
                         `}
                     </div>
@@ -3453,24 +3461,37 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!item) return;
 
             cameFromArchive = true;
-            // 🎤 저장된 voiceLang, voiceName 포함
+            // 🎤 저장된 voiceLang, voiceName, voiceQuery 포함
             currentContent = { 
                 imageDataUrl: item.imageDataUrl, 
                 description: item.description,
                 voiceLang: item.voiceLang || null,
-                voiceName: item.voiceName || null
+                voiceName: item.voiceName || null,
+                voiceQuery: item.voiceQuery || null
             };
-            console.log('🎤 [보관함] 저장된 음성 정보:', item.voiceLang, item.voiceName);
+            console.log('🎤 [보관함] 저장된 음성 정보:', item.voiceLang, item.voiceName, item.voiceQuery);
 
             showDetailPage(true);
 
+            // 🎤 음성 가이드 vs 이미지 가이드 분기
+            const isVoiceGuide = !item.imageDataUrl && item.voiceQuery;
+            
             if (item.imageDataUrl) {
                 resultImage.src = item.imageDataUrl;
                 resultImage.classList.remove('hidden');
                 detailPage.classList.remove('bg-friendly');
+                // 이미지 모드: 음성 모드 요소 숨기기
+                if (voiceModeLogo) voiceModeLogo.classList.add('hidden');
+                if (voiceQueryInfo) voiceQueryInfo.classList.add('hidden');
             } else {
                 resultImage.classList.add('hidden');
                 detailPage.classList.add('bg-friendly');
+                // 🎤 음성 모드: 로고 + 키워드 표시
+                if (voiceModeLogo) voiceModeLogo.classList.remove('hidden');
+                if (isVoiceGuide && voiceQueryInfo && voiceQueryText) {
+                    voiceQueryText.textContent = item.voiceQuery;
+                    voiceQueryInfo.classList.remove('hidden');
+                }
             }
 
             loader.classList.add('hidden');
@@ -3484,10 +3505,10 @@ document.addEventListener('DOMContentLoaded', () => {
             resetSpeechState();
             descriptionText.innerHTML = '';
             
-            // 📍 위치 정보 표시 (2025-10-26)
+            // 📍 위치 정보 표시 (음성 가이드가 아닐 때만)
             const locationInfo = document.getElementById('locationInfo');
             const locationName = document.getElementById('locationName');
-            if (item.locationName && locationInfo && locationName) {
+            if (!isVoiceGuide && item.locationName && locationInfo && locationName) {
                 locationName.textContent = item.locationName;
                 locationInfo.classList.remove('hidden');
             } else if (locationInfo) {
