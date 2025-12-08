@@ -41,7 +41,7 @@ const SharePageTranslation = {
     // 한국어 음성 우선순위 (플랫폼별 분기)
     getKoreanVoicePriority: function() {
         const isIOS = /iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
-        return isIOS ? ['Sora', 'Yuna', 'Korean', '한국어'] : ['Microsoft Heami', 'Korean', '한국어'];
+        return isIOS ? ['Yuna'] : ['Microsoft Heami', 'Korean', '한국어'];
     },
 
     // 인라인 스크립트 반환 (standard-template.ts에서 사용)

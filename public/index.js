@@ -142,7 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 하드코딩 기본값 (오프라인 fallback)
     const DEFAULT_VOICE_PRIORITIES = {
-        'ko-KR': { ios: ['Sora', 'Yuna', 'Korean', '한국어'], default: ['Microsoft Heami', 'Korean', '한국어'] },
+        'ko-KR': { ios: ['Yuna'], default: ['Microsoft Heami', 'Korean', '한국어'] },
         'en-US': { default: ['Samantha', 'Microsoft Zira', 'Google US English', 'English'] },
         'ja-JP': { default: ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'] },
         'zh-CN': { default: ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'] },
@@ -1143,7 +1143,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 플랫폼별 최적 음성 우선순위 (2025-12-07: 한국어 iOS/Android 분기)
             const isIOS = /iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
             const voicePriority = {
-                'ko-KR': isIOS ? ['Sora', 'Yuna', 'Korean', '한국어'] : ['Microsoft Heami', 'Korean', '한국어'],
+                'ko-KR': isIOS ? ['Yuna'] : ['Microsoft Heami', 'Korean', '한국어'],
                 'en-US': ['Samantha', 'Microsoft Zira', 'Google US English', 'English'],
                 'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'],
                 'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'],

@@ -147,7 +147,7 @@ const guideDetailPage = {
     
     // 🔊 하드코딩 기본값 (오프라인 fallback)
     _defaultVoicePriorities: {
-        'ko-KR': { ios: ['Sora', 'Yuna', 'Korean', '한국어'], default: ['Microsoft Heami', 'Korean', '한국어'] },
+        'ko-KR': { ios: ['Yuna'], default: ['Microsoft Heami', 'Korean', '한국어'] },
         'en-US': { default: ['Samantha', 'Microsoft Zira', 'Google US English', 'English'] },
         'ja-JP': { default: ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'] },
         'zh-CN': { default: ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'] },
