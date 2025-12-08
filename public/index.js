@@ -2558,6 +2558,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 queueForSpeech(sentence, span);
             }
             
+            // 🎤 음성 가이드 저장 버튼 활성화
+            saveBtn.disabled = false;
+            
+            // 🔒 AI 호출 성공 후 사용량 차감
+            await deductUsage('detail');
+            
         } catch (err) {
             console.error("답변 오류:", err);
             clearInterval(loadingInterval);
@@ -2602,7 +2608,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleSaveClick() {
-        if (!currentContent.description || !currentContent.imageDataUrl) return;
+        // 🎤 음성 가이드: imageDataUrl 없어도 저장 가능 (voiceQuery로 대체)
+        if (!currentContent.description) return;
+        if (!currentContent.imageDataUrl && !currentContent.voiceQuery) return;
         saveBtn.disabled = true;
 
         try {
@@ -2639,7 +2647,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         guides: [
                             {
                                 localId: savedId, // IndexedDB ID
-                                title: currentContent.title || '제목 없음',
+                                // 🎤 음성 가이드: voiceQuery를 title로 사용
+                                title: currentContent.voiceQuery || currentContent.title || '제목 없음',
                                 description: currentContent.description,
                                 imageDataUrl: currentContent.imageDataUrl,
                                 latitude: currentContent.latitude?.toString(),
