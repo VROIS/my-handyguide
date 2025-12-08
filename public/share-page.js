@@ -233,6 +233,31 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 // === 보관함에서 그대로 복사한 TTS 시스템 ===
+
+// iOS에 최적화된 음성 선택 함수 (2025-12-08 Yuna 음성 문제 해결)
+function getOptimalKoreanVoice() {
+    const allVoices = synth.getVoices();
+    const isIOS = /iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
+    
+    // iOS: Yuna 우선, Android: Microsoft Heami 우선
+    const priorityList = isIOS 
+        ? ['Yuna', 'Microsoft Heami', 'Google 한국어']
+        : ['Microsoft Heami', 'Yuna', 'Google 한국어'];
+    
+    for (const voiceName of priorityList) {
+        const voice = allVoices.find(v => v.name.includes(voiceName));
+        if (voice) {
+            console.log('🎤 [한국어음성선택]', isIOS ? 'iOS' : 'Android', '→', voice.name);
+            return voice;
+        }
+    }
+    
+    // Fallback: 한국어 첫 번째 음성
+    const koVoice = allVoices.find(v => v.lang.startsWith('ko'));
+    console.log('🎤 [한국어음성-Fallback]', koVoice?.name || 'default');
+    return koVoice;
+}
+
 function resetSpeechState() {
     utteranceQueue = [];
     isSpeaking = false;
@@ -260,6 +285,7 @@ function stopSpeech() {
 function queueForSpeech(text, element) {
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'ko-KR';
+    utterance.voice = getOptimalKoreanVoice();  // ✅ 음성 설정 추가
     utteranceQueue.push({ utterance, element });
 
     if (!isSpeaking && !synth.speaking && !isPaused) {
