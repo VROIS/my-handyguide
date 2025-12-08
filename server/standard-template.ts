@@ -688,12 +688,12 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
     
     <!-- ⚠️ 핵심 로직: Service Worker 등록 (오프라인 지원) -->
     <script>
-        // Service Worker 지원 확인 및 등록
+        // Service Worker 지원 확인 및 등록 (v10 - 메인 앱과 동일)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw-share.js')
+                navigator.serviceWorker.register('/service-worker.js')
                     .then(registration => {
-                        console.log('✅ [SW] 등록 성공:', registration.scope);
+                        console.log('✅ [SW] v10 등록 성공:', registration.scope);
                     })
                     .catch(error => {
                         console.log('❌ [SW] 등록 실패:', error);

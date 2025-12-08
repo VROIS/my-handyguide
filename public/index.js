@@ -1374,16 +1374,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Service Worker 지원 확인 및 등록
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw-share.js')
+                navigator.serviceWorker.register('/service-worker.js')
                     .then(registration => {
-                        console.log('✅ [SW] 등록 성공:', registration.scope);
+                        console.log('✅ [SW] v10 등록 성공:', registration.scope);
                     })
                     .catch(error => {
                         console.log('❌ [SW] 등록 실패:', error);
                     });
             });
-        } else {
-            console.log('⚠️ [SW] Service Worker를 지원하지 않는 브라우저입니다.');
         }
     </script>
 </body>
