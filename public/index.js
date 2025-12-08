@@ -1823,12 +1823,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // 동영상 모달 함수
+    let videoAutoCloseTimer = null;
+    
     function openVideoModal() {
         if (videoModal && featureVideo) {
             videoModal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             featureVideo.currentTime = 0;
-            featureVideo.play();
+            featureVideo.play().catch(err => console.log('Video play error:', err));
+            
+            // 8초 후 자동 닫힘
+            if (videoAutoCloseTimer) clearTimeout(videoAutoCloseTimer);
+            videoAutoCloseTimer = setTimeout(() => {
+                closeVideoModal();
+            }, 8000);
         }
     }
     
@@ -1837,6 +1845,12 @@ document.addEventListener('DOMContentLoaded', () => {
             videoModal.classList.add('hidden');
             document.body.style.overflow = '';
             featureVideo.pause();
+            
+            // 타이머 정리
+            if (videoAutoCloseTimer) {
+                clearTimeout(videoAutoCloseTimer);
+                videoAutoCloseTimer = null;
+            }
         }
     }
     
