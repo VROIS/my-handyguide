@@ -912,7 +912,7 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
             </div>
         </div>
         
-        <!-- 푸터 (오디오 버튼) -->
+        <!-- 푸터 (표준 3버튼: 재생 + 텍스트 + 저장) -->
         <footer class="footer-safe-area" style="background: transparent;">
             <button id="detail-audio" class="interactive-btn" style="width: 4rem; height: 4rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); color: #4285F4; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);" aria-label="오디오 재생">
                 <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" style="width: 2rem; height: 2rem;" viewBox="0 0 24 24" fill="currentColor">
@@ -921,6 +921,14 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
                 <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" style="width: 2rem; height: 2rem; display: none;" viewBox="0 0 24 24" fill="currentColor">
                     <path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z" clip-rule="evenodd" />
                 </svg>
+            </button>
+            <button id="text-toggle" class="interactive-btn" style="width: 4rem; height: 4rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); color: #4285F4; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);" aria-label="해설 읽기">
+                <svg xmlns="http://www.w3.org/2000/svg" style="width: 2rem; height: 2rem;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </button>
+            <button id="save-btn" class="interactive-btn" style="width: 4rem; height: 4rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); color: #4285F4; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);" aria-label="보관함에 저장">
+                <svg xmlns="http://www.w3.org/2000/svg" style="width: 2rem; height: 2rem;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
             </button>
         </footer>
     </div>
@@ -1016,6 +1024,56 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
                 stopAudio();
             } else {
                 playAudio();
+            }
+        });
+        
+        // 텍스트 토글 버튼 클릭
+        let isTextVisible = true;
+        document.getElementById('text-toggle').addEventListener('click', () => {
+            isTextVisible = !isTextVisible;
+            document.getElementById('detail-text').style.opacity = isTextVisible ? '1' : '0';
+        });
+        
+        // 저장 버튼 클릭 - IndexedDB에 저장 후 앱으로 이동
+        document.getElementById('save-btn').addEventListener('click', async () => {
+            const guideData = {
+                imageDataUrl: '${imageUrl}',
+                description: \`${escapeHTML(description).replace(/`/g, '\\`')}\`,
+                locationName: '${locationName ? escapeHTML(locationName).replace(/'/g, "\\'") : ''}',
+                voiceLang: '${voiceLang || 'ko-KR'}',
+                voiceName: '${voiceName || ''}',
+                timestamp: Date.now()
+            };
+            
+            try {
+                // IndexedDB 열기
+                const dbRequest = indexedDB.open('MyAppDB', 1);
+                dbRequest.onupgradeneeded = (e) => {
+                    const db = e.target.result;
+                    if (!db.objectStoreNames.contains('archive')) {
+                        db.createObjectStore('archive', { keyPath: 'id', autoIncrement: true });
+                    }
+                };
+                dbRequest.onsuccess = (e) => {
+                    const db = e.target.result;
+                    const tx = db.transaction('archive', 'readwrite');
+                    const store = tx.objectStore('archive');
+                    store.add(guideData);
+                    tx.oncomplete = () => {
+                        alert('보관함에 저장되었습니다!');
+                        // 앱 보관함으로 이동
+                        window.location.href = '${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : ''}/#archive';
+                    };
+                    tx.onerror = () => {
+                        alert('저장에 실패했습니다.');
+                    };
+                };
+                dbRequest.onerror = () => {
+                    alert('저장에 실패했습니다.');
+                };
+            } catch (err) {
+                console.error('저장 오류:', err);
+                alert('저장에 실패했습니다.');
             }
         });
         
