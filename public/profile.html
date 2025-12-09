@@ -796,9 +796,10 @@
             guideDetailPage.init();
         })();
 
-        // 상세보기 열기 함수 (guideId로 API 호출)
-        async function viewGuideDetail(guideId) {
-            guideDetailPage.open(guideId);
+        // 상세보기 열기 함수 - 새 탭에서 표준 상세페이지 열기
+        // 2025-12-09: /guide/:id 엔드포인트에서 표준 템플릿으로 렌더링
+        function viewGuideDetail(guideId) {
+            window.open(`/guide/${guideId}`, '_blank');
         }
 
         // 공유 기능 (index.js 2회차 성공 모달과 동일)
