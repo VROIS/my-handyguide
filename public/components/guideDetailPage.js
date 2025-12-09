@@ -54,6 +54,14 @@ const guideDetailPage = {
                     <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
             </button>
+            <button id="guideDetailSaveBtn" aria-label="보관함에 저장" class="w-16 h-16 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 3H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V7l-4-4z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 3v4H9" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 12v6" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 15h6" />
+                </svg>
+            </button>
         </footer>
     </div>`;
     },
@@ -142,7 +150,10 @@ const guideDetailPage = {
         translationObserver: null,
         // 🔊 2025-12-07: DB 기반 음성 설정 캐시
         voiceConfigsCache: null,
-        voiceConfigsLoading: false
+        voiceConfigsLoading: false,
+        // 💾 2025-12-09: 현재 가이드 데이터 (저장용)
+        currentGuideData: null,
+        onSave: null
     },
     
     // 🔊 하드코딩 기본값 (오프라인 fallback)
@@ -172,8 +183,12 @@ const guideDetailPage = {
             textOverlay: document.getElementById('guideDetailTextOverlay'),
             audioBtn: document.getElementById('guideDetailAudioBtn'),
             textToggleBtn: document.getElementById('guideDetailTextToggleBtn'),
-            backBtn: document.getElementById('guideDetailBackBtn')
+            backBtn: document.getElementById('guideDetailBackBtn'),
+            saveBtn: document.getElementById('guideDetailSaveBtn')
         };
+
+        // 💾 2025-12-09: 저장 콜백 설정
+        this._state.onSave = options.onSave || null;
 
         // 음성 목록 로드
         this._populateVoiceList();
@@ -188,6 +203,7 @@ const guideDetailPage = {
         this._els.backBtn.addEventListener('click', () => self.close());
         this._els.audioBtn.addEventListener('click', () => self._toggleAudio());
         this._els.textToggleBtn.addEventListener('click', () => self._toggleText());
+        this._els.saveBtn.addEventListener('click', () => self._saveToLocal());
 
         // 🌐 2025-12-04: 번역 완료 감지 초기화
         this._initTranslationWatcher();
@@ -388,6 +404,8 @@ const guideDetailPage = {
 
     // 데이터로 직접 열기 (API 호출 없이)
     openWithData: function(data) {
+        // 💾 2025-12-09: 저장용 데이터 보관
+        this._state.currentGuideData = data;
         this._show();
         this._render(data);
     },
@@ -650,6 +668,53 @@ const guideDetailPage = {
     _toggleText: function() {
         this._state.isTextVisible = !this._state.isTextVisible;
         this._els.textOverlay.style.opacity = this._state.isTextVisible ? '1' : '0';
+    },
+
+    // 💾 2025-12-09: 로컬 보관함(IndexedDB)에 저장
+    _saveToLocal: async function() {
+        const data = this._state.currentGuideData;
+        if (!data) {
+            console.warn('[GuideDetailPage] 저장할 데이터 없음');
+            this._showToast('저장할 데이터가 없습니다', 'error');
+            return;
+        }
+
+        try {
+            // onSave 콜백이 있으면 사용 (프로필/관리자 페이지에서 주입)
+            if (this._state.onSave) {
+                await this._state.onSave(data);
+                this._showToast('보관함에 저장되었습니다', 'success');
+                return;
+            }
+
+            // 기본: IndexedDB에 저장 (public/index.js의 saveToLocalArchive 패턴)
+            if (typeof window.saveToLocalArchive === 'function') {
+                await window.saveToLocalArchive(data);
+                this._showToast('보관함에 저장되었습니다', 'success');
+            } else {
+                console.warn('[GuideDetailPage] saveToLocalArchive 함수 없음');
+                this._showToast('저장 기능을 사용할 수 없습니다', 'error');
+            }
+        } catch (error) {
+            console.error('[GuideDetailPage] 저장 실패:', error);
+            this._showToast('저장에 실패했습니다', 'error');
+        }
+    },
+
+    // 💾 토스트 메시지 표시
+    _showToast: function(message, type = 'info') {
+        const toast = document.createElement('div');
+        toast.className = `fixed bottom-24 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg text-white text-sm z-[10000] transition-all duration-300 ${
+            type === 'success' ? 'bg-green-600' : 
+            type === 'error' ? 'bg-red-600' : 'bg-gray-800'
+        }`;
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }, 2000);
     }
 };
 
