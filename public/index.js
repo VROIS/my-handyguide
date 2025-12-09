@@ -2478,6 +2478,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (synth.speaking || synth.pending) synth.cancel();
         resetSpeechState();
         
+        // 📍 음성 가이드도 위치 정보 요청 (백그라운드 실행)
+        requestBrowserLocation();
+        
         showDetailPage();
         
         detailPage.classList.add('bg-friendly');
