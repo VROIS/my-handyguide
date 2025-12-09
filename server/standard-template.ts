@@ -373,8 +373,21 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             box-shadow: 0 6px 16px rgba(66, 133, 244, 0.4);
         }
     </style>
+    <script>
+        function handleSmartClose() {
+            console.log('🔵 X 버튼 클릭됨');
+            console.log('✅ 창 닫기 (백그라운드 앱 유지)');
+            window.close();
+        }
+    </script>
 </head>
 <body>
+    <!-- ✕ 페이지 닫기 버튼 (모든 공유페이지에서 표시) -->
+    <button id="closeWindowBtn" onclick="handleSmartClose()" title="페이지 닫기" style="position: fixed; top: 1rem; right: 1rem; z-index: 1000; width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); border-radius: 50%; color: #4285F4; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); border: none;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+    </button>
     <!-- 헤더 (메타데이터) -->
     <div class="header">
         <h1>${escapeHTML(title)}</h1>
