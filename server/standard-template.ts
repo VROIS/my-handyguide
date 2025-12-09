@@ -742,3 +742,288 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
 </body>
 </html>`;
 }
+
+// ═══════════════════════════════════════════════════════════════
+// ⭐ 단일 가이드 상세페이지 템플릿 (프로필 페이지에서 새 탭으로 열기용)
+// 2025-12-09: 표준 상세페이지 - DB에서 가져온 단일 가이드를 새 탭에서 표시
+// ═══════════════════════════════════════════════════════════════
+
+export interface SingleGuidePageData {
+  id: string;
+  imageUrl: string;
+  description: string;
+  locationName?: string;
+  voiceLang?: string;
+  voiceName?: string;
+  createdAt?: string;
+}
+
+export function generateSingleGuideHTML(data: SingleGuidePageData): string {
+  const { id, imageUrl, description, locationName, voiceLang, voiceName, createdAt } = data;
+  
+  const escapeHTML = (str: string) => {
+    if (!str) return '';
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  };
+
+  return `<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>${escapeHTML(locationName || '상세 가이드')} - 내손가이드</title>
+    <meta property="og:title" content="${escapeHTML(locationName || '상세 가이드')} - 내손가이드">
+    <meta property="og:description" content="${escapeHTML(description?.substring(0, 100) || '나만의 여행 가이드')}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            background-color: #000;
+            overflow-x: hidden;
+        }
+        .hidden { display: none !important; }
+        
+        .full-screen-bg { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100vw; 
+            height: 100vh; 
+            object-fit: cover; 
+            z-index: 1; 
+        }
+        .ui-layer { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            z-index: 10; 
+            display: flex; 
+            flex-direction: column;
+        }
+        .header-safe-area { 
+            position: relative;
+            width: 100%; 
+            height: 80px; 
+            flex-shrink: 0; 
+            z-index: 20;
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 0 1rem;
+        }
+        .content-safe-area { 
+            flex: 1; 
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch; 
+            background: transparent;
+            z-index: 25;
+        }
+        .footer-safe-area { 
+            width: 100%; 
+            height: 100px; 
+            flex-shrink: 0; 
+            z-index: 30; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            padding: 0 1rem;
+            gap: 1.5rem;
+        }
+        
+        .text-content {
+            padding: 2rem 1.5rem;
+            line-height: 1.8;
+            word-break: keep-all;
+            overflow-wrap: break-word;
+        }
+        .readable-on-image {
+            color: white;
+            text-shadow: 0px 2px 8px rgba(0, 0, 0, 0.95);
+        }
+        
+        .interactive-btn {
+            transition: transform 0.1s ease;
+            cursor: pointer;
+            border: none;
+        }
+        .interactive-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .location-info {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(8px);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .location-info svg {
+            width: 1.25rem;
+            height: 1.25rem;
+            color: #4285F4;
+            flex-shrink: 0;
+        }
+        .location-info span {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body>
+    <!-- 배경 이미지 -->
+    <img id="detail-bg" src="${imageUrl}" alt="가이드 이미지" class="full-screen-bg">
+    
+    <!-- UI 레이어 -->
+    <div class="ui-layer">
+        <!-- 헤더 (리턴 버튼) -->
+        <header class="header-safe-area">
+            <button id="detail-back" onclick="window.close()" class="interactive-btn" style="width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); color: #4285F4; box-shadow: 0 4px 12px rgba(0,0,0,0.3); position: fixed; top: 1rem; right: 1rem; z-index: 10001;" aria-label="닫기">
+                <svg xmlns="http://www.w3.org/2000/svg" style="width: 1.5rem; height: 1.5rem;" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                </svg>
+            </button>
+        </header>
+        
+        <!-- 콘텐츠 영역 -->
+        <div class="content-safe-area">
+            <div id="detail-text" class="text-content">
+                ${locationName ? `
+                <div class="location-info">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                    </svg>
+                    <span>${escapeHTML(locationName)}</span>
+                </div>
+                ` : ''}
+                <p id="detail-description" class="readable-on-image" style="font-size: 1.25rem; line-height: 1.75rem;">${escapeHTML(description)}</p>
+            </div>
+        </div>
+        
+        <!-- 푸터 (오디오 버튼) -->
+        <footer class="footer-safe-area" style="background: transparent;">
+            <button id="detail-audio" class="interactive-btn" style="width: 4rem; height: 4rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); color: #4285F4; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);" aria-label="오디오 재생">
+                <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" style="width: 2rem; height: 2rem;" viewBox="0 0 24 24" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.648c1.295.748 1.295 2.538 0 3.286L7.279 20.99c-1.25.717-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
+                </svg>
+                <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" style="width: 2rem; height: 2rem; display: none;" viewBox="0 0 24 24" fill="currentColor">
+                    <path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </footer>
+    </div>
+    
+    <script>
+        // Web Speech API
+        const synth = window.speechSynthesis;
+        let voices = [];
+        let currentUtterance = null;
+        const voiceLang = '${voiceLang || 'ko-KR'}';
+        const savedVoiceName = '${voiceName || ''}';
+        
+        function populateVoiceList() {
+            voices = synth.getVoices();
+        }
+        
+        function stopAudio() {
+            if (synth.speaking) {
+                synth.pause();
+                synth.cancel();
+            }
+            document.getElementById('play-icon').style.display = 'block';
+            document.getElementById('pause-icon').style.display = 'none';
+        }
+        
+        function playAudio() {
+            const text = document.getElementById('detail-description').textContent;
+            if (!text) return;
+            
+            stopAudio();
+            
+            const cleanText = text.replace(/<br\\s*\\/?>/gi, ' ');
+            currentUtterance = new SpeechSynthesisUtterance(cleanText);
+            
+            // 저장된 음성 이름으로 찾기
+            const allVoices = synth.getVoices();
+            let targetVoice = null;
+            
+            if (savedVoiceName) {
+                targetVoice = allVoices.find(v => v.name === savedVoiceName);
+            }
+            
+            // 없으면 언어 코드로 찾기
+            if (!targetVoice) {
+                const voicePriority = {
+                    'ko-KR': ['Microsoft Heami', 'Yuna'],
+                    'en-US': ['Samantha', 'Microsoft Zira', 'Google US English'],
+                    'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語'],
+                    'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话'],
+                    'fr-FR': ['Thomas', 'Microsoft Hortense', 'Google français'],
+                    'de-DE': ['Anna', 'Microsoft Hedda', 'Google Deutsch'],
+                    'es-ES': ['Monica', 'Microsoft Helena', 'Google español']
+                };
+                
+                const priorities = voicePriority[voiceLang] || [];
+                for (const voiceName of priorities) {
+                    targetVoice = allVoices.find(v => v.name.includes(voiceName));
+                    if (targetVoice) break;
+                }
+                
+                if (!targetVoice) {
+                    targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(voiceLang.substring(0, 2)));
+                }
+            }
+            
+            currentUtterance.voice = targetVoice || null;
+            currentUtterance.lang = voiceLang;
+            currentUtterance.rate = 1.0;
+            
+            console.log('[SingleGuide TTS] 언어:', voiceLang, '음성:', targetVoice ? targetVoice.name : 'default');
+            
+            currentUtterance.onstart = () => {
+                document.getElementById('play-icon').style.display = 'none';
+                document.getElementById('pause-icon').style.display = 'block';
+            };
+            
+            currentUtterance.onend = () => {
+                document.getElementById('play-icon').style.display = 'block';
+                document.getElementById('pause-icon').style.display = 'none';
+            };
+            
+            synth.speak(currentUtterance);
+        }
+        
+        populateVoiceList();
+        if (synth.onvoiceschanged !== undefined) {
+            synth.onvoiceschanged = populateVoiceList;
+        }
+        
+        // 오디오 버튼 클릭
+        document.getElementById('detail-audio').addEventListener('click', () => {
+            if (synth.speaking) {
+                stopAudio();
+            } else {
+                playAudio();
+            }
+        });
+        
+        // 페이지 이탈 시 오디오 정지
+        window.addEventListener('beforeunload', () => {
+            stopAudio();
+        });
+    </script>
+</body>
+</html>`;
+}

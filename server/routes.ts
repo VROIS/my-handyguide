@@ -16,6 +16,7 @@ import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 import { generateShareHtml } from "./html-template";
+import { generateSingleGuideHTML } from "./standard-template";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import profileRoutes from "./profileRoutes";
 import { notificationService } from "./notificationService";
@@ -841,6 +842,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("배치 가이드 저장 오류:", error);
       res.status(500).json({ message: "배치 저장 중 오류가 발생했습니다." });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // ⭐ 단일 가이드 상세페이지 (프로필에서 새 탭으로 열기용)
+  // 2025-12-09: DB에서 가이드 데이터 불러와서 표준 템플릿으로 렌더링
+  // ═══════════════════════════════════════════════════════════════
+  app.get('/guide/:id', async (req, res) => {
+    try {
+      const { id } = req.params;
+      const guide = await storage.getGuide(id);
+      
+      if (!guide) {
+        return res.status(404).send('<h1>가이드를 찾을 수 없습니다</h1><p><a href="/">홈으로 돌아가기</a></p>');
+      }
+
+      // 조회수 증가
+      await storage.incrementGuideViews(id);
+      
+      // 표준 상세페이지 HTML 생성
+      const html = generateSingleGuideHTML({
+        id: guide.id,
+        imageUrl: guide.imageUrl || '',
+        description: guide.description || '',
+        locationName: guide.locationName || '',
+        voiceLang: guide.voiceLang || 'ko-KR',
+        voiceName: guide.voiceName || '',
+        createdAt: guide.createdAt?.toISOString() || ''
+      });
+      
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(html);
+    } catch (error) {
+      console.error("Error rendering guide page:", error);
+      res.status(500).send('<h1>오류가 발생했습니다</h1><p><a href="/">홈으로 돌아가기</a></p>');
     }
   });
 
