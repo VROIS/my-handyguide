@@ -48,8 +48,19 @@ A full-screen detail page component (`public/components/guideDetailPage.js`) dis
 ### Share Page Translation + TTS Component V1
 A standard component system for multi-language support integrates translation detection and text-to-speech. It uses Google Translate's class additions to `body` to detect translation completion, allowing TTS playback in the translated language. It also includes offline storage capabilities via IndexedDB.
 
-### V2 Share Page Template System
-This system generates complete HTML pages for sharing, which are stored directly in the `sharedHtmlPages` database table. The structure is highly optimized and critical for the application's core functionality, with strict prohibitions against structural changes to `server/standard-template.ts`, `public/shared-template/v2.js`, and `public/shared-template/v2.css`.
+### V2 Share Page Template System (⚠️ 봉인됨 2025-12-09)
+**❌ v2.js/v2.css는 실패한 자동화 로직 - 사용 금지!**
+- 현재 V1이 최적화된 상태 (components/ 폴더 사용)
+- AI 주의: 이 파일들을 참조하거나 수정하지 말 것!
+- 실제 사용 템플릿: `server/html-template.ts`, `server/standard-template.ts`
+
+### 공유 페이지 템플릿 (현재 사용 중)
+| 템플릿 | 용도 | 생성 API |
+|--------|------|----------|
+| `html-template.ts` | 일반 공유페이지 | `/api/share/create` |
+| `standard-template.ts` | 추천모음 (Featured) | `/api/admin/featured/:id/regenerate` |
+
+**중요**: 둘 다 같은 근원 (사용자가 만든 일반 공유페이지). 관리자가 Featured로 지정하면 추천모음이 됨.
 
 ### HTML Parser (`server/html-parser.ts`)
 This critical component handles the parsing of guide data from HTML to ensure the preservation of AI-generated content (descriptions) in the `guides` database. It prioritizes parsing from the `<script id="app-data">` tag within the generated HTML.
