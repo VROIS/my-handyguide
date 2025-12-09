@@ -412,12 +412,26 @@ const guideDetailPage = {
 
     // 렌더링
     _render: function(guide) {
-        this._els.image.src = guide.imageUrl || guide.imageDataUrl || '';
+        // 🎨 2025-12-09: 이미지 없으면 기본 배경(흐린 로고) 사용
+        const imageUrl = guide.imageUrl || guide.imageDataUrl || '/images/landing-logo.jpg';
+        this._els.image.src = imageUrl;
+        
+        // 기본 배경 사용 시 흐린 효과 적용
+        if (!guide.imageUrl && !guide.imageDataUrl) {
+            this._els.image.style.filter = 'blur(8px) brightness(0.7)';
+            this._els.image.style.transform = 'scale(1.1)';
+        } else {
+            this._els.image.style.filter = '';
+            this._els.image.style.transform = '';
+        }
+        
         this._els.description.textContent = guide.description || '내용 없음';
         
         if (guide.locationName) {
             this._els.locationName.textContent = guide.locationName;
             this._els.locationInfo.classList.remove('hidden');
+        } else {
+            this._els.locationInfo.classList.add('hidden');
         }
 
         // 🎤 저장된 음성 정보 보관 (토글 재생 시 사용)
