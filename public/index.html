@@ -6,7 +6,7 @@
     <title>손안에 가이드</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234285F4'><path d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/></svg>">
     <meta name="theme-color" content="#FFFEFA"/>
-    <link rel="manifest" href="manifest.json">
+    <link rel="manifest" href="/assets/manifest-DY-Vpcez.json">
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 📍 EXIF GPS 추출 라이브러리 (2025-10-26 콘텐츠 신뢰성 최적화) -->
     <script src="https://cdn.jsdelivr.net/npm/exifr@7/dist/full.umd.js"></script>
@@ -33,6 +33,54 @@
             font-family: 'MaruBuri', sans-serif;
         }
         
+        /* --- New Landing Page Styles (Surgically Transplanted) --- */
+        #curtain-layer {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            pointer-events: none;
+        }
+        .curtain {
+            position: absolute;
+            top: 0;
+            width: 50.5%; /* Overlap to prevent gap */
+            height: 100%;
+            background-color: #4285F4; /* Gemini Blue */
+            transition: transform 1.0s cubic-bezier(0.86, 0, 0.07, 1);
+        }
+        #curtain-left { left: 0; }
+        #curtain-right { right: 0; }
+        
+        #curtain-left.open { transform: translateX(-100%); }
+        #curtain-right.open { transform: translateX(100%); }
+
+        .splash-logo {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 100%;
+            padding: 0 1rem;
+            box-sizing: border-box;
+            text-align: center;
+            transform: translate(-50%, -50%);
+            z-index: 10000;
+            font-family: 'Pretendard', sans-serif;
+            font-weight: 800;
+            font-size: 3rem;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            transition: opacity 0.5s ease-out;
+            opacity: 0;
+        }
+        .splash-logo.visible {
+            opacity: 1;
+        }
+        .splash-logo .logo-dot {
+            color: #FBBF24; /* Yellow dot color from example */
+        }
+
         .full-screen-bg { 
             position: fixed; 
             top: 0; 
@@ -414,13 +462,14 @@
         }
 
     </style>
+  <script type="module" crossorigin src="/assets/main-DTEXuF-8.js"></script>
 </head>
 <body style="background-color: #FFFEFA;">
     <!-- 🆕 New Landing Page (2025-12-07) - 모바일 최적화 -->
     <div id="landingPage" class="h-screen flex flex-col" style="background: #f9fafb; position: relative; z-index: 100;">
         <!-- 상단 로고 영역 - 50vh (2025-12-08 UX 최적화) -->
         <div class="flex items-center justify-center" style="height: 50vh; flex-shrink: 0;">
-            <img src="images/landing-logo.jpg" alt="손안의 가이드 - Your Expert in Hand" class="max-w-[85%] h-full object-contain">
+            <img src="/assets/landing-logo-CiUrtW71.jpg" alt="손안의 가이드 - Your Expert in Hand" class="max-w-[85%] h-full object-contain">
         </div>
         
         <!-- 하단 언어선택 영역 - 고정 리스트 + 스크롤 (2025-12-08 UX 최적화) -->
@@ -599,7 +648,7 @@
             </button>
             <!-- 동영상 플레이어 -->
             <video id="featureVideo" data-testid="video-feature" class="max-w-full max-h-full rounded-lg shadow-2xl" playsinline>
-                <source src="/images/feature-video.mp4" type="video/mp4">
+                <source src="/assets/feature-video-42sjGxQh.mp4" type="video/mp4">
                 동영상을 재생할 수 없습니다.
             </video>
         </div>
@@ -729,9 +778,9 @@
     <div id="detailPage" class="ui-layer">
         <img id="resultImage" src="" alt="분석된 이미지" class="full-screen-bg">
         <!-- 🎨 음성 모드용 로고 워터마크 배경 (bg-friendly에서만 표시) -->
-        <img id="voiceModeLogo" src="/images/landing-logo.jpg" alt="" class="voice-mode-logo hidden">
+        <img id="voiceModeLogo" src="/assets/landing-logo-CiUrtW71.jpg" alt="" class="voice-mode-logo hidden">
         <header class="header-safe-area">
-            <button id="backBtn" class="w-12 h-12 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl absolute top-1/2 right-4 -translate-y-1/2" style="z-index: 10001; pointer-events: auto;" aria-label="뒤로가기">
+            <button id="backBtn" class="w-12 h-12 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl absolute top-1/2 left-4 -translate-y-1/2" aria-label="뒤로가기">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                 </svg>
@@ -1131,7 +1180,7 @@
         <div id="user-qr-code-modal" class="fixed inset-0 bg-black/50 z-50 hidden flex items-center justify-center p-4">
             <div class="bg-white w-full max-w-xs rounded-xl p-6 shadow-2xl text-center">
                 <div id="user-qr-image-wrapper" class="w-full aspect-square mx-auto mb-4 p-2 bg-gray-50 rounded-lg flex items-center justify-center">
-                    <img id="user-qr-image" src="/images/app-qr-code.png" alt="공유 QR 코드" class="max-w-full max-h-full rounded-lg shadow-md border border-gray-200" style="width: 250px; height: 250px; object-fit: contain;">
+                    <img id="user-qr-image" src="/assets/app-qr-code-CYTjq9cb.png" alt="공유 QR 코드" class="max-w-full max-h-full rounded-lg shadow-md border border-gray-200" style="width: 250px; height: 250px; object-fit: contain;">
                 </div>
                 <button id="user-copy-qr-button" class="w-full bg-blue-500 text-white py-3 rounded-lg text-lg font-semibold hover:bg-blue-600 transition disabled:bg-gray-400">복사</button>
             </div>
@@ -1316,17 +1365,13 @@
 
 <script src="language-helper.js"></script>
 <script>
-    // 🔧 페이지 로드 전 저장된 언어 쿠키 설정 (Google Translate 적용을 위해)
-    LanguageHelper.initializeLanguage();
-</script>
-<script>
     document.addEventListener('DOMContentLoaded', () => {
         const landingPage = document.getElementById('landingPage');
         const featuresPage = document.getElementById('featuresPage');
         const languageScrollList = document.getElementById('languageScrollList');
         const languageItems = document.querySelectorAll('.language-item');
         
-        // 🔧 2025-12-10: 언어 선택 후 새로고침 시 기능페이지 바로 표시
+        // 🔧 새로고침 후 기능페이지로 바로 이동 (2025-12-07)
         const landingVisited = localStorage.getItem('landingVisited');
         if (landingVisited === 'true' && landingPage && featuresPage) {
             landingPage.classList.add('hidden');
@@ -1346,7 +1391,7 @@
             });
         }
         
-        // 언어 선택 시 → 기능페이지 전환 + 새로고침 (Google Translate 적용)
+        // 언어 선택 시 → googtrans 쿠키 설정 → 페이지 새로고침 (2025-12-08 스크롤 리스트)
         languageItems.forEach(item => {
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1359,29 +1404,22 @@
                 // 언어 저장 (LanguageHelper + localStorage)
                 LanguageHelper.setLanguage(selectedLang);
                 
-                // 🔧 Google Translate 쿠키 설정
+                // 랜딩페이지 방문 완료 표시 (새로고침 후 기능페이지로 이동하도록)
+                localStorage.setItem('landingVisited', 'true');
+                
+                // 🔧 Google Translate 쿠키 설정 후 새로고침 (2025-12-07)
                 if (selectedLang !== 'ko') {
                     document.cookie = `googtrans=/ko/${selectedLang}; path=/`;
                     document.cookie = `googtrans=/ko/${selectedLang}; path=/; domain=${window.location.hostname}`;
                     console.log('🌐 Google Translate 쿠키 설정:', selectedLang);
                 }
                 
-                // 🔧 2025-12-10: 기능페이지 이동 플래그 설정 후 새로고침
-                // 새로고침 시 이 플래그로 기능페이지 바로 표시 + Google Translate 적용
-                localStorage.setItem('landingVisited', 'true');
-                
-                // 기능페이지로 전환 표시 후 새로고침 (사용자 못느낌)
-                landingPage.classList.add('hidden');
-                featuresPage.classList.add('visible');
-                
-                setTimeout(() => {
-                    window.location.reload();
-                }, 100);
+                // 페이지 새로고침으로 번역 적용
+                window.location.reload();
             });
         });
     });
 </script>
-<script type="module" src="./index.js?v=20251208-2"></script>
 
 <!-- Google Translate Widget (숨김) -->
 <div id="google_translate_element" style="display:none;"></div>

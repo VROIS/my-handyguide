@@ -1876,6 +1876,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 프로필 버튼 클릭 → 읽지 않은 알림이 있으면 모달 먼저, 없으면 바로 프로필 페이지
     profileBtn?.addEventListener('click', async () => {
         const user = await checkUserAuth();
+        if (!user) {
+            window.open('/profile.html', '_blank');
+            return;
+        }
         
         try {
             const response = await fetch('/api/notifications/unread-count', {
@@ -1936,18 +1940,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // ✨ 보관함 직접 접속 (#archive) 처리 (2025-10-28)
-        // 🔧 수정 (2025-12-10): 앱 내부 네비게이션에서만 #archive 처리
-        // 외부에서 URL로 직접 접속 시에는 랜딩페이지 먼저 표시
         if (window.location.hash === '#archive') {
-            // 앱 내부 네비게이션 플래그가 있을 때만 보관함으로 이동
-            if (sessionStorage.getItem('appNavigationActive')) {
-                console.log('📁 Archive access from app navigation');
-                showArchivePage();
-            } else {
-                console.log('📁 Direct archive URL access - showing landing first');
-                // 해시 제거하여 랜딩페이지 정상 표시
-                window.history.replaceState({}, '', window.location.pathname);
-            }
+            console.log('📁 Direct archive access detected');
+            showArchivePage();
         }
         // The landing page animation will handle showing the features page initially.
         
@@ -2482,9 +2477,6 @@ document.addEventListener('DOMContentLoaded', () => {
         cameFromArchive = false;
         if (synth.speaking || synth.pending) synth.cancel();
         resetSpeechState();
-        
-        // 📍 음성 가이드도 위치 정보 요청 (백그라운드 실행)
-        requestBrowserLocation();
         
         showDetailPage();
         
@@ -5117,18 +5109,8 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     // URL 해시 변화 감지 (Featured 공유 페이지 리턴 버튼 지원)
     // Featured 페이지에서 window.location.href='/#archive' 사용 시
     // hashchange 이벤트로 정상적인 페이지 전환 → 카메라 상태 유지
-    // 🔧 수정 (2025-12-10): 앱 내부 네비게이션에서만 해시 라우팅 처리
     window.addEventListener('hashchange', () => {
         const hash = window.location.hash;
-        
-        // 앱 내부 네비게이션 플래그가 없으면 해시 라우팅 무시 (랜딩페이지 보호)
-        if (!sessionStorage.getItem('appNavigationActive')) {
-            console.log('🚫 Hash change ignored - app not active yet');
-            if (hash) {
-                window.history.replaceState({}, '', window.location.pathname);
-            }
-            return;
-        }
         
         if (hash === '#archive') {
             showArchivePage();
