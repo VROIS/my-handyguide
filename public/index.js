@@ -480,7 +480,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showChargeModal() {
         showToast('크레딧이 부족합니다. 프로필에서 충전해주세요.');
         setTimeout(() => {
-            window.open('/profile.html', '_blank');
+            window.location.href = '/profile.html';
         }, 1500);
     }
 
@@ -1874,10 +1874,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // 프로필 버튼 클릭 → 읽지 않은 알림이 있으면 모달 먼저, 없으면 바로 프로필 페이지
+    // 2025-12-10: 새 탭 아닌 같은 탭에서 열기 (앱 내 연동)
     profileBtn?.addEventListener('click', async () => {
         const user = await checkUserAuth();
         if (!user) {
-            window.open('/profile.html', '_blank');
+            window.location.href = '/profile.html';
             return;
         }
         
@@ -1892,11 +1893,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 notificationModalOpenedFromProfile = true;
                 openNotificationModal();
             } else {
-                window.open('/profile.html', '_blank');
+                window.location.href = '/profile.html';
             }
         } catch (error) {
             console.warn('알림 수 확인 실패:', error);
-            window.open('/profile.html', '_blank');
+            window.location.href = '/profile.html';
         }
     });
 
