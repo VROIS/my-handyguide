@@ -1371,14 +1371,21 @@
         const languageItems = document.querySelectorAll('.language-item');
         
         // 🔧 새로고침 후 기능페이지로 바로 이동 (2025-12-07)
+        // 🔧 수정 (2025-12-10): appNavigationActive 플래그 또는 #archive 해시 체크 추가
         const landingVisited = localStorage.getItem('landingVisited');
-        if (landingVisited === 'true' && landingPage && featuresPage) {
+        const appNavActive = sessionStorage.getItem('appNavigationActive');
+        const hasArchiveHash = window.location.hash === '#archive';
+        
+        // 조건: landingVisited OR appNavigationActive OR #archive 해시
+        if ((landingVisited === 'true' || appNavActive === 'true' || hasArchiveHash) && landingPage && featuresPage) {
             landingPage.classList.add('hidden');
             featuresPage.classList.add('visible');
-            localStorage.removeItem('landingVisited');
+            if (landingVisited === 'true') {
+                localStorage.removeItem('landingVisited');
+            }
             // 🔧 앱 내부 네비게이션 플래그 유지 (2025-12-10)
             sessionStorage.setItem('appNavigationActive', 'true');
-            console.log('🔄 랜딩페이지 스킵 → 기능페이지 표시');
+            console.log('🔄 랜딩페이지 스킵 → 기능페이지 표시 (조건: landingVisited=' + landingVisited + ', appNavActive=' + appNavActive + ', hash=' + hasArchiveHash + ')');
         }
         
         // 저장된 언어가 있으면 해당 항목에 selected 클래스 추가
