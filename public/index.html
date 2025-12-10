@@ -465,7 +465,8 @@
 </head>
 <body style="background-color: #FFFEFA;">
     <!-- 🆕 New Landing Page (2025-12-07) - 모바일 최적화 -->
-    <div id="landingPage" class="h-screen flex flex-col" style="background: #f9fafb; position: relative; z-index: 100;">
+    <!-- 2025-12-10: 랜딩페이지 항상 숨김 (커튼 효과 제거) -->
+    <div id="landingPage" class="h-screen flex flex-col hidden" style="background: #f9fafb; position: relative; z-index: 100;">
         <!-- 상단 로고 영역 - 50vh (2025-12-08 UX 최적화) -->
         <div class="flex items-center justify-center" style="height: 50vh; flex-shrink: 0;">
             <img src="images/landing-logo.jpg" alt="손안의 가이드 - Your Expert in Hand" class="max-w-[85%] h-full object-contain">
@@ -654,7 +655,8 @@
     </div>
 
     <!-- Features Page -->
-    <div id="featuresPage" class="ui-layer bg-gray-50 text-gray-800">
+    <!-- 2025-12-10: 항상 표시 (visible 기본값) -->
+    <div id="featuresPage" class="ui-layer bg-gray-50 text-gray-800 visible">
         <div class="content-safe-area">
             <!-- Features Section -->
             <section class="py-6 md:py-10 bg-white">
