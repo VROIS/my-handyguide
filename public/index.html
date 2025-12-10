@@ -1316,6 +1316,10 @@
 
 <script src="language-helper.js"></script>
 <script>
+    // 🔧 페이지 로드 전 저장된 언어 쿠키 설정 (Google Translate 적용을 위해)
+    LanguageHelper.initializeLanguage();
+</script>
+<script>
     document.addEventListener('DOMContentLoaded', () => {
         const landingPage = document.getElementById('landingPage');
         const featuresPage = document.getElementById('featuresPage');
