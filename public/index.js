@@ -511,7 +511,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showChargeModal() {
         showToast('크레딧이 부족합니다. 프로필에서 충전해주세요.');
         setTimeout(() => {
-            showProfilePage();
+            window.open('/profile.html', '_blank');
         }, 1500);
     }
 
@@ -2121,7 +2121,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // 프로필 버튼 클릭 → 읽지 않은 알림이 있으면 모달 먼저, 없으면 바로 프로필 페이지
-    // 2025-12-10: 앱 내 프로필 페이지로 통합 (profile.html → showProfilePage())
     profileBtn?.addEventListener('click', async () => {
         const user = await checkUserAuth();
         
@@ -2136,11 +2135,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 notificationModalOpenedFromProfile = true;
                 openNotificationModal();
             } else {
-                showProfilePage();
+                window.open('/profile.html', '_blank');
             }
         } catch (error) {
             console.warn('알림 수 확인 실패:', error);
-            showProfilePage();
+            window.open('/profile.html', '_blank');
         }
     });
 
