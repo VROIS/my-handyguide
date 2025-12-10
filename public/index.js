@@ -1876,6 +1876,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 프로필 버튼 클릭 → 읽지 않은 알림이 있으면 모달 먼저, 없으면 바로 프로필 페이지
     // 2025-12-10: 새 탭 아닌 같은 탭에서 열기 (앱 내 연동)
     profileBtn?.addEventListener('click', async () => {
+        // 2025-12-10: history.back() 복귀를 위해 현재 상태 저장
+        history.pushState(null, '', '/#archive');
+        
         const user = await checkUserAuth();
         if (!user) {
             window.location.href = '/profile.html';
