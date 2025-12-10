@@ -1316,23 +1316,28 @@
 
 <script src="language-helper.js"></script>
 <script>
-    // 🔧 페이지 로드 전 저장된 언어 쿠키 설정 (Google Translate 적용을 위해)
-    LanguageHelper.initializeLanguage();
-</script>
-<script>
     document.addEventListener('DOMContentLoaded', () => {
         const landingPage = document.getElementById('landingPage');
         const featuresPage = document.getElementById('featuresPage');
         const languageScrollList = document.getElementById('languageScrollList');
         const languageItems = document.querySelectorAll('.language-item');
         
-        // 🔧 2025-12-10: 언어 선택 후 새로고침 시 기능페이지 바로 표시
+        // 🔧 새로고침 후 기능페이지로 바로 이동 (2025-12-07)
+        // 🔧 수정 (2025-12-10): appNavigationActive 플래그 또는 #archive 해시 체크 추가
         const landingVisited = localStorage.getItem('landingVisited');
-        if (landingVisited === 'true' && landingPage && featuresPage) {
+        const appNavActive = sessionStorage.getItem('appNavigationActive');
+        const hasArchiveHash = window.location.hash === '#archive';
+        
+        // 조건: landingVisited OR appNavigationActive OR #archive 해시
+        if ((landingVisited === 'true' || appNavActive === 'true' || hasArchiveHash) && landingPage && featuresPage) {
             landingPage.classList.add('hidden');
             featuresPage.classList.add('visible');
-            localStorage.removeItem('landingVisited');
-            console.log('🔄 랜딩페이지 스킵 → 기능페이지 표시');
+            if (landingVisited === 'true') {
+                localStorage.removeItem('landingVisited');
+            }
+            // 🔧 앱 내부 네비게이션 플래그 유지 (2025-12-10)
+            sessionStorage.setItem('appNavigationActive', 'true');
+            console.log('🔄 랜딩페이지 스킵 → 기능페이지 표시 (조건: landingVisited=' + landingVisited + ', appNavActive=' + appNavActive + ', hash=' + hasArchiveHash + ')');
         }
         
         // 저장된 언어가 있으면 해당 항목에 selected 클래스 추가
@@ -1346,7 +1351,7 @@
             });
         }
         
-        // 언어 선택 시 → 기능페이지 전환 + 새로고침 (Google Translate 적용)
+        // 언어 선택 시 → 바로 기능페이지로 전환 (커튼 효과 제거됨)
         languageItems.forEach(item => {
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1359,6 +1364,9 @@
                 // 언어 저장 (LanguageHelper + localStorage)
                 LanguageHelper.setLanguage(selectedLang);
                 
+                // 🔧 앱 내부 네비게이션 플래그 설정
+                sessionStorage.setItem('appNavigationActive', 'true');
+                
                 // 🔧 Google Translate 쿠키 설정
                 if (selectedLang !== 'ko') {
                     document.cookie = `googtrans=/ko/${selectedLang}; path=/`;
@@ -1366,17 +1374,9 @@
                     console.log('🌐 Google Translate 쿠키 설정:', selectedLang);
                 }
                 
-                // 🔧 2025-12-10: 기능페이지 이동 플래그 설정 후 새로고침
-                // 새로고침 시 이 플래그로 기능페이지 바로 표시 + Google Translate 적용
-                localStorage.setItem('landingVisited', 'true');
-                
-                // 기능페이지로 전환 표시 후 새로고침 (사용자 못느낌)
+                // 2025-12-10: 커튼 효과 없이 바로 전환
                 landingPage.classList.add('hidden');
                 featuresPage.classList.add('visible');
-                
-                setTimeout(() => {
-                    window.location.reload();
-                }, 100);
             });
         });
     });
