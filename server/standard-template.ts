@@ -1034,8 +1034,12 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
             document.getElementById('detail-text').style.opacity = isTextVisible ? '1' : '0';
         });
         
-        // 저장 버튼 클릭 - IndexedDB에 저장 후 앱으로 이동
+        // 저장 버튼 클릭 - IndexedDB에 저장 (메인 앱 handleSaveClick 동작 복사)
         document.getElementById('save-btn').addEventListener('click', async () => {
+            const saveBtn = document.getElementById('save-btn');
+            saveBtn.disabled = true;
+            saveBtn.style.opacity = '0.5';
+            
             const guideData = {
                 imageDataUrl: '${imageUrl}',
                 description: \`${escapeHTML(description).replace(/`/g, '\\`')}\`,
@@ -1046,7 +1050,7 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
             };
             
             try {
-                // IndexedDB 열기
+                // IndexedDB 열기 (메인 앱과 동일한 DB 이름 사용)
                 const dbRequest = indexedDB.open('MyAppDB', 1);
                 dbRequest.onupgradeneeded = (e) => {
                     const db = e.target.result;
@@ -1061,19 +1065,25 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
                     store.add(guideData);
                     tx.oncomplete = () => {
                         alert('보관함에 저장되었습니다!');
-                        // 앱 보관함으로 이동
-                        window.location.href = '${process.env.REPL_SLUG ? `https://${process.env.REPL_SLUG}.${process.env.REPL_OWNER}.repl.co` : ''}/#archive';
+                        // 현재 도메인의 보관함으로 이동
+                        window.location.href = window.location.origin + '/#archive';
                     };
                     tx.onerror = () => {
                         alert('저장에 실패했습니다.');
+                        saveBtn.disabled = false;
+                        saveBtn.style.opacity = '1';
                     };
                 };
                 dbRequest.onerror = () => {
                     alert('저장에 실패했습니다.');
+                    saveBtn.disabled = false;
+                    saveBtn.style.opacity = '1';
                 };
             } catch (err) {
                 console.error('저장 오류:', err);
                 alert('저장에 실패했습니다.');
+                saveBtn.disabled = false;
+                saveBtn.style.opacity = '1';
             }
         });
         
