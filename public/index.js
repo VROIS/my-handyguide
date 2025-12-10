@@ -114,6 +114,37 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeVideoModalBtn = document.getElementById('closeVideoModalBtn');
     const featureCard2 = document.getElementById('featureCard2');
     
+    // Profile Page Elements (2025-12-10 통합)
+    const profilePage = document.getElementById('profilePage');
+    const profileBackBtn = document.getElementById('profileBackBtn');
+    const profileInfoLoading = document.getElementById('profileInfoLoading');
+    const profileInfoContent = document.getElementById('profileInfoContent');
+    const profileGuestView = document.getElementById('profileGuestView');
+    const profileUserView = document.getElementById('profileUserView');
+    const profileUserImage = document.getElementById('profileUserImage');
+    const profileUserName = document.getElementById('profileUserName');
+    const profileUserEmail = document.getElementById('profileUserEmail');
+    const profileCreditsAmount = document.getElementById('profileCreditsAmount');
+    const profileChargeBtn = document.getElementById('profileChargeBtn');
+    const profileChargeBtnText = document.getElementById('profileChargeBtnText');
+    const profileCashbackBtn = document.getElementById('profileCashbackBtn');
+    const profileAuthModal = document.getElementById('profileAuthModal');
+    const closeProfileAuthModalBtn = document.getElementById('closeProfileAuthModalBtn');
+    const profileKakaoLoginBtn = document.getElementById('profileKakaoLoginBtn');
+    const profileGoogleLoginBtn = document.getElementById('profileGoogleLoginBtn');
+    const profileCashbackModal = document.getElementById('profileCashbackModal');
+    const closeProfileCashbackModalBtn = document.getElementById('closeProfileCashbackModalBtn');
+    const profilePagesLoading = document.getElementById('profilePagesLoading');
+    const profilePagesList = document.getElementById('profilePagesList');
+    const profileDetailPagesContainer = document.getElementById('profileDetailPagesContainer');
+    const profileSharePagesContainer = document.getElementById('profileSharePagesContainer');
+    const profileNoPagesMsg = document.getElementById('profileNoPagesMsg');
+    const profileTransactionsLoading = document.getElementById('profileTransactionsLoading');
+    const profileTransactionsList = document.getElementById('profileTransactionsList');
+    const profileNoTransactions = document.getElementById('profileNoTransactions');
+    const profilePricingSection = document.getElementById('profilePricingSection');
+    const profileContactProBtn = document.getElementById('profileContactProBtn');
+
     // Admin Settings Page Elements
     const adminSettingsPage = document.getElementById('adminSettingsPage');
     const adminSettingsBackBtn = document.getElementById('adminSettingsBackBtn');
@@ -480,7 +511,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showChargeModal() {
         showToast('크레딧이 부족합니다. 프로필에서 충전해주세요.');
         setTimeout(() => {
-            window.location.href = '/profile.html';
+            showProfilePage();
         }, 1500);
     }
 
@@ -1548,6 +1579,222 @@ document.addEventListener('DOMContentLoaded', () => {
         showPage(settingsPage);
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // 📱 프로필 페이지 (2025-12-10 통합)
+    // profile.html → index.html 통합으로 앱 내 네비게이션 지원
+    // ═══════════════════════════════════════════════════════════════
+    async function showProfilePage() {
+        pauseCamera();
+        synth.cancel();
+        showPage(profilePage);
+        
+        // 프로필 데이터 로드
+        loadProfileData();
+        loadProfilePages();
+        loadProfileTransactions();
+        loadProfilePricing();
+    }
+    
+    async function loadProfileData() {
+        const adminMode = localStorage.getItem('adminAuthenticated') === 'true';
+        
+        try {
+            const response = await fetch('/api/profile', { credentials: 'include' });
+            const data = await response.json();
+            
+            profileInfoLoading?.classList.add('hidden');
+            profileInfoContent?.classList.remove('hidden');
+            
+            if (adminMode) {
+                profileCreditsAmount.textContent = '∞';
+                profileChargeBtn?.classList.add('hidden');
+                profilePricingSection?.classList.add('hidden');
+            }
+            
+            if (data.authenticated && data.user) {
+                profileGuestView?.classList.add('hidden');
+                profileUserView?.classList.remove('hidden');
+                
+                if (data.user.profileImageUrl) {
+                    profileUserImage.src = data.user.profileImageUrl;
+                } else {
+                    profileUserImage.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%239ca3af"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z"/></svg>';
+                }
+                
+                profileUserName.textContent = [data.user.firstName, data.user.lastName].filter(Boolean).join(' ') || '사용자';
+                profileUserEmail.textContent = data.user.email || '';
+                
+                if (!adminMode) {
+                    profileCreditsAmount.textContent = data.credits || 0;
+                    updateProfileCashbackButton(data.credits || 0);
+                }
+                
+                highlightProfilePlan(data.credits || 0);
+            } else {
+                profileGuestView?.classList.remove('hidden');
+                profileUserView?.classList.add('hidden');
+                highlightProfilePlan(0);
+            }
+        } catch (error) {
+            console.error('Profile load error:', error);
+            profileInfoLoading?.classList.add('hidden');
+            profileInfoContent?.classList.remove('hidden');
+            profileGuestView?.classList.remove('hidden');
+            profileUserView?.classList.add('hidden');
+        }
+    }
+    
+    function updateProfileCashbackButton(credits) {
+        if (credits >= 1000) {
+            profileCashbackBtn?.classList.remove('hidden');
+        } else {
+            profileCashbackBtn?.classList.add('hidden');
+        }
+    }
+    
+    function highlightProfilePlan(credits) {
+        document.querySelectorAll('.profile-plan-card').forEach(card => card.classList.remove('active'));
+        if (credits >= 140) {
+            document.querySelector('.profile-plan-card[data-plan="standard"]')?.classList.add('active');
+        } else if (credits > 0) {
+            document.querySelector('.profile-plan-card[data-plan="free"]')?.classList.add('active');
+        }
+    }
+    
+    async function loadProfilePages() {
+        try {
+            const response = await fetch('/api/profile/pages', { credentials: 'include' });
+            const data = await response.json();
+            
+            profilePagesLoading?.classList.add('hidden');
+            profilePagesList?.classList.remove('hidden');
+            
+            let hasContent = false;
+            
+            if (data.detailPages && data.detailPages.length > 0) {
+                hasContent = true;
+                profileDetailPagesContainer.innerHTML = `
+                    <p class="text-xs text-gray-500 mb-2">AI 응답 (${data.detailPages.length})</p>
+                    ${data.detailPages.map(page => `
+                        <div class="profile-item-row cursor-pointer hover:bg-gray-100 transition" data-id="${page.id}" data-type="detail">
+                            <div class="w-10 h-10 rounded-lg bg-gray-200 mr-3 overflow-hidden flex-shrink-0">
+                                ${page.thumbnail ? `<img src="${page.thumbnail}" class="w-full h-full object-cover">` : ''}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate">${page.title || '제목 없음'}</p>
+                                <p class="text-xs text-gray-500">${new Date(page.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+            }
+            
+            if (data.sharePages && data.sharePages.length > 0) {
+                hasContent = true;
+                profileSharePagesContainer.innerHTML = `
+                    <p class="text-xs text-gray-500 mb-2">공유페이지 (${data.sharePages.length})</p>
+                    ${data.sharePages.map(page => `
+                        <div class="profile-item-row cursor-pointer hover:bg-gray-100 transition" data-id="${page.id}" data-type="share" onclick="window.open('/s/${page.id}', '_blank')">
+                            <div class="w-10 h-10 rounded-lg bg-blue-100 mr-3 flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 011.242 7.244l-4.5 4.5a4.5 4.5 0 01-6.364-6.364l1.757-1.757m13.35-.622l1.757-1.757a4.5 4.5 0 00-6.364-6.364l-4.5 4.5a4.5 4.5 0 001.242 7.244"/>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-medium text-gray-900 truncate">${page.name || '공유 링크'}</p>
+                                <p class="text-xs text-gray-500">${new Date(page.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+            }
+            
+            if (!hasContent) {
+                profileNoPagesMsg?.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Pages load error:', error);
+            profilePagesLoading?.classList.add('hidden');
+            profilePagesList?.classList.remove('hidden');
+            profileNoPagesMsg?.classList.remove('hidden');
+        }
+    }
+    
+    async function loadProfileTransactions() {
+        try {
+            const response = await fetch('/api/profile/transactions?limit=10', { credentials: 'include' });
+            const data = await response.json();
+            
+            profileTransactionsLoading?.classList.add('hidden');
+            
+            if (data.transactions && data.transactions.length > 0) {
+                profileTransactionsList?.classList.remove('hidden');
+                profileTransactionsList.innerHTML = data.transactions.map(tx => `
+                    <div class="profile-transaction-row">
+                        <div>
+                            <p class="text-sm text-gray-900">${tx.description}</p>
+                            <p class="text-xs text-gray-400">${new Date(tx.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}</p>
+                        </div>
+                        <div class="text-right">
+                            <span class="${tx.amount > 0 ? 'text-green-600 font-bold' : 'text-red-500 font-bold'}">
+                                ${tx.amount > 0 ? '+' : ''}${tx.amount}
+                            </span>
+                            <p class="text-xs text-gray-400">잔액 ${tx.balance}</p>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                profileNoTransactions?.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Transactions load error:', error);
+            profileTransactionsLoading?.classList.add('hidden');
+            profileNoTransactions?.classList.remove('hidden');
+        }
+    }
+    
+    async function loadProfilePricing() {
+        try {
+            const response = await fetch('/api/profile/exchange-rate');
+            const data = await response.json();
+            
+            if (data.prices) {
+                const userLang = localStorage.getItem('appLanguage') || 'ko';
+                let btnText = '';
+                
+                switch(userLang) {
+                    case 'ko':
+                        btnText = `10 EUR 충전하기 (약 ₩${new Intl.NumberFormat('ko-KR').format(data.prices.KRW)})`;
+                        break;
+                    case 'en':
+                        btnText = `Charge 10 EUR (≈ $${data.prices.USD})`;
+                        break;
+                    case 'ja':
+                        btnText = `10 EUR チャージ (約 ¥${new Intl.NumberFormat('ja-JP').format(data.prices.JPY)})`;
+                        break;
+                    default:
+                        btnText = `10 EUR 충전하기 (약 ₩${new Intl.NumberFormat('ko-KR').format(data.prices.KRW)})`;
+                }
+                
+                if (profileChargeBtnText) {
+                    profileChargeBtnText.textContent = btnText;
+                }
+            }
+        } catch (error) {
+            console.error('Pricing load error:', error);
+        }
+    }
+    
+    function showProfileAuthModal() {
+        profileAuthModal?.classList.remove('hidden', 'pointer-events-none');
+        profileAuthModal?.classList.add('pointer-events-auto');
+    }
+    
+    function hideProfileAuthModal() {
+        profileAuthModal?.classList.add('hidden', 'pointer-events-none');
+        profileAuthModal?.classList.remove('pointer-events-auto');
+    }
+
     function resetSpeechState() {
         // 🧹 메모리 최적화: 이전 음성 완전 정리 (2025-10-05)
         synth.cancel(); // 모든 대기 중인 음성 취소
@@ -1874,16 +2121,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     
     // 프로필 버튼 클릭 → 읽지 않은 알림이 있으면 모달 먼저, 없으면 바로 프로필 페이지
-    // 2025-12-10: 새 탭 아닌 같은 탭에서 열기 (앱 내 연동)
+    // 2025-12-10: 앱 내 프로필 페이지로 통합 (profile.html → showProfilePage())
     profileBtn?.addEventListener('click', async () => {
-        // 2025-12-10: history.back() 복귀를 위해 현재 상태 저장
-        history.pushState(null, '', '/#archive');
-        
         const user = await checkUserAuth();
-        if (!user) {
-            window.location.href = '/profile.html';
-            return;
-        }
         
         try {
             const response = await fetch('/api/notifications/unread-count', {
@@ -1896,11 +2136,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 notificationModalOpenedFromProfile = true;
                 openNotificationModal();
             } else {
-                window.location.href = '/profile.html';
+                showProfilePage();
             }
         } catch (error) {
             console.warn('알림 수 확인 실패:', error);
-            window.location.href = '/profile.html';
+            showProfilePage();
         }
     });
 
@@ -4806,6 +5046,48 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     archiveBackBtn?.addEventListener('click', showMainPage);
     settingsBackBtn?.addEventListener('click', showArchivePage);
     adminSettingsBackBtn?.addEventListener('click', showSettingsPage);
+    
+    // ═══════════════════════════════════════════════════════════════
+    // 📱 프로필 페이지 이벤트 핸들러 (2025-12-10 통합)
+    // ═══════════════════════════════════════════════════════════════
+    profileBackBtn?.addEventListener('click', showArchivePage);
+    
+    profileGuestView?.addEventListener('click', showProfileAuthModal);
+    
+    closeProfileAuthModalBtn?.addEventListener('click', hideProfileAuthModal);
+    
+    profileKakaoLoginBtn?.addEventListener('click', () => {
+        sessionStorage.setItem('appNavigationActive', 'true');
+        window.location.href = '/auth/kakao';
+    });
+    
+    profileGoogleLoginBtn?.addEventListener('click', () => {
+        sessionStorage.setItem('appNavigationActive', 'true');
+        window.location.href = '/auth/google';
+    });
+    
+    profileChargeBtn?.addEventListener('click', async () => {
+        try {
+            const response = await fetch('/api/create-checkout-session', {
+                method: 'POST',
+                credentials: 'include'
+            });
+            const data = await response.json();
+            
+            if (data.url) {
+                window.location.href = data.url;
+            } else if (data.error) {
+                showToast(data.error);
+            }
+        } catch (error) {
+            console.error('Checkout error:', error);
+            showToast('결제 페이지 연결에 실패했습니다.');
+        }
+    });
+    
+    profileContactProBtn?.addEventListener('click', () => {
+        window.open('mailto:contact@myhandguide.com?subject=프로 요금제 문의', '_blank');
+    });
     
     // ═══════════════════════════════════════════════════════════════
     // 📱 사용자 설정 페이지 이벤트 핸들러
