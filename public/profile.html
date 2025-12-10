@@ -705,7 +705,12 @@
         }
 
         document.getElementById('backBtn').addEventListener('click', () => {
-            window.close();
+            // 2025-12-10: 같은 탭에서 열렸으면 앱 보관함으로 이동
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '/#archive';
+            }
         });
 
         function showAuthModal() {
