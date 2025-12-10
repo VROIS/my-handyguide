@@ -1322,7 +1322,14 @@
         const languageScrollList = document.getElementById('languageScrollList');
         const languageItems = document.querySelectorAll('.language-item');
         
-        // 🔧 2025-12-10: 랜딩페이지 항상 표시 (자동 스킵 로직 제거됨)
+        // 🔧 2025-12-10: 언어 선택 후 새로고침 시 기능페이지 바로 표시
+        const landingVisited = localStorage.getItem('landingVisited');
+        if (landingVisited === 'true' && landingPage && featuresPage) {
+            landingPage.classList.add('hidden');
+            featuresPage.classList.add('visible');
+            localStorage.removeItem('landingVisited');
+            console.log('🔄 언어 선택 완료 → 기능페이지 표시 (Google Translate 적용됨)');
+        }
         
         // 저장된 언어가 있으면 해당 항목에 selected 클래스 추가
         const savedLanguage = localStorage.getItem('appLanguage');
@@ -1335,7 +1342,7 @@
             });
         }
         
-        // 언어 선택 시 → 바로 기능페이지로 전환 (커튼 효과 제거됨)
+        // 언어 선택 시 → 기능페이지 전환 + 새로고침 (Google Translate 적용)
         languageItems.forEach(item => {
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1348,9 +1355,6 @@
                 // 언어 저장 (LanguageHelper + localStorage)
                 LanguageHelper.setLanguage(selectedLang);
                 
-                // 🔧 앱 내부 네비게이션 플래그 설정
-                sessionStorage.setItem('appNavigationActive', 'true');
-                
                 // 🔧 Google Translate 쿠키 설정
                 if (selectedLang !== 'ko') {
                     document.cookie = `googtrans=/ko/${selectedLang}; path=/`;
@@ -1358,9 +1362,17 @@
                     console.log('🌐 Google Translate 쿠키 설정:', selectedLang);
                 }
                 
-                // 2025-12-10: 커튼 효과 없이 바로 전환
+                // 🔧 2025-12-10: 기능페이지 이동 플래그 설정 후 새로고침
+                // 새로고침 시 이 플래그로 기능페이지 바로 표시 + Google Translate 적용
+                localStorage.setItem('landingVisited', 'true');
+                
+                // 기능페이지로 전환 표시 후 새로고침 (사용자 못느낌)
                 landingPage.classList.add('hidden');
                 featuresPage.classList.add('visible');
+                
+                setTimeout(() => {
+                    window.location.reload();
+                }, 100);
             });
         });
     });
