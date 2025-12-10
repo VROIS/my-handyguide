@@ -33,54 +33,6 @@
             font-family: 'MaruBuri', sans-serif;
         }
         
-        /* --- New Landing Page Styles (Surgically Transplanted) --- */
-        #curtain-layer {
-            position: fixed;
-            top: 0; left: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 9999;
-            pointer-events: none;
-        }
-        .curtain {
-            position: absolute;
-            top: 0;
-            width: 50.5%; /* Overlap to prevent gap */
-            height: 100%;
-            background-color: #4285F4; /* Gemini Blue */
-            transition: transform 1.0s cubic-bezier(0.86, 0, 0.07, 1);
-        }
-        #curtain-left { left: 0; }
-        #curtain-right { right: 0; }
-        
-        #curtain-left.open { transform: translateX(-100%); }
-        #curtain-right.open { transform: translateX(100%); }
-
-        .splash-logo {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            width: 100%;
-            padding: 0 1rem;
-            box-sizing: border-box;
-            text-align: center;
-            transform: translate(-50%, -50%);
-            z-index: 10000;
-            font-family: 'Pretendard', sans-serif;
-            font-weight: 800;
-            font-size: 3rem;
-            color: white;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
-            transition: opacity 0.5s ease-out;
-            opacity: 0;
-        }
-        .splash-logo.visible {
-            opacity: 1;
-        }
-        .splash-logo .logo-dot {
-            color: #FBBF24; /* Yellow dot color from example */
-        }
-
         .full-screen-bg { 
             position: fixed; 
             top: 0; 
@@ -465,8 +417,7 @@
 </head>
 <body style="background-color: #FFFEFA;">
     <!-- 🆕 New Landing Page (2025-12-07) - 모바일 최적화 -->
-    <!-- 2025-12-10: 랜딩페이지 항상 숨김 (커튼 효과 제거) -->
-    <div id="landingPage" class="h-screen flex flex-col hidden" style="background: #f9fafb; position: relative; z-index: 100;">
+    <div id="landingPage" class="h-screen flex flex-col" style="background: #f9fafb; position: relative; z-index: 100;">
         <!-- 상단 로고 영역 - 50vh (2025-12-08 UX 최적화) -->
         <div class="flex items-center justify-center" style="height: 50vh; flex-shrink: 0;">
             <img src="images/landing-logo.jpg" alt="손안의 가이드 - Your Expert in Hand" class="max-w-[85%] h-full object-contain">
@@ -655,8 +606,7 @@
     </div>
 
     <!-- Features Page -->
-    <!-- 2025-12-10: 항상 표시 (visible 기본값) -->
-    <div id="featuresPage" class="ui-layer bg-gray-50 text-gray-800 visible">
+    <div id="featuresPage" class="ui-layer bg-gray-50 text-gray-800">
         <div class="content-safe-area">
             <!-- Features Section -->
             <section class="py-6 md:py-10 bg-white">
@@ -1401,7 +1351,7 @@
             });
         }
         
-        // 언어 선택 시 → googtrans 쿠키 설정 → 페이지 새로고침 (2025-12-08 스크롤 리스트)
+        // 언어 선택 시 → 바로 기능페이지로 전환 (커튼 효과 제거됨)
         languageItems.forEach(item => {
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -1414,22 +1364,19 @@
                 // 언어 저장 (LanguageHelper + localStorage)
                 LanguageHelper.setLanguage(selectedLang);
                 
-                // 랜딩페이지 방문 완료 표시 (새로고침 후 기능페이지로 이동하도록)
-                localStorage.setItem('landingVisited', 'true');
-                
-                // 🔧 앱 내부 네비게이션 플래그 설정 (2025-12-10)
-                // #archive 등 해시 URL 접근 시 보관함으로 바로 이동 허용
+                // 🔧 앱 내부 네비게이션 플래그 설정
                 sessionStorage.setItem('appNavigationActive', 'true');
                 
-                // 🔧 Google Translate 쿠키 설정 후 새로고침 (2025-12-07)
+                // 🔧 Google Translate 쿠키 설정
                 if (selectedLang !== 'ko') {
                     document.cookie = `googtrans=/ko/${selectedLang}; path=/`;
                     document.cookie = `googtrans=/ko/${selectedLang}; path=/; domain=${window.location.hostname}`;
                     console.log('🌐 Google Translate 쿠키 설정:', selectedLang);
                 }
                 
-                // 페이지 새로고침으로 번역 적용
-                window.location.reload();
+                // 2025-12-10: 커튼 효과 없이 바로 전환
+                landingPage.classList.add('hidden');
+                featuresPage.classList.add('visible');
             });
         });
     });
