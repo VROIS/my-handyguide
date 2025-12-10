@@ -705,8 +705,10 @@
         }
 
         document.getElementById('backBtn').addEventListener('click', () => {
-            // 2025-12-10: 이전 페이지(보관함)로 복귀
-            history.back();
+            // 2025-12-10: 보관함으로 직접 복귀 (랜딩페이지 스킵)
+            // sessionStorage 플래그 설정 후 보관함으로 이동
+            sessionStorage.setItem('appNavigationActive', 'true');
+            window.location.href = '/#archive';
         });
 
         function showAuthModal() {
