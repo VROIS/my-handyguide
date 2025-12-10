@@ -796,10 +796,10 @@
             guideDetailPage.init();
         })();
 
-        // 상세보기 열기 함수 - 새 탭에서 표준 상세페이지 열기
-        // 2025-12-09: /guide/:id 엔드포인트에서 표준 템플릿으로 렌더링
+        // 상세보기 열기 함수 - 앱 내 guideDetailPage 컴포넌트로 열기
+        // 2025-12-10: 앱 내 컴포넌트 사용 (IndexedDB 연동 + 보관함 연결)
         function viewGuideDetail(guideId) {
-            window.open(`/guide/${guideId}`, '_blank');
+            guideDetailPage.open(guideId);
         }
 
         // 공유 기능 (index.js 2회차 성공 모달과 동일)

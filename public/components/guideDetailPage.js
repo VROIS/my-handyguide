@@ -679,7 +679,8 @@ const guideDetailPage = {
         this._els.textOverlay.style.opacity = this._state.isTextVisible ? '1' : '0';
     },
 
-    // 💾 2025-12-09: 로컬 보관함(IndexedDB)에 저장
+    // 💾 2025-12-10: 로컬 보관함(IndexedDB)에 저장 + 보관함으로 이동
+    // public/index.js handleSaveClick 동작 그대로 복사
     _saveToLocal: async function() {
         const data = this._state.currentGuideData;
         if (!data) {
@@ -688,26 +689,73 @@ const guideDetailPage = {
             return;
         }
 
-        try {
-            // onSave 콜백이 있으면 사용 (프로필/관리자 페이지에서 주입)
-            if (this._state.onSave) {
-                await this._state.onSave(data);
-                this._showToast('보관함에 저장되었습니다', 'success');
-                return;
-            }
+        // 저장 버튼 비활성화
+        this._els.saveBtn.disabled = true;
+        this._els.saveBtn.style.opacity = '0.5';
 
-            // 기본: IndexedDB에 저장 (public/index.js의 saveToLocalArchive 패턴)
-            if (typeof window.saveToLocalArchive === 'function') {
-                await window.saveToLocalArchive(data);
-                this._showToast('보관함에 저장되었습니다', 'success');
-            } else {
-                console.warn('[GuideDetailPage] saveToLocalArchive 함수 없음');
-                this._showToast('저장 기능을 사용할 수 없습니다', 'error');
-            }
+        try {
+            // IndexedDB에 직접 저장 (public/index.js addItem 로직)
+            const guideData = {
+                imageDataUrl: data.imageUrl || data.imageDataUrl || '',
+                description: data.description || '',
+                locationName: data.locationName || '',
+                voiceLang: data.voiceLang || this._state.savedVoiceLang || 'ko-KR',
+                voiceName: data.voiceName || this._state.savedVoiceName || '',
+                title: data.title || data.voiceQuery || '제목 없음',
+                timestamp: Date.now()
+            };
+
+            const savedId = await this._addToIndexedDB(guideData);
+            console.log('[GuideDetailPage] IndexedDB 저장 완료, ID:', savedId);
+            
+            this._showToast('보관함에 저장되었습니다', 'success');
+            
+            // 페이지 닫고 보관함으로 이동
+            setTimeout(() => {
+                this._hide();
+                // 메인 앱이면 hash 이동, 프로필 페이지면 앱으로 이동
+                if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
+                    window.location.hash = '#archive';
+                    // 보관함 새로고침 트리거
+                    window.dispatchEvent(new CustomEvent('archiveUpdated'));
+                } else {
+                    // 프로필 등 다른 페이지 → 앱 보관함으로 이동
+                    window.location.href = '/#archive';
+                }
+            }, 500);
+            
         } catch (error) {
             console.error('[GuideDetailPage] 저장 실패:', error);
             this._showToast('저장에 실패했습니다', 'error');
+            this._els.saveBtn.disabled = false;
+            this._els.saveBtn.style.opacity = '1';
         }
+    },
+
+    // IndexedDB에 아이템 추가 (public/index.js addItem 복사)
+    _addToIndexedDB: function(item) {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open('MyAppDB', 1);
+            
+            request.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains('archive')) {
+                    db.createObjectStore('archive', { keyPath: 'id', autoIncrement: true });
+                }
+            };
+            
+            request.onsuccess = (e) => {
+                const db = e.target.result;
+                const tx = db.transaction('archive', 'readwrite');
+                const store = tx.objectStore('archive');
+                const addRequest = store.add(item);
+                
+                addRequest.onsuccess = () => resolve(addRequest.result);
+                addRequest.onerror = () => reject(addRequest.error);
+            };
+            
+            request.onerror = () => reject(request.error);
+        });
     },
 
     // 💾 토스트 메시지 표시
