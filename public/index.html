@@ -1376,6 +1376,8 @@
             landingPage.classList.add('hidden');
             featuresPage.classList.add('visible');
             localStorage.removeItem('landingVisited');
+            // 🔧 앱 내부 네비게이션 플래그 유지 (2025-12-10)
+            sessionStorage.setItem('appNavigationActive', 'true');
             console.log('🔄 랜딩페이지 스킵 → 기능페이지 표시');
         }
         
@@ -1405,6 +1407,10 @@
                 
                 // 랜딩페이지 방문 완료 표시 (새로고침 후 기능페이지로 이동하도록)
                 localStorage.setItem('landingVisited', 'true');
+                
+                // 🔧 앱 내부 네비게이션 플래그 설정 (2025-12-10)
+                // #archive 등 해시 URL 접근 시 보관함으로 바로 이동 허용
+                sessionStorage.setItem('appNavigationActive', 'true');
                 
                 // 🔧 Google Translate 쿠키 설정 후 새로고침 (2025-12-07)
                 if (selectedLang !== 'ko') {
