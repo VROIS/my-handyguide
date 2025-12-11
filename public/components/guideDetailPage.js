@@ -50,7 +50,7 @@ const guideDetailPage = {
         </div>
         <div class="content-safe-area">
             <div id="guideDetailTextOverlay" class="text-content">
-                <p id="guideDetailDescription" class="readable-on-image text-xl leading-relaxed notranslate" translate="no"></p>
+                <p id="guideDetailDescription" class="readable-on-image text-xl leading-relaxed"></p>
             </div>
         </div>
         <footer class="footer-safe-area">
