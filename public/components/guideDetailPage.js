@@ -95,6 +95,7 @@ const guideDetailPage = {
             z-index: 1;
         }
         #guideDetailPage .header-safe-area {
+            position: relative;
             width: 100%;
             height: 60px;
             flex-shrink: 0;
@@ -103,15 +104,16 @@ const guideDetailPage = {
             align-items: center;
             justify-content: center;
             padding: 0 1rem;
-            position: relative;
         }
         #guideDetailPage .info-fixed-area {
+            position: relative;
             width: 100%;
             flex-shrink: 0;
             z-index: 25;
             padding: 0 1rem 0.5rem 1rem;
         }
         #guideDetailPage .content-safe-area {
+            position: relative;
             flex: 1;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
@@ -128,6 +130,7 @@ const guideDetailPage = {
             color: white;
         }
         #guideDetailPage .footer-safe-area {
+            position: relative;
             width: 100%;
             height: 100px;
             flex-shrink: 0;
