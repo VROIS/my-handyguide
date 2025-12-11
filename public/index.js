@@ -2326,6 +2326,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (voiceModeLogo) voiceModeLogo.classList.add('hidden');
         if (voiceQueryInfo) voiceQueryInfo.classList.add('hidden');
         
+        // 📍 위치창 즉시 표시 (로딩 중 상태)
+        const locationInfo = document.getElementById('locationInfo');
+        const locationNameEl = document.getElementById('locationName');
+        if (locationInfo && locationNameEl) {
+            locationNameEl.textContent = '위치 확인 중...';
+            locationInfo.classList.remove('hidden');
+            console.log('📍 위치창 표시 (로딩 중)');
+        }
+        
         currentContent = { imageDataUrl: dataUrl, description: '' };
         
         resultImage.src = dataUrl;
