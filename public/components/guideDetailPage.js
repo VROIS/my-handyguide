@@ -412,6 +412,8 @@ const guideDetailPage = {
             if (!response.ok) throw new Error('가이드를 불러올 수 없습니다.');
             
             const guide = await response.json();
+            // 💾 2025-12-11: 저장 버튼용 데이터 보관 (프로필→로컬 복구 기능)
+            this._state.currentGuideData = guide;
             this._render(guide);
         } catch (error) {
             console.error('[GuideDetailPage] Error:', error);
