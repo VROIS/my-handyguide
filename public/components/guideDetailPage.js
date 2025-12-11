@@ -148,7 +148,9 @@ const guideDetailPage = {
         #guideDetailPage .interactive-btn:active {
             transform: scale(0.95);
         }
-        .text-gemini-blue { color: var(--gemini-blue); }`;
+        .text-gemini-blue { color: var(--gemini-blue); }
+        /* 구글 번역 스피너 완전 숨김 (상세페이지) */
+        .goog-te-spinner-pos { display: none !important; }`;
     },
 
     // 내부 상태
