@@ -29,6 +29,35 @@ A RESTful API built with Express features shared TypeScript schemas, robust erro
 ### Referral System
 A referral program awards credits to both new users and referrers (+10 credits), with additional bonuses for referrer when referred users top-up (+20 credits). A cashback option (200 credits for 20 EUR) is available via KakaoPay/bank transfer.
 
+## Credit System (2025-12-12 출시 버전)
+
+### 크레딧 적립 (획득)
+| 항목 | 크레딧 | 조건 |
+|------|--------|------|
+| 신규 가입 보너스 | +10 | 첫 가입 시 1회 |
+| 추천 가입 보너스 (신규) | +10 | 추천코드로 가입 시 |
+| 추천인 보상 | +10 | 내 추천코드로 누군가 가입 시 |
+| 추천인 충전 보상 | +20 | 내가 추천한 사람이 충전 시 |
+| QR 복사 리워드 | +2 | QR 복사 시 |
+| 공유링크 생성 보상 | +1 | 공유 페이지 생성 시 |
+| 크레딧 충전 (€10) | +140 | 100 기본 + 40 보너스 |
+
+### 크레딧 차감 (사용)
+| 항목 | 크레딧 | 설명 |
+|------|--------|------|
+| AI 응답 생성 | -2 | 이미지/음성 분석 |
+| 공유 페이지 생성 | -5 | 공유 링크 만들기 |
+
+### 비가입자 무료 체험
+| 항목 | 횟수 |
+|------|------|
+| AI 응답 (무료) | 3회 |
+| 3회 후 | 로그인 요청 |
+
+### 설정 파일 위치
+- `server/creditService.ts` → CREDIT_CONFIG 객체
+- `public/index.js` → USAGE_LIMITS 객체
+
 ## Feature Specifications
 ### Performance Optimization
 AI response times target 2-2.5 seconds, achieved through model selection and image compression. A Featured Gallery uses caching for instant display.
