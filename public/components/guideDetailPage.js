@@ -484,6 +484,8 @@ const guideDetailPage = {
     // 페이지 표시
     _show: function() {
         this._els.page.classList.remove('hidden');
+        // 부모 페이지 스크롤 완전 차단 (html, body 모두)
+        document.documentElement.style.overflow = 'hidden';
         document.body.style.overflow = 'hidden';
         
         // 🌐 2025-12-04: 페이지 열 때마다 번역 상태 재확인
@@ -541,6 +543,8 @@ const guideDetailPage = {
     close: function() {
         this._stopAudio();
         this._els.page.classList.add('hidden');
+        // 부모 페이지 스크롤 원복 (html, body 모두)
+        document.documentElement.style.overflow = '';
         document.body.style.overflow = '';
         
         if (this._state.onClose) {
