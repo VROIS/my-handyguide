@@ -2207,7 +2207,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const position = await new Promise((resolve, reject) => {
                 navigator.geolocation.getCurrentPosition(resolve, reject, {
                     enableHighAccuracy: true,
-                    timeout: 10000,
+                    timeout: 20000,
                     maximumAge: 0
                 });
             });
@@ -2239,12 +2239,15 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             if (error.code === 1) {
                 console.log('ℹ️ 사용자가 위치 권한을 거부했습니다');
+                updateLocationInfoUI('위치 권한 필요');
+            } else if (error.code === 3) {
+                console.warn('⏱️ 위치 정보 타임아웃 - 시간이 오래 걸립니다');
+                updateLocationInfoUI('위치 확인 중...');
             } else {
                 console.error('위치 정보 오류:', error);
+                updateLocationInfoUI('위치 정보 없음');
             }
             window.currentGPS = null;
-            // 📍 GPS 실패해도 UI는 업데이트 (숨기지 않음)
-            updateLocationInfoUI('위치 정보 없음');
         }
     }
     
