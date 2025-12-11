@@ -2360,6 +2360,17 @@ document.addEventListener('DOMContentLoaded', () => {
             textOverlay.classList.add('animate-in');
             loadingHeader.classList.add('hidden');
             detailFooter.classList.remove('hidden');
+            
+            // 📍 2025-12-11: 위치정보 표시 (이미지 모드)
+            const locationInfo = document.getElementById('locationInfo');
+            const locationNameEl = document.getElementById('locationName');
+            if (window.currentGPS && window.currentGPS.locationName && locationInfo && locationNameEl) {
+                locationNameEl.textContent = window.currentGPS.locationName;
+                locationInfo.classList.remove('hidden');
+                console.log('📍 위치정보 표시:', window.currentGPS.locationName);
+            } else if (locationInfo) {
+                locationInfo.classList.add('hidden');
+            }
 
             let sentenceBuffer = '';
             for await (const chunk of responseStream) {
