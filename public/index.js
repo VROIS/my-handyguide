@@ -2361,15 +2361,18 @@ document.addEventListener('DOMContentLoaded', () => {
             loadingHeader.classList.add('hidden');
             detailFooter.classList.remove('hidden');
             
-            // 📍 2025-12-11: 위치정보 표시 (이미지 모드)
+            // 📍 2025-12-11: 위치정보 표시 (이미지 모드) - 항상 표시, 데이터 없으면 빈칸
             const locationInfo = document.getElementById('locationInfo');
             const locationNameEl = document.getElementById('locationName');
-            if (window.currentGPS && window.currentGPS.locationName && locationInfo && locationNameEl) {
-                locationNameEl.textContent = window.currentGPS.locationName;
+            if (locationInfo && locationNameEl) {
+                if (window.currentGPS && window.currentGPS.locationName) {
+                    locationNameEl.textContent = window.currentGPS.locationName;
+                    console.log('📍 위치정보 표시:', window.currentGPS.locationName);
+                } else {
+                    locationNameEl.textContent = '위치 정보 없음';
+                    console.log('📍 위치정보 없음 - 기본값 표시');
+                }
                 locationInfo.classList.remove('hidden');
-                console.log('📍 위치정보 표시:', window.currentGPS.locationName);
-            } else if (locationInfo) {
-                locationInfo.classList.add('hidden');
             }
 
             let sentenceBuffer = '';
