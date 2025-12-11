@@ -105,9 +105,7 @@
         }
         .text-gemini-blue { color: var(--gemini-blue); }
         
-        /* ═══════════════════════════════════════════════════════════════
-         * 🎨 프로필 상세페이지 스타일 (index.js 방식 - 2025-12-11)
-         * ═══════════════════════════════════════════════════════════════ */
+        /* ⚠️ 상세페이지 컴포넌트 스타일 (guideDetailPage.js 복붙 - 2025-12-11) */
         #profileDetailPage {
             position: fixed;
             top: 0;
@@ -181,10 +179,8 @@
         #profileDetailPage .interactive-btn:active {
             transform: scale(0.95);
         }
-        #profileDetailPage .speaking {
-            background-color: rgba(66, 133, 244, 0.3);
-            font-weight: 600;
-        }
+        /* 구글 번역 스피너 완전 숨김 (상세페이지) */
+        .goog-te-spinner-pos { display: none !important; }
     </style>
 </head>
 <body>
@@ -903,218 +899,498 @@
         });
 
         // ═══════════════════════════════════════════════════════════════
-        // 🎯 프로필 상세페이지 로직 (index.js 방식 - 2025-12-11)
-        // race condition 방지: synth.cancel() + renderId 패턴
-        // Google 번역 제거 - 원본 한국어로 표시
+        // ⚠️ guideDetailPage.js 복붙 (2025-12-11)
+        // profile.html용: profileDetailPage 객체
+        // _saveToLocal 수정: 저장만, 페이지 이동/닫기 없음
         // ═══════════════════════════════════════════════════════════════
         
-        const profileDetail = {
-            synth: window.speechSynthesis,
-            utteranceQueue: [],
-            isSpeaking: false,
-            currentSpeakingEl: null,
-            isTextVisible: true,
-            currentGuide: null,
-            renderId: 0,
-            
-            els: {
-                page: document.getElementById('profileDetailPage'),
-                image: document.getElementById('profileDetailImage'),
-                description: document.getElementById('profileDetailDescription'),
-                locationInfo: document.getElementById('profileDetailLocationInfo'),
-                locationName: document.getElementById('profileDetailLocationName'),
-                voiceQueryInfo: document.getElementById('profileDetailVoiceQueryInfo'),
-                voiceQueryText: document.getElementById('profileDetailVoiceQueryText'),
-                textOverlay: document.getElementById('profileDetailTextOverlay'),
-                audioBtn: document.getElementById('profileDetailAudioBtn'),
-                textToggleBtn: document.getElementById('profileDetailTextToggleBtn'),
-                backBtn: document.getElementById('profileDetailBackBtn'),
-                saveBtn: document.getElementById('profileDetailSaveBtn')
+        const profileDetailPage = {
+            // 내부 상태
+            _state: {
+                isTextVisible: true,
+                synth: null,
+                voices: [],
+                currentUtterance: null,
+                originalText: '',
+                onClose: null,
+                translationComplete: true,
+                translationObserver: null,
+                voiceConfigsCache: null,
+                voiceConfigsLoading: false,
+                currentGuideData: null,
+                onSave: null,
+                renderId: 0,
+                savedVoiceLang: null,
+                savedVoiceName: null
             },
             
-            init: function() {
+            // 🔊 하드코딩 기본값 (오프라인 fallback)
+            _defaultVoicePriorities: {
+                'ko-KR': { default: ['Microsoft Heami', 'Yuna'] },
+                'en-US': { default: ['Samantha', 'Microsoft Zira', 'Google US English', 'English'] },
+                'ja-JP': { default: ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'] },
+                'zh-CN': { default: ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'] },
+                'fr-FR': { default: ['Thomas', 'Microsoft Hortense', 'Google français', 'French'] },
+                'de-DE': { default: ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'] },
+                'es-ES': { default: ['Monica', 'Microsoft Helena', 'Google español', 'Spanish'] }
+            },
+
+            // 초기화
+            init: function(options = {}) {
                 const self = this;
-                this.els.backBtn.addEventListener('click', () => self.close());
-                this.els.audioBtn.addEventListener('click', () => self.toggleAudio());
-                this.els.textToggleBtn.addEventListener('click', () => { self.stopAudio(); self.toggleText(); });
-                this.els.saveBtn.addEventListener('click', () => { self.stopAudio(); self.saveToLocal(); });
-            },
-            
-            resetSpeechState: function() {
-                this.synth.cancel();
-                this.utteranceQueue = [];
-                this.isSpeaking = false;
-                if (this.currentSpeakingEl) {
-                    this.currentSpeakingEl.classList.remove('speaking');
-                    this.currentSpeakingEl = null;
+                this._state.synth = window.speechSynthesis;
+                this._state.onClose = options.onClose || null;
+
+                // DOM 요소
+                this._els = {
+                    page: document.getElementById('profileDetailPage'),
+                    image: document.getElementById('profileDetailImage'),
+                    description: document.getElementById('profileDetailDescription'),
+                    locationInfo: document.getElementById('profileDetailLocationInfo'),
+                    locationName: document.getElementById('profileDetailLocationName'),
+                    voiceQueryInfo: document.getElementById('profileDetailVoiceQueryInfo'),
+                    voiceQueryText: document.getElementById('profileDetailVoiceQueryText'),
+                    textOverlay: document.getElementById('profileDetailTextOverlay'),
+                    audioBtn: document.getElementById('profileDetailAudioBtn'),
+                    textToggleBtn: document.getElementById('profileDetailTextToggleBtn'),
+                    backBtn: document.getElementById('profileDetailBackBtn'),
+                    saveBtn: document.getElementById('profileDetailSaveBtn')
+                };
+
+                this._state.onSave = options.onSave || null;
+
+                // 음성 목록 로드
+                this._populateVoiceList();
+                if (speechSynthesis.onvoiceschanged !== undefined) {
+                    speechSynthesis.onvoiceschanged = () => self._populateVoiceList();
                 }
+
+                // DB에서 음성 설정 로드
+                this._loadVoiceConfigsFromDB();
+
+                // 이벤트 리스너
+                this._els.backBtn.addEventListener('click', () => self.close());
+                this._els.audioBtn.addEventListener('click', () => self._toggleAudio());
+                this._els.textToggleBtn.addEventListener('click', () => { self._stopAudio(); self._toggleText(); });
+                this._els.saveBtn.addEventListener('click', () => { self._stopAudio(); self._saveToLocal(); });
+
+                // 번역 완료 감지 초기화
+                this._initTranslationWatcher();
+
+                console.log('[ProfileDetailPage] Initialized');
             },
             
+            // 🔊 DB에서 음성 설정 로드
+            _loadVoiceConfigsFromDB: async function() {
+                if (this._state.voiceConfigsCache) return this._state.voiceConfigsCache;
+                if (this._state.voiceConfigsLoading) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    return this._state.voiceConfigsCache || null;
+                }
+                
+                this._state.voiceConfigsLoading = true;
+                try {
+                    const response = await fetch('/api/voice-configs');
+                    if (response.ok) {
+                        const configs = await response.json();
+                        this._state.voiceConfigsCache = {};
+                        for (const config of configs) {
+                            if (!this._state.voiceConfigsCache[config.langCode]) {
+                                this._state.voiceConfigsCache[config.langCode] = {};
+                            }
+                            this._state.voiceConfigsCache[config.langCode][config.platform] = {
+                                priorities: config.voicePriorities,
+                                excludeVoices: config.excludeVoices || []
+                            };
+                        }
+                        console.log('🔊 [ProfileDetailPage Voice DB] 설정 로드 완료:', Object.keys(this._state.voiceConfigsCache));
+                    }
+                } catch (error) {
+                    console.warn('🔊 [ProfileDetailPage Voice DB] 로드 실패, 기본값 사용:', error.message);
+                }
+                this._state.voiceConfigsLoading = false;
+                return this._state.voiceConfigsCache;
+            },
+            
+            // 🔊 플랫폼 감지
+            _detectPlatform: function() {
+                const ua = navigator.userAgent;
+                if (/iPhone|iPad|iPod|Mac/.test(ua)) return 'ios';
+                if (/Android/.test(ua)) return 'android';
+                if (/Windows/.test(ua)) return 'windows';
+                return 'default';
+            },
+            
+            // 🔊 DB 기반 음성 우선순위 가져오기
+            _getVoicePriorityFromDB: function(langCode) {
+                const platform = this._detectPlatform();
+                
+                if (this._state.voiceConfigsCache && this._state.voiceConfigsCache[langCode]) {
+                    const config = this._state.voiceConfigsCache[langCode][platform] || this._state.voiceConfigsCache[langCode]['default'];
+                    if (config) {
+                        return { priorities: config.priorities, excludeVoices: config.excludeVoices };
+                    }
+                }
+                
+                const fallback = this._defaultVoicePriorities[langCode];
+                if (fallback) {
+                    const priorities = fallback[platform] || fallback['default'] || fallback[Object.keys(fallback)[0]];
+                    return { priorities, excludeVoices: [] };
+                }
+                
+                return { priorities: [], excludeVoices: [] };
+            },
+
+            // 🌐 번역 완료 감지 (MutationObserver)
+            _initTranslationWatcher: function() {
+                const self = this;
+                const userLang = localStorage.getItem('appLanguage') || 'ko';
+                
+                if (userLang === 'ko') {
+                    this._state.translationComplete = true;
+                    return;
+                }
+                
+                const hasTranslateClass = document.body.classList.contains('translated-ltr') || 
+                                          document.body.classList.contains('translated-rtl');
+                if (hasTranslateClass) {
+                    this._state.translationComplete = true;
+                    return;
+                }
+                
+                this._state.translationComplete = false;
+                
+                this._state.translationObserver = new MutationObserver(function(mutations) {
+                    const hasTranslated = document.body.classList.contains('translated-ltr') || 
+                                          document.body.classList.contains('translated-rtl');
+                    if (hasTranslated) {
+                        self._state.translationComplete = true;
+                        self._state.translationObserver.disconnect();
+                        window.dispatchEvent(new CustomEvent('profileTranslationComplete'));
+                    }
+                });
+                
+                this._state.translationObserver.observe(document.body, { 
+                    attributes: true, 
+                    attributeFilter: ['class'] 
+                });
+                
+                setTimeout(function() {
+                    if (!self._state.translationComplete) {
+                        self._state.translationComplete = true;
+                        if (self._state.translationObserver) {
+                            self._state.translationObserver.disconnect();
+                        }
+                        window.dispatchEvent(new CustomEvent('profileTranslationComplete', { detail: { timeout: true } }));
+                    }
+                }, 3000);
+            },
+
+            // 음성 목록 로드
+            _populateVoiceList: function() {
+                this._state.voices = this._state.synth.getVoices();
+            },
+            
+            // 언어별 음성 선택
+            _getVoiceForLanguage: function(userLang) {
+                const langMap = {
+                    'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN',
+                    'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES'
+                };
+                
+                const fullLang = langMap[userLang] || 'ko-KR';
+                const langCode = fullLang.substring(0, 2);
+                
+                const voiceConfig = this._getVoicePriorityFromDB(fullLang);
+                const priorities = voiceConfig.priorities;
+                const excludeVoices = voiceConfig.excludeVoices;
+                
+                const allVoices = this._state.voices;
+                let targetVoice = null;
+                
+                for (const voiceName of priorities) {
+                    targetVoice = allVoices.find(v => 
+                        v.name.includes(voiceName) && !excludeVoices.some(ex => v.name.includes(ex))
+                    );
+                    if (targetVoice) break;
+                }
+                
+                if (!targetVoice) {
+                    targetVoice = allVoices.find(v => 
+                        v.lang.replace('_', '-').startsWith(langCode) && !excludeVoices.some(ex => v.name.includes(ex))
+                    );
+                }
+                
+                return targetVoice || allVoices[0];
+            },
+
+            // 페이지 열기 (guideId로 API 호출)
             open: async function(guideId) {
-                this.renderId++;
-                const thisRenderId = this.renderId;
+                this._stopAudio();
+                this._state.currentGuideData = null;
+                this._state.renderId++;
+                const thisRenderId = this._state.renderId;
                 
-                this.resetSpeechState();
-                this.currentGuide = null;
-                this.els.page.classList.remove('hidden');
-                document.documentElement.style.overflow = 'hidden';
-                document.body.style.overflow = 'hidden';
-                
-                this.els.description.innerHTML = '<span class="opacity-70">불러오는 중...</span>';
-                this.els.image.src = '/images/landing-logo.jpg';
-                this.els.image.style.filter = 'blur(8px) brightness(0.7)';
-                this.els.locationInfo.classList.add('hidden');
-                this.els.voiceQueryInfo.classList.add('hidden');
+                console.log('[ProfileDetailPage] open() guideId:', guideId, 'renderId:', thisRenderId);
                 
                 try {
+                    this._show();
+                    
+                    if (this._els.description) {
+                        this._els.description.textContent = '불러오는 중...';
+                    }
+                    this._els.image.src = '';
+                    this._els.locationInfo.classList.add('hidden');
+                    if (this._els.voiceQueryInfo) this._els.voiceQueryInfo.classList.add('hidden');
+
                     const response = await fetch(`/api/guides/${guideId}`, { credentials: 'include' });
                     if (!response.ok) throw new Error('가이드를 불러올 수 없습니다.');
                     
                     const guide = await response.json();
                     
-                    if (thisRenderId !== this.renderId) {
-                        console.log('[ProfileDetail] renderId mismatch, ignoring');
+                    if (thisRenderId !== this._state.renderId) {
+                        console.log('[ProfileDetailPage] 렌더 ID 불일치, 무시');
                         return;
                     }
                     
-                    this.currentGuide = guide;
-                    this.render(guide, thisRenderId);
+                    this._state.currentGuideData = guide;
+                    this._render(guide, thisRenderId);
                 } catch (error) {
-                    console.error('[ProfileDetail] Error:', error);
-                    this.els.description.textContent = '불러오기 실패';
+                    console.error('[ProfileDetailPage] Error:', error);
+                    this._els.description.textContent = '불러오기 실패';
                 }
             },
-            
-            render: function(guide, renderId) {
+
+            // 렌더링
+            _render: function(guide, renderId) {
                 const isVoiceGuide = (!guide.imageUrl && !guide.imageDataUrl) && (guide.voiceQuery || guide.title);
                 const imageUrl = guide.imageUrl || guide.imageDataUrl || '/images/landing-logo.jpg';
+                this._els.image.src = imageUrl;
                 
-                this.els.image.src = imageUrl;
                 if (!guide.imageUrl && !guide.imageDataUrl) {
-                    this.els.image.style.filter = 'blur(8px) brightness(0.7)';
-                    this.els.image.style.transform = 'scale(1.1)';
+                    this._els.image.style.filter = 'blur(8px) brightness(0.7)';
+                    this._els.image.style.transform = 'scale(1.1)';
                 } else {
-                    this.els.image.style.filter = '';
-                    this.els.image.style.transform = '';
+                    this._els.image.style.filter = '';
+                    this._els.image.style.transform = '';
                 }
+                
+                this._els.description.textContent = guide.description || '내용 없음';
                 
                 if (isVoiceGuide) {
-                    this.els.locationInfo.classList.add('hidden');
-                    if (guide.voiceQuery || guide.title) {
-                        this.els.voiceQueryText.textContent = guide.voiceQuery || guide.title;
-                        this.els.voiceQueryInfo.classList.remove('hidden');
+                    this._els.locationInfo.classList.add('hidden');
+                    if (this._els.voiceQueryInfo && this._els.voiceQueryText) {
+                        this._els.voiceQueryText.textContent = guide.voiceQuery || guide.title || '';
+                        this._els.voiceQueryInfo.classList.remove('hidden');
                     }
                 } else {
-                    this.els.voiceQueryInfo.classList.add('hidden');
+                    if (this._els.voiceQueryInfo) {
+                        this._els.voiceQueryInfo.classList.add('hidden');
+                    }
                     if (guide.locationName) {
-                        this.els.locationName.textContent = guide.locationName;
-                        this.els.locationInfo.classList.remove('hidden');
+                        this._els.locationName.textContent = guide.locationName;
+                        this._els.locationInfo.classList.remove('hidden');
                     } else {
-                        this.els.locationInfo.classList.add('hidden');
+                        this._els.locationInfo.classList.add('hidden');
                     }
                 }
+
+                this._state.savedVoiceLang = guide.voiceLang || null;
+                this._state.savedVoiceName = guide.voiceName || null;
+
+                if (guide.description) {
+                    this._playAudio(guide.description, guide.voiceLang, guide.voiceName, renderId);
+                }
+            },
+
+            // 페이지 표시
+            _show: function() {
+                this._els.page.classList.remove('hidden');
+                document.documentElement.style.overflow = 'hidden';
+                document.body.style.overflow = 'hidden';
+                this._refreshTranslationState();
+            },
+            
+            // 번역 상태 재확인
+            _refreshTranslationState: function() {
+                const self = this;
+                const userLang = localStorage.getItem('appLanguage') || 'ko';
                 
-                this.resetSpeechState();
-                this.els.description.innerHTML = '';
+                if (userLang === 'ko') {
+                    this._state.translationComplete = true;
+                    return;
+                }
                 
-                const description = guide.description || '';
-                const sentences = description.match(/[^.?!]+[.?!]+/g) || [description];
-                sentences.forEach(sentence => {
-                    if (!sentence) return;
-                    const span = document.createElement('span');
-                    span.textContent = sentence.trim() + ' ';
-                    this.els.description.appendChild(span);
-                    this.queueForSpeech(sentence.trim(), span, renderId);
+                const hasTranslateClass = document.body.classList.contains('translated-ltr') || 
+                                          document.body.classList.contains('translated-rtl');
+                if (hasTranslateClass) {
+                    this._state.translationComplete = true;
+                    return;
+                }
+                
+                this._state.translationComplete = false;
+                
+                if (this._state.translationObserver) {
+                    this._state.translationObserver.disconnect();
+                }
+                
+                this._state.translationObserver = new MutationObserver(function(mutations) {
+                    const hasTranslated = document.body.classList.contains('translated-ltr') || 
+                                          document.body.classList.contains('translated-rtl');
+                    if (hasTranslated) {
+                        self._state.translationComplete = true;
+                        self._state.translationObserver.disconnect();
+                        window.dispatchEvent(new CustomEvent('profileTranslationComplete'));
+                    }
                 });
                 
-                this.updateAudioButton(false);
+                this._state.translationObserver.observe(document.body, { 
+                    attributes: true, 
+                    attributeFilter: ['class'] 
+                });
             },
-            
-            queueForSpeech: function(text, element, renderId) {
-                this.utteranceQueue.push({ text, element, renderId });
-                if (!this.isSpeaking) {
-                    this.speakNext();
+
+            // 페이지 닫기
+            close: function() {
+                this._stopAudio();
+                this._els.page.classList.add('hidden');
+                document.documentElement.style.overflow = '';
+                document.body.style.overflow = '';
+                
+                if (this._state.onClose) {
+                    this._state.onClose();
                 }
             },
-            
-            speakNext: function() {
+
+            // 음성 재생 (문장별 하이라이트 + 자동 스크롤)
+            _playAudio: async function(text, savedVoiceLang, savedVoiceName, renderId) {
                 const self = this;
-                if (this.utteranceQueue.length === 0) {
-                    this.isSpeaking = false;
-                    this.updateAudioButton(false);
-                    if (this.currentSpeakingEl) {
-                        this.currentSpeakingEl.classList.remove('speaking');
-                        this.currentSpeakingEl = null;
-                    }
-                    return;
+                const thisRenderId = renderId || this._state.renderId;
+                this._stopAudio();
+                
+                const userLang = localStorage.getItem('appLanguage') || 'ko';
+                if (userLang !== 'ko' && !this._state.translationComplete) {
+                    await new Promise(resolve => {
+                        const handler = () => {
+                            window.removeEventListener('profileTranslationComplete', handler);
+                            resolve();
+                        };
+                        window.addEventListener('profileTranslationComplete', handler);
+                        setTimeout(resolve, 3500);
+                    });
                 }
                 
-                const { text, element, renderId } = this.utteranceQueue.shift();
+                const currentText = this._els.description.textContent || text;
+                const cleanText = currentText.replace(new RegExp('<br\\s*/?>', 'gi'), ' ');
+                const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
                 
-                if (renderId !== this.renderId) {
-                    this.speakNext();
-                    return;
+                this._state.originalText = cleanText;
+                this._state.currentUtterance = new SpeechSynthesisUtterance(cleanText);
+                
+                const langFullMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
+                const fullLang = (userLang !== 'ko') ? (langFullMap[userLang] || 'ko-KR') : (savedVoiceLang || 'ko-KR');
+                
+                let voices = this._state.synth.getVoices();
+                if (voices.length === 0) {
+                    await new Promise(resolve => {
+                        const checkVoices = () => {
+                            voices = self._state.synth.getVoices();
+                            if (voices.length > 0) resolve();
+                            else setTimeout(checkVoices, 100);
+                        };
+                        setTimeout(checkVoices, 100);
+                        setTimeout(resolve, 1000);
+                    });
+                    voices = this._state.synth.getVoices();
+                }
+                this._state.voices = voices;
+                
+                let targetVoice = null;
+                const shortLang = fullLang.substring(0, 2);
+                
+                if (shortLang === 'ko') {
+                    const koVoices = voices.filter(v => v.lang.startsWith('ko'));
+                    targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                               || koVoices.find(v => v.name.includes('Sora'))
+                               || koVoices.find(v => v.name.includes('Heami'))
+                               || koVoices[0];
+                } else {
+                    targetVoice = this._getVoiceForLanguage(shortLang === 'zh' ? 'zh-CN' : shortLang);
                 }
                 
-                this.isSpeaking = true;
+                this._state.currentUtterance.voice = targetVoice;
+                this._state.currentUtterance.lang = fullLang;
+                this._state.currentUtterance.rate = 1.0;
                 
-                if (this.currentSpeakingEl) {
-                    this.currentSpeakingEl.classList.remove('speaking');
-                }
-                element.classList.add('speaking');
-                this.currentSpeakingEl = element;
+                let currentSentenceIndex = 0;
                 
-                const utterance = new SpeechSynthesisUtterance(text);
-                const voices = this.synth.getVoices();
-                const koVoices = voices.filter(v => v.lang.startsWith('ko'));
-                const targetVoice = koVoices.find(v => v.name.includes('Yuna'))
-                                 || koVoices.find(v => v.name.includes('Heami'))
-                                 || koVoices.find(v => v.name.includes('Sora'))
-                                 || koVoices[0] || voices[0];
+                this._state.currentUtterance.onstart = () => {
+                    self._updateAudioButtonIcon(true);
+                };
                 
-                utterance.voice = targetVoice;
-                utterance.lang = 'ko-KR';
-                utterance.rate = 0.95;
-                
-                utterance.onend = () => {
-                    if (renderId === self.renderId) {
-                        element.classList.remove('speaking');
-                        self.speakNext();
+                this._state.currentUtterance.onboundary = (event) => {
+                    if (thisRenderId !== self._state.renderId) return;
+                    
+                    if (event.name === 'sentence') {
+                        const highlightedHTML = sentences.map((sentence, idx) => {
+                            if (idx === currentSentenceIndex) {
+                                return '<span class="current-sentence" style="background-color: rgba(66, 133, 244, 0.3); font-weight: 600;">' + sentence + '</span>';
+                            }
+                            return sentence;
+                        }).join('');
+                        
+                        self._els.description.innerHTML = highlightedHTML;
+                        currentSentenceIndex++;
+                        
+                        const currentSpan = self._els.description.querySelector('.current-sentence');
+                        if (currentSpan) {
+                            currentSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
                     }
                 };
                 
-                utterance.onerror = () => {
-                    if (renderId === self.renderId) {
-                        element.classList.remove('speaking');
-                        self.speakNext();
-                    }
+                this._state.currentUtterance.onend = () => {
+                    if (thisRenderId !== self._state.renderId) return;
+                    self._updateAudioButtonIcon(false);
+                    self._els.description.textContent = self._state.originalText;
                 };
                 
-                this.synth.speak(utterance);
-                this.updateAudioButton(true);
+                this._state.synth.speak(this._state.currentUtterance);
             },
-            
-            stopAudio: function() {
-                this.synth.cancel();
-                this.utteranceQueue = [];
-                this.isSpeaking = false;
-                if (this.currentSpeakingEl) {
-                    this.currentSpeakingEl.classList.remove('speaking');
-                    this.currentSpeakingEl = null;
+
+            // 음성 정지
+            _stopAudio: function() {
+                if (this._state.currentUtterance) {
+                    this._state.currentUtterance.onboundary = null;
+                    this._state.currentUtterance.onend = null;
+                    this._state.currentUtterance.onstart = null;
+                    this._state.currentUtterance.onerror = null;
                 }
-                this.updateAudioButton(false);
-            },
-            
-            toggleAudio: function() {
-                if (this.isSpeaking) {
-                    this.stopAudio();
-                } else if (this.currentGuide) {
-                    this.render(this.currentGuide, this.renderId);
+                if (this._state.synth.speaking) {
+                    this._state.synth.pause();
+                    this._state.synth.cancel();
+                }
+                this._updateAudioButtonIcon(false);
+                if (this._state.originalText && this._els.description) {
+                    this._els.description.textContent = this._state.originalText;
                 }
             },
-            
-            updateAudioButton: function(isPlaying) {
-                this.els.audioBtn.innerHTML = isPlaying ? `
+
+            // 음성 토글
+            _toggleAudio: function() {
+                const text = this._els.description.textContent;
+                if (!text || text === '불러오는 중...') return;
+
+                if (this._state.synth.speaking) {
+                    this._stopAudio();
+                } else {
+                    this._playAudio(text, this._state.savedVoiceLang, this._state.savedVoiceName);
+                }
+            },
+
+            // 오디오 버튼 아이콘 업데이트
+            _updateAudioButtonIcon: function(isPlaying) {
+                this._els.audioBtn.innerHTML = isPlaying ? `
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
                         <path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z" clip-rule="evenodd" />
                     </svg>
@@ -1124,84 +1400,84 @@
                     </svg>
                 `;
             },
-            
-            toggleText: function() {
-                this.isTextVisible = !this.isTextVisible;
-                this.els.textOverlay.style.opacity = this.isTextVisible ? '1' : '0';
+
+            // 텍스트 토글
+            _toggleText: function() {
+                this._state.isTextVisible = !this._state.isTextVisible;
+                this._els.textOverlay.style.opacity = this._state.isTextVisible ? '1' : '0';
             },
-            
-            saveToLocal: async function() {
-                if (!this.currentGuide) {
+
+            // 💾 로컬 보관함(IndexedDB)에 저장 (저장만, 페이지 이동 없음)
+            _saveToLocal: async function() {
+                const data = this._state.currentGuideData;
+                if (!data) {
+                    console.warn('[ProfileDetailPage] 저장할 데이터 없음');
                     showToast('저장할 데이터가 없습니다');
                     return;
                 }
-                
-                this.els.saveBtn.disabled = true;
-                this.els.saveBtn.style.opacity = '0.5';
-                
+
+                this._els.saveBtn.disabled = true;
+                this._els.saveBtn.style.opacity = '0.5';
+
                 try {
-                    const db = await this.openIndexedDB();
-                    const tx = db.transaction('guides', 'readwrite');
-                    const store = tx.objectStore('guides');
-                    
                     const guideData = {
-                        imageDataUrl: this.currentGuide.imageUrl || this.currentGuide.imageDataUrl || '',
-                        description: this.currentGuide.description || '',
-                        locationName: this.currentGuide.locationName || '',
-                        voiceLang: this.currentGuide.voiceLang || 'ko-KR',
-                        voiceName: this.currentGuide.voiceName || '',
-                        title: this.currentGuide.title || this.currentGuide.voiceQuery || '제목 없음',
+                        imageDataUrl: data.imageUrl || data.imageDataUrl || '',
+                        description: data.description || '',
+                        locationName: data.locationName || '',
+                        voiceLang: data.voiceLang || this._state.savedVoiceLang || 'ko-KR',
+                        voiceName: data.voiceName || this._state.savedVoiceName || '',
+                        title: data.title || data.voiceQuery || '제목 없음',
                         timestamp: Date.now()
                     };
-                    
-                    store.add(guideData);
-                    
-                    await new Promise((resolve, reject) => {
-                        tx.oncomplete = resolve;
-                        tx.onerror = reject;
-                    });
+
+                    const savedId = await this._addToIndexedDB(guideData);
+                    console.log('[ProfileDetailPage] IndexedDB 저장 완료, ID:', savedId);
                     
                     showToast('보관함에 저장되었습니다');
                     
-                    setTimeout(() => {
-                        this.close();
-                        window.location.href = '/#archive';
-                    }, 500);
+                    // ✅ 저장만 하고 페이지 이동/닫기 없음
+                    this._els.saveBtn.disabled = false;
+                    this._els.saveBtn.style.opacity = '1';
                     
                 } catch (error) {
-                    console.error('[ProfileDetail] Save error:', error);
+                    console.error('[ProfileDetailPage] 저장 실패:', error);
                     showToast('저장에 실패했습니다');
-                    this.els.saveBtn.disabled = false;
-                    this.els.saveBtn.style.opacity = '1';
+                    this._els.saveBtn.disabled = false;
+                    this._els.saveBtn.style.opacity = '1';
                 }
             },
-            
-            openIndexedDB: function() {
+
+            // IndexedDB에 아이템 추가
+            _addToIndexedDB: function(item) {
                 return new Promise((resolve, reject) => {
-                    const request = indexedDB.open('GeminiGuidesDB', 1);
-                    request.onerror = () => reject(request.error);
-                    request.onsuccess = () => resolve(request.result);
+                    const request = indexedDB.open('MyAppDB', 1);
+                    
                     request.onupgradeneeded = (e) => {
                         const db = e.target.result;
-                        if (!db.objectStoreNames.contains('guides')) {
-                            db.createObjectStore('guides', { keyPath: 'id', autoIncrement: true });
+                        if (!db.objectStoreNames.contains('archive')) {
+                            db.createObjectStore('archive', { keyPath: 'id', autoIncrement: true });
                         }
                     };
+                    
+                    request.onsuccess = (e) => {
+                        const db = e.target.result;
+                        const tx = db.transaction('archive', 'readwrite');
+                        const store = tx.objectStore('archive');
+                        const addRequest = store.add(item);
+                        
+                        addRequest.onsuccess = () => resolve(addRequest.result);
+                        addRequest.onerror = () => reject(addRequest.error);
+                    };
+                    
+                    request.onerror = () => reject(request.error);
                 });
-            },
-            
-            close: function() {
-                this.stopAudio();
-                this.els.page.classList.add('hidden');
-                document.documentElement.style.overflow = '';
-                document.body.style.overflow = '';
             }
         };
         
-        profileDetail.init();
+        profileDetailPage.init();
         
         function viewGuideDetail(guideId) {
-            profileDetail.open(guideId);
+            profileDetailPage.open(guideId);
         }
 
         // 공유 기능 (index.js 2회차 성공 모달과 동일)
