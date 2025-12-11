@@ -32,23 +32,24 @@ const guideDetailPage = {
                 </svg>
             </button>
         </header>
+        <!-- 📍🎤 정보 표시 영역 (고정, 스크롤 안됨) -->
+        <div class="info-fixed-area">
+            <div id="guideDetailLocationInfo" class="hidden flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gemini-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                </svg>
+                <span id="guideDetailLocationName" class="text-base font-semibold text-gray-800"></span>
+            </div>
+            <div id="guideDetailVoiceQueryInfo" class="hidden flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gemini-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
+                    <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
+                </svg>
+                <span id="guideDetailVoiceQueryText" class="text-base font-semibold text-gray-800"></span>
+            </div>
+        </div>
         <div class="content-safe-area">
             <div id="guideDetailTextOverlay" class="text-content">
-                <!-- 📍 위치 정보 표시 (이미지 모드) - index.html과 동일 구조 -->
-                <div id="guideDetailLocationInfo" class="hidden mb-4 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gemini-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                        <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
-                    </svg>
-                    <span id="guideDetailLocationName" class="text-base font-semibold text-gray-800"></span>
-                </div>
-                <!-- 🎤 질문 키워드 표시 (음성 모드) - index.html과 동일 구조 -->
-                <div id="guideDetailVoiceQueryInfo" class="hidden mb-4 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gemini-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
-                        <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
-                    </svg>
-                    <span id="guideDetailVoiceQueryText" class="text-base font-semibold text-gray-800"></span>
-                </div>
                 <p id="guideDetailDescription" class="readable-on-image text-xl leading-relaxed notranslate" translate="no"></p>
             </div>
         </div>
@@ -95,7 +96,7 @@ const guideDetailPage = {
         }
         #guideDetailPage .header-safe-area {
             width: 100%;
-            height: 80px;
+            height: 60px;
             flex-shrink: 0;
             z-index: 30;
             display: flex;
@@ -103,6 +104,12 @@ const guideDetailPage = {
             justify-content: center;
             padding: 0 1rem;
             position: relative;
+        }
+        #guideDetailPage .info-fixed-area {
+            width: 100%;
+            flex-shrink: 0;
+            z-index: 25;
+            padding: 0 1rem 0.5rem 1rem;
         }
         #guideDetailPage .content-safe-area {
             flex: 1;
