@@ -4836,10 +4836,24 @@ AI가 생성한 정보는 참고용이며, 정확성을 보장하지 않습니�
     startCameraFromFeaturesBtn?.addEventListener('click', handleStartFeaturesClick);
     shootBtn?.addEventListener('click', () => debounceClick('shoot', capturePhoto, 800));
     uploadBtn?.addEventListener('click', () => uploadInput.click());
-    micBtn?.addEventListener('click', () => debounceClick('mic', handleMicButtonClick, 500));
+    micBtn?.addEventListener('click', () => {
+        // 🔊 음성 재생 즉시 중지 (debounce 전에 실행)
+        if (synth.speaking || synth.pending) {
+            synth.cancel();
+            resetSpeechState();
+        }
+        debounceClick('mic', handleMicButtonClick, 500);
+    });
     
     // 🎤 상세페이지 마이크 버튼 (다시 질문) - 메인페이지와 동일 로직
-    detailMicBtn?.addEventListener('click', () => debounceClick('detailMic', handleDetailMicClick, 500));
+    detailMicBtn?.addEventListener('click', () => {
+        // 🔊 음성 재생 즉시 중지 (debounce 전에 실행)
+        if (synth.speaking || synth.pending) {
+            synth.cancel();
+            resetSpeechState();
+        }
+        debounceClick('detailMic', handleDetailMicClick, 500);
+    });
     
     archiveBtn?.addEventListener('click', () => debounceClick('archive', showArchivePage, 300));
     uploadInput?.addEventListener('change', handleFileSelect);
