@@ -708,12 +708,19 @@ const guideDetailPage = {
 
     // 음성 정지
     _stopAudio: function() {
+        // 🔒 2025-12-11: 이벤트 핸들러 먼저 제거 (race condition 방지)
+        if (this._state.currentUtterance) {
+            this._state.currentUtterance.onboundary = null;
+            this._state.currentUtterance.onend = null;
+            this._state.currentUtterance.onstart = null;
+            this._state.currentUtterance.onerror = null;
+        }
         if (this._state.synth.speaking) {
             this._state.synth.pause();
             this._state.synth.cancel();
         }
         this._updateAudioButtonIcon(false);
-        if (this._state.originalText) {
+        if (this._state.originalText && this._els.description) {
             this._els.description.textContent = this._state.originalText;
         }
     },
