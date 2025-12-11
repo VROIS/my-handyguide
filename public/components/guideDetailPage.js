@@ -455,6 +455,18 @@ const guideDetailPage = {
     // 렌더링
     // 🎨 2025-12-11: 이미지 모드 / 음성 모드 분기 처리
     _render: function(guide, renderId) {
+        console.log('[GuideDetailPage] _render 호출:', {
+            id: guide.id,
+            locationName: guide.locationName,
+            voiceQuery: guide.voiceQuery,
+            imageUrl: guide.imageUrl?.substring(0, 50),
+            voiceLang: guide.voiceLang
+        });
+        console.log('[GuideDetailPage] _els 상태:', {
+            locationInfo: !!this._els.locationInfo,
+            voiceQueryInfo: !!this._els.voiceQueryInfo
+        });
+        
         // 🎤 음성 모드 판별: 이미지 없고 voiceQuery 있으면 음성 모드
         const isVoiceGuide = (!guide.imageUrl && !guide.imageDataUrl) && (guide.voiceQuery || guide.title);
         
