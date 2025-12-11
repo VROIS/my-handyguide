@@ -2230,6 +2230,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (landmark) {
                     window.currentGPS.locationName = landmark;
                     console.log('✅ 위치 이름 저장 완료:', landmark);
+                    // 📍 UI 업데이트
+                    updateLocationInfoUI(landmark);
+                } else {
+                    updateLocationInfoUI('위치 정보 없음');
                 }
             });
         } catch (error) {
@@ -2239,6 +2243,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error('위치 정보 오류:', error);
             }
             window.currentGPS = null;
+            // 📍 GPS 실패해도 UI는 업데이트 (숨기지 않음)
+            updateLocationInfoUI('위치 정보 없음');
+        }
+    }
+    
+    // 📍 위치 정보 UI 업데이트 함수
+    function updateLocationInfoUI(text) {
+        const locationInfo = document.getElementById('locationInfo');
+        const locationNameEl = document.getElementById('locationName');
+        if (locationInfo && locationNameEl) {
+            locationNameEl.textContent = text;
+            locationInfo.classList.remove('hidden');
+            console.log('📍 위치창 업데이트:', text);
         }
     }
 
@@ -2281,6 +2298,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (landmark) {
                                 window.currentGPS.locationName = landmark;
                                 console.log('✅ 위치 이름 저장 완료:', landmark);
+                                updateLocationInfoUI(landmark);
+                            } else {
+                                updateLocationInfoUI('위치 정보 없음');
                             }
                         });
                     } else {
