@@ -2458,6 +2458,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
         if (isRecognizing) return recognition.stop();
         
+        // 🔊 마이크 시작 전 음성 재생 즉시 중지
+        if (synth.speaking || synth.pending) {
+            synth.cancel();
+            resetSpeechState();
+        }
+        
         // 🔒 사용량 제한 체크 (AI 호출 전)
         const canProceed = await checkUsageLimit('detail');
         if (!canProceed) return;
@@ -2490,6 +2496,12 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleDetailMicClick() {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
         if (isRecognizing) return recognition.stop();
+        
+        // 🔊 마이크 시작 전 음성 재생 즉시 중지
+        if (synth.speaking || synth.pending) {
+            synth.cancel();
+            resetSpeechState();
+        }
         
         // 🔒 사용량 제한 체크 (AI 호출 전)
         const canProceed = await checkUsageLimit('detail');
