@@ -405,9 +405,21 @@ const guideDetailPage = {
         this._stopAudio();
         this._state.currentGuideData = null;
         
+        // 🐛 DEBUG: 요소 상태 확인
+        console.log('🐛 [DEBUG] open() called with guideId:', guideId);
+        console.log('🐛 [DEBUG] _els.description exists:', !!this._els.description);
+        console.log('🐛 [DEBUG] _els.description element:', this._els.description);
+        
         try {
             this._show();
-            this._els.description.textContent = '불러오는 중...';
+            
+            // 🐛 DEBUG: 텍스트 변경 전후 확인
+            console.log('🐛 [DEBUG] BEFORE clear - description text:', this._els.description?.textContent?.substring(0, 50));
+            if (this._els.description) {
+                this._els.description.textContent = '불러오는 중...';
+            }
+            console.log('🐛 [DEBUG] AFTER clear - description text:', this._els.description?.textContent);
+            
             this._els.image.src = '';
             this._els.locationInfo.classList.add('hidden');
             if (this._els.voiceQueryInfo) this._els.voiceQueryInfo.classList.add('hidden');
@@ -416,9 +428,16 @@ const guideDetailPage = {
             if (!response.ok) throw new Error('가이드를 불러올 수 없습니다.');
             
             const guide = await response.json();
+            // 🐛 DEBUG: API 응답 확인
+            console.log('🐛 [DEBUG] API response guide.id:', guide.id);
+            console.log('🐛 [DEBUG] API response guide.description (first 50 chars):', guide.description?.substring(0, 50));
+            
             // 💾 2025-12-11: 저장 버튼용 데이터 보관 (프로필→로컬 복구 기능)
             this._state.currentGuideData = guide;
             this._render(guide);
+            
+            // 🐛 DEBUG: 렌더링 후 확인
+            console.log('🐛 [DEBUG] AFTER render - description text:', this._els.description?.textContent?.substring(0, 50));
         } catch (error) {
             console.error('[GuideDetailPage] Error:', error);
             this._els.description.textContent = '불러오기 실패';
