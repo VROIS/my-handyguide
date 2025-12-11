@@ -3562,6 +3562,10 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             console.log('🎤 [보관함] 저장된 음성 정보:', item.voiceLang, item.voiceName, item.voiceQuery);
 
+            // 🔊 2025-12-11: 표준 초기화 - 이전 음성 즉시 중지 (showDetailPage 전에!)
+            synth.cancel();
+            resetSpeechState();
+            
             showDetailPage(true);
 
             // 🎤 음성 가이드 vs 이미지 가이드 분기

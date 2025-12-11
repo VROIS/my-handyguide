@@ -401,6 +401,10 @@ const guideDetailPage = {
 
     // 페이지 열기 (guideId로 API 호출)
     open: async function(guideId) {
+        // 🔊 2025-12-11: 표준 초기화 - 이전 음성 즉시 중지 + 데이터 초기화
+        this._stopAudio();
+        this._state.currentGuideData = null;
+        
         try {
             this._show();
             this._els.description.textContent = '불러오는 중...';
