@@ -40,6 +40,13 @@ const guideDetailPage = {
                     </svg>
                     <span id="guideDetailLocationName" class="text-base font-semibold text-gray-800"></span>
                 </div>
+                <div id="guideDetailVoiceQueryInfo" class="hidden mb-4 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gemini-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
+                        <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
+                    </svg>
+                    <span id="guideDetailVoiceQueryText" class="text-base font-semibold text-gray-800"></span>
+                </div>
                 <p id="guideDetailDescription" class="readable-on-image text-xl leading-relaxed notranslate" translate="no"></p>
             </div>
         </div>
@@ -175,6 +182,8 @@ const guideDetailPage = {
             description: document.getElementById('guideDetailDescription'),
             locationInfo: document.getElementById('guideDetailLocationInfo'),
             locationName: document.getElementById('guideDetailLocationName'),
+            voiceQueryInfo: document.getElementById('guideDetailVoiceQueryInfo'),
+            voiceQueryText: document.getElementById('guideDetailVoiceQueryText'),
             textOverlay: document.getElementById('guideDetailTextOverlay'),
             audioBtn: document.getElementById('guideDetailAudioBtn'),
             textToggleBtn: document.getElementById('guideDetailTextToggleBtn'),
@@ -194,11 +203,11 @@ const guideDetailPage = {
         // 🔊 2025-12-07: DB에서 음성 설정 로드
         this._loadVoiceConfigsFromDB();
 
-        // 이벤트 리스너
+        // 이벤트 리스너 (모든 버튼 클릭 시 음성 멈춤)
         this._els.backBtn.addEventListener('click', () => self.close());
         this._els.audioBtn.addEventListener('click', () => self._toggleAudio());
-        this._els.textToggleBtn.addEventListener('click', () => self._toggleText());
-        this._els.saveBtn.addEventListener('click', () => self._saveToLocal());
+        this._els.textToggleBtn.addEventListener('click', () => { self._stopAudio(); self._toggleText(); });
+        this._els.saveBtn.addEventListener('click', () => { self._stopAudio(); self._saveToLocal(); });
 
         // 🌐 2025-12-04: 번역 완료 감지 초기화
         this._initTranslationWatcher();
@@ -385,6 +394,7 @@ const guideDetailPage = {
             this._els.description.textContent = '불러오는 중...';
             this._els.image.src = '';
             this._els.locationInfo.classList.add('hidden');
+            if (this._els.voiceQueryInfo) this._els.voiceQueryInfo.classList.add('hidden');
 
             const response = await fetch(`/api/guides/${guideId}`, { credentials: 'include' });
             if (!response.ok) throw new Error('가이드를 불러올 수 없습니다.');
@@ -406,12 +416,16 @@ const guideDetailPage = {
     },
 
     // 렌더링
+    // 🎨 2025-12-11: 이미지 모드 / 음성 모드 분기 처리
     _render: function(guide) {
-        // 🎨 2025-12-09: 이미지 없으면 기본 배경(흐린 로고) 사용
+        // 🎤 음성 모드 판별: 이미지 없고 voiceQuery 있으면 음성 모드
+        const isVoiceGuide = (!guide.imageUrl && !guide.imageDataUrl) && (guide.voiceQuery || guide.title);
+        
+        // 🎨 배경 이미지 설정
         const imageUrl = guide.imageUrl || guide.imageDataUrl || '/images/landing-logo.jpg';
         this._els.image.src = imageUrl;
         
-        // 기본 배경 사용 시 흐린 효과 적용
+        // 음성 모드 또는 이미지 없을 때: 흐린 로고 배경
         if (!guide.imageUrl && !guide.imageDataUrl) {
             this._els.image.style.filter = 'blur(8px) brightness(0.7)';
             this._els.image.style.transform = 'scale(1.1)';
@@ -422,11 +436,27 @@ const guideDetailPage = {
         
         this._els.description.textContent = guide.description || '내용 없음';
         
-        if (guide.locationName) {
-            this._els.locationName.textContent = guide.locationName;
-            this._els.locationInfo.classList.remove('hidden');
-        } else {
+        // 🎤 모드별 정보박스 표시 전환
+        if (isVoiceGuide) {
+            // 음성 모드: voiceQueryInfo 표시, locationInfo 숨김
             this._els.locationInfo.classList.add('hidden');
+            if (this._els.voiceQueryInfo && this._els.voiceQueryText) {
+                this._els.voiceQueryText.textContent = guide.voiceQuery || guide.title || '';
+                this._els.voiceQueryInfo.classList.remove('hidden');
+            }
+            console.log('[GuideDetailPage] 음성 모드:', guide.voiceQuery || guide.title);
+        } else {
+            // 이미지 모드: locationInfo 표시, voiceQueryInfo 숨김
+            if (this._els.voiceQueryInfo) {
+                this._els.voiceQueryInfo.classList.add('hidden');
+            }
+            if (guide.locationName) {
+                this._els.locationName.textContent = guide.locationName;
+                this._els.locationInfo.classList.remove('hidden');
+            } else {
+                this._els.locationInfo.classList.add('hidden');
+            }
+            console.log('[GuideDetailPage] 이미지 모드:', guide.locationName);
         }
 
         // 🎤 저장된 음성 정보 보관 (토글 재생 시 사용)
