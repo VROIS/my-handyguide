@@ -167,7 +167,9 @@ const guideDetailPage = {
         voiceConfigsLoading: false,
         // 💾 2025-12-09: 현재 가이드 데이터 (저장용)
         currentGuideData: null,
-        onSave: null
+        onSave: null,
+        // 🔒 2025-12-11: 렌더 ID (경쟁 상태 방지)
+        renderId: 0
     },
     
     // 🔊 하드코딩 기본값 (오프라인 fallback)
@@ -404,22 +406,18 @@ const guideDetailPage = {
         // 🔊 2025-12-11: 표준 초기화 - 이전 음성 즉시 중지 + 데이터 초기화
         this._stopAudio();
         this._state.currentGuideData = null;
+        // 🔒 렌더 ID 증가 - 이전 콜백 무효화
+        this._state.renderId++;
+        const thisRenderId = this._state.renderId;
         
-        // 🐛 DEBUG: 요소 상태 확인
-        console.log('🐛 [DEBUG] open() called with guideId:', guideId);
-        console.log('🐛 [DEBUG] _els.description exists:', !!this._els.description);
-        console.log('🐛 [DEBUG] _els.description element:', this._els.description);
+        console.log('[GuideDetailPage] open() guideId:', guideId, 'renderId:', thisRenderId);
         
         try {
             this._show();
             
-            // 🐛 DEBUG: 텍스트 변경 전후 확인
-            console.log('🐛 [DEBUG] BEFORE clear - description text:', this._els.description?.textContent?.substring(0, 50));
             if (this._els.description) {
                 this._els.description.textContent = '불러오는 중...';
             }
-            console.log('🐛 [DEBUG] AFTER clear - description text:', this._els.description?.textContent);
-            
             this._els.image.src = '';
             this._els.locationInfo.classList.add('hidden');
             if (this._els.voiceQueryInfo) this._els.voiceQueryInfo.classList.add('hidden');
@@ -428,16 +426,16 @@ const guideDetailPage = {
             if (!response.ok) throw new Error('가이드를 불러올 수 없습니다.');
             
             const guide = await response.json();
-            // 🐛 DEBUG: API 응답 확인
-            console.log('🐛 [DEBUG] API response guide.id:', guide.id);
-            console.log('🐛 [DEBUG] API response guide.description (first 50 chars):', guide.description?.substring(0, 50));
+            
+            // 🔒 렌더 ID 체크 - 다른 항목이 열렸으면 무시
+            if (thisRenderId !== this._state.renderId) {
+                console.log('[GuideDetailPage] 렌더 ID 불일치, 무시:', thisRenderId, '!=', this._state.renderId);
+                return;
+            }
             
             // 💾 2025-12-11: 저장 버튼용 데이터 보관 (프로필→로컬 복구 기능)
             this._state.currentGuideData = guide;
-            this._render(guide);
-            
-            // 🐛 DEBUG: 렌더링 후 확인
-            console.log('🐛 [DEBUG] AFTER render - description text:', this._els.description?.textContent?.substring(0, 50));
+            this._render(guide, thisRenderId);
         } catch (error) {
             console.error('[GuideDetailPage] Error:', error);
             this._els.description.textContent = '불러오기 실패';
@@ -454,7 +452,7 @@ const guideDetailPage = {
 
     // 렌더링
     // 🎨 2025-12-11: 이미지 모드 / 음성 모드 분기 처리
-    _render: function(guide) {
+    _render: function(guide, renderId) {
         // 🎤 음성 모드 판별: 이미지 없고 voiceQuery 있으면 음성 모드
         const isVoiceGuide = (!guide.imageUrl && !guide.imageDataUrl) && (guide.voiceQuery || guide.title);
         
@@ -500,9 +498,9 @@ const guideDetailPage = {
         this._state.savedVoiceLang = guide.voiceLang || null;
         this._state.savedVoiceName = guide.voiceName || null;
 
-        // 🎤 저장된 음성 정보 전달 (voiceLang, voiceName)
+        // 🎤 저장된 음성 정보 전달 (voiceLang, voiceName, renderId)
         if (guide.description) {
-            this._playAudio(guide.description, guide.voiceLang, guide.voiceName);
+            this._playAudio(guide.description, guide.voiceLang, guide.voiceName, renderId);
         }
     },
 
@@ -580,8 +578,9 @@ const guideDetailPage = {
     // 음성 재생 (문장별 하이라이트 + 자동 스크롤)
     // 🎤 voiceLang, voiceName: 저장된 음성 정보 (없으면 현재 appLanguage 기본값)
     // 🌐 2025-12-04: 번역 완료 대기 후 번역된 텍스트로 TTS 재생
-    _playAudio: async function(text, savedVoiceLang, savedVoiceName) {
+    _playAudio: async function(text, savedVoiceLang, savedVoiceName, renderId) {
         const self = this;
+        const thisRenderId = renderId || this._state.renderId;
         this._stopAudio();
         
         // 🌐 번역 완료 대기 (한국어가 아닌 경우)
@@ -672,6 +671,9 @@ const guideDetailPage = {
         
         // 문장별 하이라이트 + 자동 스크롤
         this._state.currentUtterance.onboundary = (event) => {
+            // 🔒 렌더 ID 체크 - 다른 항목이 열렸으면 무시
+            if (thisRenderId !== self._state.renderId) return;
+            
             if (event.name === 'sentence') {
                 const highlightedHTML = sentences.map((sentence, idx) => {
                     if (idx === currentSentenceIndex) {
@@ -692,6 +694,9 @@ const guideDetailPage = {
         };
         
         this._state.currentUtterance.onend = () => {
+            // 🔒 렌더 ID 체크 - 다른 항목이 열렸으면 무시
+            if (thisRenderId !== self._state.renderId) return;
+            
             self._updateAudioButtonIcon(false);
             self._els.description.textContent = self._state.originalText;
         };
@@ -776,7 +781,7 @@ const guideDetailPage = {
             
             // 페이지 닫고 보관함으로 이동
             setTimeout(() => {
-                this._hide();
+                this.close();
                 // 메인 앱이면 hash 이동, 프로필 페이지면 앱으로 이동
                 if (window.location.pathname === '/' || window.location.pathname === '/index.html') {
                     window.location.hash = '#archive';
