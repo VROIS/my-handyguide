@@ -26,28 +26,29 @@ const guideDetailPage = {
     <div id="guideDetailPage" class="hidden">
         <img id="guideDetailImage" src="" alt="상세페이지 이미지" class="full-screen-bg">
         <header class="header-safe-area">
-            <button id="guideDetailBackBtn" class="w-12 h-12 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl absolute top-4 right-4" style="z-index: 10001; pointer-events: auto;" aria-label="뒤로가기">
+            <button id="guideDetailBackBtn" class="w-12 h-12 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl absolute top-1/2 right-4 -translate-y-1/2" style="z-index: 10001; pointer-events: auto;" aria-label="뒤로가기">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                 </svg>
             </button>
-            <!-- 📍 위치정보/음성키워드: 리턴버튼 바로 밑, 왼쪽 정렬, 항상 고정 -->
-            <div id="guideDetailLocationInfo" class="hidden info-box absolute left-4 bottom-2 max-w-[70%] flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gemini-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                    <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
-                </svg>
-                <span id="guideDetailLocationName" class="text-sm font-semibold text-gray-800 truncate"></span>
-            </div>
-            <div id="guideDetailVoiceQueryInfo" class="hidden info-box absolute left-4 bottom-2 max-w-[70%] flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gemini-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
-                    <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
-                </svg>
-                <span id="guideDetailVoiceQueryText" class="text-sm font-semibold text-gray-800 truncate"></span>
-            </div>
         </header>
         <div class="content-safe-area">
             <div id="guideDetailTextOverlay" class="text-content">
+                <!-- 📍 위치 정보 표시 (이미지 모드) - index.html과 동일 구조 -->
+                <div id="guideDetailLocationInfo" class="hidden mb-4 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gemini-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                    </svg>
+                    <span id="guideDetailLocationName" class="text-base font-semibold text-gray-800"></span>
+                </div>
+                <!-- 🎤 질문 키워드 표시 (음성 모드) - index.html과 동일 구조 -->
+                <div id="guideDetailVoiceQueryInfo" class="hidden mb-4 flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gemini-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
+                        <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
+                    </svg>
+                    <span id="guideDetailVoiceQueryText" class="text-base font-semibold text-gray-800"></span>
+                </div>
                 <p id="guideDetailDescription" class="readable-on-image text-xl leading-relaxed notranslate" translate="no"></p>
             </div>
         </div>
@@ -102,10 +103,6 @@ const guideDetailPage = {
             justify-content: center;
             padding: 0 1rem;
             position: relative;
-        }
-        #guideDetailPage .info-box {
-            z-index: 31;
-            max-width: calc(100% - 80px);
         }
         #guideDetailPage .content-safe-area {
             flex: 1;
