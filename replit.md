@@ -74,6 +74,37 @@ Parses guide data from HTML (specifically from `<script id="app-data">`) to pres
 ### TTS Logic
 For Korean, specific voice names (Yuna, Sora, Heami) are hardcoded with a priority list. For other languages (English, Japanese, Chinese, French, German, Spanish), voice preferences are managed via a `voice_configs` table in PostgreSQL, allowing for platform-specific voice priorities. All TTS playback waits for Google Translate to complete, using a 3-second timeout fallback.
 
+## 🚨 profile.html 상세페이지 버그 (2025-12-12)
+
+### 현재 문제점 (8시간째 미해결)
+| # | 문제 | 원인 | 해결방향 |
+|---|------|------|----------|
+| 1 | 음성 우선순위 미적용 | DB 기반 voicePriority 로직 누락 | server/standard-template.ts 535-542줄 참조 |
+| 2 | 이미지/음성 모드 분기 안됨 | type 체크 로직 없음 | `data.type` 분기 처리 |
+| 3 | 저장 시 보관함에 게시 안됨 | IndexedDB archive 스토어 저장 오류 | 저장 로직 수정 |
+| 4 | **다음 콘텐츠 클릭 시 이전 것 재생** | open() 시 데이터 초기화 안됨 | 새 open() 전에 state 리셋 |
+| 5 | **이동 후 이전 음성 안 멈춤** | synth.cancel() 미호출 | open()/close() 시 강제 중지 |
+
+### TTS 음성 우선순위 (2025-12-07 확정)
+소스: `server/standard-template.ts` → voicePriority (535-542줄)
+
+| 언어 | 음성 우선순위 |
+|------|--------------|
+| ko-KR | Microsoft Heami → Yuna |
+| en-US | Samantha → Microsoft Zira → Google US English → English |
+| ja-JP | Kyoko → Microsoft Haruka → Google 日本語 → Japanese |
+| zh-CN | Ting-Ting → Microsoft Huihui → Google 普通话 → Chinese |
+| fr-FR | Thomas → Microsoft Hortense → Google français → French |
+| de-DE | Anna → Microsoft Hedda → Google Deutsch → German |
+| es-ES | Monica → Microsoft Helena → Google español → Spanish |
+
+### 해결 방향
+1. guideDetailPage.js 원본 그대로 복붙 (객체명만 변경)
+2. open() 시작 시: `synth.cancel()` + state 초기화 + 데이터 리셋
+3. close() 시: `synth.cancel()` + 이벤트 리스너 정리
+4. init() 중복 호출 방지: `isInitialized` 플래그
+5. _saveToLocal: IndexedDB archive 스토어 정확히 저장
+
 # External Dependencies
 
 ## Core Services
