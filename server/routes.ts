@@ -1625,7 +1625,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const { password } = req.body;
     
     // 비밀번호 확인 (프로덕션에서는 환경변수 사용 권장)
-    if (password === '1234') {
+    if (password === '0603') {
       req.session.adminAuthenticated = true;
       req.session.adminUserId = 'temp-user-id'; // 관리자 userId 저장
       res.json({ success: true, message: '관리자 인증 성공' });
@@ -2301,7 +2301,7 @@ self.addEventListener('fetch', (event) => {
   // 핵심 로직:
   //   1. /api/admin/stats - 전체 통계 요약 (사용자, 가이드, 공유, 조회수, DB 크기)
   //   2. /api/admin/analytics - 일별 분석 데이터 (최근 7일 추이)
-  //   3. 비밀번호 인증: POST /api/admin/auth (비밀번호: 1234)
+  //   3. 비밀번호 인증: POST /api/admin/auth (비밀번호: 0603)
   // 
   // 최적화 결과:
   //   - DB 크기: 184MB → 39MB (78% 감소)

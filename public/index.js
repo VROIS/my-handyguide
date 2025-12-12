@@ -4375,7 +4375,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 작업 시간: 2시간
     // 
     // 핵심 로직:
-    //   1. 비밀번호 인증 (1234)
+    //   1. 비밀번호 인증 (0603)
     //   2. promptSettingsSection 표시
     //   3. adminDashboardLink 표시 (인증 후에만!)
     //   4. Featured 갤러리 관리 기능 활성화
