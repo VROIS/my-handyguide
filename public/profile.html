@@ -1470,27 +1470,39 @@
                 }
             },
 
-            // IndexedDB에 아이템 추가 (index.js와 동일한 DB 사용)
+            // IndexedDB에 아이템 추가 (index.js addItem 함수 복붙)
             _addToIndexedDB: function(item) {
                 return new Promise((resolve, reject) => {
-                    // 🔧 2025-12-12: index.js와 동일한 DB 이름 사용
-                    const request = indexedDB.open('TravelGuideDB', 1);
+                    // 🔧 2025-12-12: index.js와 완전히 동일한 설정
+                    const DB_NAME = 'TravelGuideDB';
+                    const DB_VERSION = 2;
+                    const STORE_NAME = 'archive';
+                    
+                    const request = indexedDB.open(DB_NAME, DB_VERSION);
                     
                     request.onupgradeneeded = (e) => {
                         const db = e.target.result;
-                        if (!db.objectStoreNames.contains('archive')) {
-                            db.createObjectStore('archive', { keyPath: 'id', autoIncrement: true });
+                        if (!db.objectStoreNames.contains(STORE_NAME)) {
+                            db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                        }
+                        if (!db.objectStoreNames.contains('shareLinks')) {
+                            const shareStore = db.createObjectStore('shareLinks', { keyPath: 'id' });
+                            shareStore.createIndex('featured', 'featured', { unique: false });
                         }
                     };
                     
                     request.onsuccess = (e) => {
                         const db = e.target.result;
-                        const tx = db.transaction('archive', 'readwrite');
-                        const store = tx.objectStore('archive');
-                        const addRequest = store.add(item);
+                        // index.js addItem과 동일: 고유 ID 생성
+                        const uniqueId = item.id || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+                        const itemWithId = { ...item, id: uniqueId };
+                        
+                        const tx = db.transaction(STORE_NAME, 'readwrite');
+                        const store = tx.objectStore(STORE_NAME);
+                        const addRequest = store.add(itemWithId);
                         
                         addRequest.onsuccess = () => {
-                            console.log('[ProfileDetailPage] TravelGuideDB archive에 저장 완료, ID:', addRequest.result);
+                            console.log('[ProfileDetailPage] 보관함 저장 완료, ID:', addRequest.result);
                             resolve(addRequest.result);
                         };
                         addRequest.onerror = () => reject(addRequest.error);
