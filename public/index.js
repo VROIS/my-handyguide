@@ -3946,7 +3946,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // 푸시 알림 상태 초기화 (기본값: 활성화)
+    // 푸시 알림 상태 초기화 (2025-12-12 수정)
+    // - 브라우저 권한 1회 요청 후 localStorage 세션 유지
+    // - 로그인 사용자 자동 활성화
+    // - 권한은 로그인 인증과 무관
     async function initUserPushToggle() {
         if (!userPushToggle || !userPushStatusText) return;
         
@@ -3959,10 +3962,21 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 현재 푸시 알림 권한 상태 확인
         const permission = Notification.permission;
+        const permissionAsked = localStorage.getItem('pushPermissionAsked');
+        const userDenied = localStorage.getItem('pushUserDenied') === 'true';
+        
         if (permission === 'denied') {
             userPushToggle.checked = false;
             userPushToggle.disabled = true;
             userPushStatusText.textContent = '알림이 차단되어 있습니다 (브라우저 설정에서 허용 필요)';
+            localStorage.setItem('pushPermissionAsked', 'true');
+            return;
+        }
+        
+        // 사용자가 토글로 직접 거부한 경우
+        if (userDenied) {
+            userPushToggle.checked = false;
+            userPushStatusText.textContent = '알림이 꺼져 있습니다';
             return;
         }
         
@@ -3975,72 +3989,88 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 이미 구독중 - 토글 ON
                 userPushToggle.checked = true;
                 userPushStatusText.textContent = '알림이 켜져 있습니다';
-            } else {
-                // 구독 없음 - 자동으로 구독 시도 (기본값: 활성화)
+                localStorage.setItem('pushPermissionAsked', 'true');
+                localStorage.removeItem('pushUserDenied');
+            } else if (permission === 'granted') {
+                // 권한 있지만 구독 없음 - 로그인 시 자동 구독
                 const user = await checkUserAuth();
-                if (user && permission !== 'denied') {
-                    // 로그인 상태면 자동 구독 시도
+                if (user) {
+                    await autoSubscribePush(registration);
+                } else {
+                    userPushToggle.checked = false;
+                    userPushStatusText.textContent = '로그인하면 알림이 자동 활성화됩니다';
+                }
+            } else if (!permissionAsked) {
+                // 권한 요청 안 함 - 로그인 사용자에게만 1회 요청
+                const user = await checkUserAuth();
+                if (user) {
                     userPushToggle.checked = true;
                     userPushStatusText.textContent = '알림 설정 중...';
+                    localStorage.setItem('pushPermissionAsked', 'true');
                     
-                    // 권한 요청
                     const newPermission = await Notification.requestPermission();
                     if (newPermission === 'granted') {
-                        try {
-                            // VAPID 공개키
-                            const vapidPublicKey = 'BEuc2WPE8n32XPc_uDZ_Na-vSgVvx_P4uRsSFuTYi-oD1kobkIBKtSFbtnneebC3wt8OnknpizRM98NCLnuHa38';
-                            const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
-                            
-                            // 푸시 구독 생성
-                            const newSubscription = await registration.pushManager.subscribe({
-                                userVisibleOnly: true,
-                                applicationServerKey
-                            });
-                            
-                            // 서버에 구독 정보 전송
-                            const response = await fetch('/api/push/subscribe', {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json' },
-                                credentials: 'include',
-                                body: JSON.stringify({
-                                    endpoint: newSubscription.endpoint,
-                                    keys: {
-                                        p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(newSubscription.getKey('p256dh')))),
-                                        auth: btoa(String.fromCharCode.apply(null, new Uint8Array(newSubscription.getKey('auth'))))
-                                    },
-                                    userAgent: navigator.userAgent
-                                })
-                            });
-                            
-                            if (response.ok) {
-                                userPushStatusText.textContent = '알림이 켜져 있습니다';
-                            } else {
-                                throw new Error('서버 구독 등록 실패');
-                            }
-                        } catch (subError) {
-                            console.error('자동 푸시 구독 오류:', subError);
-                            userPushToggle.checked = false;
-                            userPushStatusText.textContent = '알림을 켜려면 토글을 누르세요';
-                        }
+                        await autoSubscribePush(registration);
                     } else if (newPermission === 'denied') {
                         userPushToggle.checked = false;
                         userPushToggle.disabled = true;
-                        userPushStatusText.textContent = '알림이 차단되어 있습니다 (브라우저 설정에서 허용 필요)';
+                        userPushStatusText.textContent = '알림이 차단되어 있습니다';
                     } else {
-                        // 사용자가 권한 요청을 무시함
                         userPushToggle.checked = false;
                         userPushStatusText.textContent = '알림을 켜려면 토글을 누르세요';
                     }
                 } else {
-                    // 로그인 안됨 - 토글 OFF
                     userPushToggle.checked = false;
                     userPushStatusText.textContent = '로그인 후 알림을 받을 수 있습니다';
                 }
+            } else {
+                // 권한 요청했지만 아직 granted 아님
+                userPushToggle.checked = false;
+                userPushStatusText.textContent = '알림을 켜려면 토글을 누르세요';
             }
         } catch (error) {
             console.error('푸시 상태 확인 오류:', error);
             userPushToggle.checked = false;
             userPushStatusText.textContent = '알림 상태를 확인할 수 없습니다';
+        }
+    }
+    
+    // 자동 푸시 구독 (로그인 사용자 전용)
+    async function autoSubscribePush(registration) {
+        try {
+            const vapidPublicKey = 'BEuc2WPE8n32XPc_uDZ_Na-vSgVvx_P4uRsSFuTYi-oD1kobkIBKtSFbtnneebC3wt8OnknpizRM98NCLnuHa38';
+            const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+            
+            const newSubscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey
+            });
+            
+            const response = await fetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    endpoint: newSubscription.endpoint,
+                    keys: {
+                        p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(newSubscription.getKey('p256dh')))),
+                        auth: btoa(String.fromCharCode.apply(null, new Uint8Array(newSubscription.getKey('auth'))))
+                    },
+                    userAgent: navigator.userAgent
+                })
+            });
+            
+            if (response.ok) {
+                userPushToggle.checked = true;
+                userPushStatusText.textContent = '알림이 켜져 있습니다';
+                localStorage.removeItem('pushUserDenied');
+            } else {
+                throw new Error('서버 구독 등록 실패');
+            }
+        } catch (error) {
+            console.error('자동 푸시 구독 오류:', error);
+            userPushToggle.checked = false;
+            userPushStatusText.textContent = '알림 설정에 실패했습니다';
         }
     }
     
@@ -4056,7 +4086,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return outputArray;
     }
     
-    // 푸시 알림 토글 핸들러
+    // 푸시 알림 토글 핸들러 (2025-12-12 수정)
+    // - 사용자 거부 선택 localStorage 저장
+    // - 로그인 필요 (서버 구독용)
     async function handleUserPushToggle() {
         if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
             showToast('이 브라우저는 푸시 알림을 지원하지 않습니다');
@@ -4069,18 +4101,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!user) {
             showToast('푸시 알림을 사용하려면 로그인이 필요합니다');
             userPushToggle.checked = false;
-            userPushStatusText.textContent = '로그인 필요';
+            userPushStatusText.textContent = '로그인 후 알림을 받을 수 있습니다';
             return;
         }
         
         if (userPushToggle.checked) {
-            // 알림 권한 요청
-            const permission = await Notification.requestPermission();
+            // 사용자 거부 상태 해제
+            localStorage.removeItem('pushUserDenied');
+            
+            // 알림 권한 확인 (이미 granted면 요청 안 함)
+            let permission = Notification.permission;
+            if (permission === 'default') {
+                localStorage.setItem('pushPermissionAsked', 'true');
+                permission = await Notification.requestPermission();
+            }
+            
             if (permission !== 'granted') {
                 userPushToggle.checked = false;
-                userPushStatusText.textContent = permission === 'denied' 
-                    ? '알림이 차단되어 있습니다 (브라우저 설정에서 허용 필요)' 
-                    : '알림 권한을 허용해주세요';
+                if (permission === 'denied') {
+                    userPushToggle.disabled = true;
+                    userPushStatusText.textContent = '알림이 차단되어 있습니다 (브라우저 설정에서 허용 필요)';
+                } else {
+                    userPushStatusText.textContent = '알림 권한을 허용해주세요';
+                }
                 showToast('알림 권한이 필요합니다');
                 return;
             }
@@ -4088,20 +4131,15 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 userPushStatusText.textContent = '알림 설정 중...';
                 
-                // 서비스 워커 등록 확인
                 const registration = await navigator.serviceWorker.ready;
-                
-                // VAPID 공개키 가져오기
                 const vapidPublicKey = 'BEuc2WPE8n32XPc_uDZ_Na-vSgVvx_P4uRsSFuTYi-oD1kobkIBKtSFbtnneebC3wt8OnknpizRM98NCLnuHa38';
                 const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
                 
-                // 푸시 구독 생성
                 const subscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey
                 });
                 
-                // 서버에 구독 정보 전송
                 const response = await fetch('/api/push/subscribe', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -4129,7 +4167,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('푸시 알림 설정에 실패했습니다');
             }
         } else {
-            // 푸시 구독 해제
+            // 푸시 구독 해제 + 사용자 거부 저장
+            localStorage.setItem('pushUserDenied', 'true');
+            
             try {
                 userPushStatusText.textContent = '알림 해제 중...';
                 
@@ -4137,7 +4177,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const subscription = await registration.pushManager.getSubscription();
                 
                 if (subscription) {
-                    // 서버에서 구독 해제
                     await fetch('/api/push/unsubscribe', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
@@ -4145,7 +4184,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         body: JSON.stringify({ endpoint: subscription.endpoint })
                     });
                     
-                    // 브라우저에서 구독 해제
                     await subscription.unsubscribe();
                 }
                 
