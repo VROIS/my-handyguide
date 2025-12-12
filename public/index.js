@@ -3946,10 +3946,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // 푸시 알림 상태 초기화 (2025-12-12 수정)
-    // - 브라우저 권한 1회 요청 후 localStorage 세션 유지
-    // - 로그인 사용자 자동 활성화
-    // - 권한은 로그인 인증과 무관
+    // 푸시 알림 상태 초기화 (2025-12-12 v2)
+    // - 기본값: ON (pushUserDenied 없으면 항상 ON)
+    // - 로그인 시 자동 구독 시도
+    // - 브라우저 권한 1회만 요청
     async function initUserPushToggle() {
         if (!userPushToggle || !userPushStatusText) return;
         
@@ -3960,77 +3960,63 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // 현재 푸시 알림 권한 상태 확인
         const permission = Notification.permission;
-        const permissionAsked = localStorage.getItem('pushPermissionAsked');
         const userDenied = localStorage.getItem('pushUserDenied') === 'true';
         
+        // 브라우저에서 차단한 경우
         if (permission === 'denied') {
             userPushToggle.checked = false;
             userPushToggle.disabled = true;
             userPushStatusText.textContent = '알림이 차단되어 있습니다 (브라우저 설정에서 허용 필요)';
-            localStorage.setItem('pushPermissionAsked', 'true');
             return;
         }
         
-        // 사용자가 토글로 직접 거부한 경우
+        // 사용자가 토글로 직접 OFF한 경우
         if (userDenied) {
             userPushToggle.checked = false;
             userPushStatusText.textContent = '알림이 꺼져 있습니다';
             return;
         }
         
-        // 서비스 워커 구독 상태 확인
+        // 기본값: ON (사용자가 OFF하지 않으면 항상 ON)
+        userPushToggle.checked = true;
+        
         try {
             const registration = await navigator.serviceWorker.ready;
             const subscription = await registration.pushManager.getSubscription();
             
             if (subscription) {
-                // 이미 구독중 - 토글 ON
-                userPushToggle.checked = true;
+                // 이미 구독중
                 userPushStatusText.textContent = '알림이 켜져 있습니다';
-                localStorage.setItem('pushPermissionAsked', 'true');
-                localStorage.removeItem('pushUserDenied');
-            } else if (permission === 'granted') {
-                // 권한 있지만 구독 없음 - 로그인 시 자동 구독
+            } else {
+                // 구독 안됨 - 로그인 상태면 자동 구독 시도
                 const user = await checkUserAuth();
                 if (user) {
-                    await autoSubscribePush(registration);
-                } else {
-                    userPushToggle.checked = false;
-                    userPushStatusText.textContent = '로그인하면 알림이 자동 활성화됩니다';
-                }
-            } else if (!permissionAsked) {
-                // 권한 요청 안 함 - 로그인 사용자에게만 1회 요청
-                const user = await checkUserAuth();
-                if (user) {
-                    userPushToggle.checked = true;
                     userPushStatusText.textContent = '알림 설정 중...';
-                    localStorage.setItem('pushPermissionAsked', 'true');
                     
-                    const newPermission = await Notification.requestPermission();
-                    if (newPermission === 'granted') {
+                    // 권한 없으면 1회 요청
+                    let currentPermission = permission;
+                    if (currentPermission === 'default') {
+                        currentPermission = await Notification.requestPermission();
+                    }
+                    
+                    if (currentPermission === 'granted') {
                         await autoSubscribePush(registration);
-                    } else if (newPermission === 'denied') {
+                    } else if (currentPermission === 'denied') {
                         userPushToggle.checked = false;
                         userPushToggle.disabled = true;
                         userPushStatusText.textContent = '알림이 차단되어 있습니다';
                     } else {
-                        userPushToggle.checked = false;
-                        userPushStatusText.textContent = '알림을 켜려면 토글을 누르세요';
+                        // 사용자가 권한 창에서 무시함
+                        userPushStatusText.textContent = '알림 권한을 허용하면 활성화됩니다';
                     }
                 } else {
-                    userPushToggle.checked = false;
-                    userPushStatusText.textContent = '로그인 후 알림을 받을 수 있습니다';
+                    // 비로그인 - 토글은 ON이지만 실제 구독은 로그인 필요
+                    userPushStatusText.textContent = '로그인하면 알림이 활성화됩니다';
                 }
-            } else {
-                // 권한 요청했지만 아직 granted 아님
-                userPushToggle.checked = false;
-                userPushStatusText.textContent = '알림을 켜려면 토글을 누르세요';
             }
         } catch (error) {
             console.error('푸시 상태 확인 오류:', error);
-            userPushToggle.checked = false;
             userPushStatusText.textContent = '알림 상태를 확인할 수 없습니다';
         }
     }
