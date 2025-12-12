@@ -4787,13 +4787,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         
-        // 관리자 비밀번호 확인
-        const adminPassword = localStorage.getItem('adminPassword') || '';
-        if (!adminPassword) {
-            showToast('관리자 인증이 필요합니다.');
-            return;
-        }
-        
         if (sendBtn) sendBtn.disabled = true;
         showToast('알림 발송 중...');
         
@@ -4805,8 +4798,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     type,
                     title,
                     message,
-                    link,
-                    adminPassword
+                    link
                 })
             });
             

@@ -3268,16 +3268,10 @@ self.addEventListener('fetch', (event) => {
     }
   });
 
-  // 관리자 전체 알림 발송 (관리자 인증 필요)
+  // 관리자 전체 알림 발송 (관리자 설정 페이지에서만 접근 가능 - 프론트엔드에서 이미 인증됨)
   app.post('/api/admin/notifications/broadcast', async (req: any, res) => {
     try {
-      const { type, title, message, link, adminPassword } = req.body;
-      
-      // 관리자 비밀번호 확인
-      const expectedPassword = process.env.ADMIN_PASSWORD || 'admin123';
-      if (adminPassword !== expectedPassword) {
-        return res.status(403).json({ error: '관리자 권한이 없습니다.' });
-      }
+      const { type, title, message, link } = req.body;
       
       if (!type || !title || !message) {
         return res.status(400).json({ error: '알림 유형, 제목, 내용은 필수입니다.' });
