@@ -905,6 +905,9 @@
         // ═══════════════════════════════════════════════════════════════
         
         const profileDetailPage = {
+            // 🔒 중복 초기화 방지
+            _isInitialized: false,
+            
             // 내부 상태
             _state: {
                 isTextVisible: true,
@@ -935,8 +938,15 @@
                 'es-ES': { default: ['Monica', 'Microsoft Helena', 'Google español', 'Spanish'] }
             },
 
-            // 초기화
+            // 초기화 (중복 호출 방지)
             init: function(options = {}) {
+                // 🔒 중복 초기화 방지
+                if (this._isInitialized) {
+                    console.log('[ProfileDetailPage] 이미 초기화됨, 스킵');
+                    return;
+                }
+                this._isInitialized = true;
+                
                 const self = this;
                 this._state.synth = window.speechSynthesis;
                 this._state.onClose = options.onClose || null;
@@ -1126,8 +1136,20 @@
 
             // 페이지 열기 (guideId로 API 호출)
             open: async function(guideId) {
+                // 🔒 2025-12-12: 강제 초기화 - 이전 음성/데이터 완전 정리
+                if (this._state.synth) {
+                    this._state.synth.cancel();
+                }
                 this._stopAudio();
+                
+                // 상태 초기화
                 this._state.currentGuideData = null;
+                this._state.savedVoiceLang = null;
+                this._state.savedVoiceName = null;
+                this._state.originalText = '';
+                this._state.currentUtterance = null;
+                
+                // 렌더 ID 증가 - 이전 콜백 무효화
                 this._state.renderId++;
                 const thisRenderId = this._state.renderId;
                 
@@ -1309,11 +1331,12 @@
                 const shortLang = fullLang.substring(0, 2);
                 
                 if (shortLang === 'ko') {
+                    // 🔊 2025-12-12: 정확한 한국어 우선순위 (Microsoft Heami → Yuna)
                     const koVoices = voices.filter(v => v.lang.startsWith('ko'));
-                    targetVoice = koVoices.find(v => v.name.includes('Yuna'))
-                               || koVoices.find(v => v.name.includes('Sora'))
-                               || koVoices.find(v => v.name.includes('Heami'))
+                    targetVoice = koVoices.find(v => v.name.includes('Heami'))
+                               || koVoices.find(v => v.name.includes('Yuna'))
                                || koVoices[0];
+                    console.log('[ProfileDetailPage TTS] 한국어 음성:', targetVoice?.name);
                 } else {
                     targetVoice = this._getVoiceForLanguage(shortLang === 'zh' ? 'zh-CN' : shortLang);
                 }
