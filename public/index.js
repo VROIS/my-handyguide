@@ -3946,30 +3946,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // 푸시 알림 상태 초기화 (2025-12-12 v3 심플버전)
+    // 푸시 알림 상태 초기화 (2025-12-12 v4 심플버전)
     // - 기본값: ON (pushUserDenied 없으면 항상 ON)
-    // - 사용자가 OFF 누르면 pushUserDenied 저장
-    // - 브라우저 권한 요청은 토글 클릭 시에만
+    // - 토글은 항상 활성화 (수동 조작 가능)
+    // - 브라우저 미지원/차단은 상태 텍스트로만 표시
     function initUserPushToggle() {
         if (!userPushToggle || !userPushStatusText) return;
         
-        // 브라우저 지원 여부 확인
-        if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-            userPushToggle.disabled = true;
-            userPushStatusText.textContent = '이 브라우저는 알림을 지원하지 않습니다';
-            return;
-        }
-        
-        const permission = Notification.permission;
         const userDenied = localStorage.getItem('pushUserDenied') === 'true';
-        
-        // 브라우저에서 차단한 경우
-        if (permission === 'denied') {
-            userPushToggle.checked = false;
-            userPushToggle.disabled = true;
-            userPushStatusText.textContent = '알림이 차단되어 있습니다 (브라우저 설정에서 허용 필요)';
-            return;
-        }
         
         // 사용자가 토글로 직접 OFF한 경우
         if (userDenied) {
@@ -4038,110 +4022,87 @@ document.addEventListener('DOMContentLoaded', () => {
     // - 사용자 거부 선택 localStorage 저장
     // - 로그인 필요 (서버 구독용)
     async function handleUserPushToggle() {
+        // 토글 ON/OFF 상태 먼저 저장 (수동 조작 항상 가능)
+        if (!userPushToggle.checked) {
+            // OFF로 변경
+            localStorage.setItem('pushUserDenied', 'true');
+            userPushStatusText.textContent = '알림이 꺼져 있습니다';
+            showToast('알림이 꺼졌습니다');
+            return;
+        }
+        
+        // ON으로 변경
+        localStorage.removeItem('pushUserDenied');
+        userPushStatusText.textContent = '알림이 켜져 있습니다';
+        
+        // 브라우저 미지원 시 토스트만 표시 (토글은 ON 유지)
         if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
-            showToast('이 브라우저는 푸시 알림을 지원하지 않습니다');
-            userPushToggle.checked = false;
+            showToast('이 브라우저는 푸시 알림을 지원하지 않습니다 (HTTPS 필요)');
             return;
         }
         
         // 로그인 여부 확인
         const user = await checkUserAuth();
         if (!user) {
-            showToast('푸시 알림을 사용하려면 로그인이 필요합니다');
-            userPushToggle.checked = false;
-            userPushStatusText.textContent = '로그인 후 알림을 받을 수 있습니다';
+            showToast('로그인하면 실제 푸시 알림을 받을 수 있습니다');
             return;
         }
         
-        if (userPushToggle.checked) {
-            // 사용자 거부 상태 해제
-            localStorage.removeItem('pushUserDenied');
-            
-            // 알림 권한 확인 (이미 granted면 요청 안 함)
-            let permission = Notification.permission;
-            if (permission === 'default') {
-                localStorage.setItem('pushPermissionAsked', 'true');
-                permission = await Notification.requestPermission();
+        // 알림 권한 확인 (이미 granted면 요청 안 함)
+        let permission = Notification.permission;
+        if (permission === 'default') {
+            localStorage.setItem('pushPermissionAsked', 'true');
+            permission = await Notification.requestPermission();
+        }
+        
+        if (permission !== 'granted') {
+            userPushToggle.checked = false;
+            if (permission === 'denied') {
+                userPushStatusText.textContent = '알림이 차단되어 있습니다 (브라우저 설정에서 허용 필요)';
+            } else {
+                userPushStatusText.textContent = '알림 권한을 허용해주세요';
             }
+            showToast('알림 권한이 필요합니다');
+            return;
+        }
+        
+        try {
+            userPushStatusText.textContent = '알림 설정 중...';
             
-            if (permission !== 'granted') {
-                userPushToggle.checked = false;
-                if (permission === 'denied') {
-                    userPushToggle.disabled = true;
-                    userPushStatusText.textContent = '알림이 차단되어 있습니다 (브라우저 설정에서 허용 필요)';
-                } else {
-                    userPushStatusText.textContent = '알림 권한을 허용해주세요';
-                }
-                showToast('알림 권한이 필요합니다');
-                return;
-            }
+            const registration = await navigator.serviceWorker.ready;
+            const vapidPublicKey = 'BEuc2WPE8n32XPc_uDZ_Na-vSgVvx_P4uRsSFuTYi-oD1kobkIBKtSFbtnneebC3wt8OnknpizRM98NCLnuHa38';
+            const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
             
-            try {
-                userPushStatusText.textContent = '알림 설정 중...';
-                
-                const registration = await navigator.serviceWorker.ready;
-                const vapidPublicKey = 'BEuc2WPE8n32XPc_uDZ_Na-vSgVvx_P4uRsSFuTYi-oD1kobkIBKtSFbtnneebC3wt8OnknpizRM98NCLnuHa38';
-                const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
-                
-                const subscription = await registration.pushManager.subscribe({
-                    userVisibleOnly: true,
-                    applicationServerKey
-                });
-                
-                const response = await fetch('/api/push/subscribe', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        endpoint: subscription.endpoint,
-                        keys: {
-                            p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh')))),
-                            auth: btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth'))))
-                        },
-                        userAgent: navigator.userAgent
-                    })
-                });
-                
-                if (response.ok) {
-                    userPushStatusText.textContent = '알림이 켜져 있습니다';
-                    showToast('푸시 알림이 활성화되었습니다');
-                } else {
-                    throw new Error('서버 구독 등록 실패');
-                }
-            } catch (error) {
-                console.error('푸시 구독 오류:', error);
-                userPushToggle.checked = false;
-                userPushStatusText.textContent = '알림 설정에 실패했습니다';
-                showToast('푸시 알림 설정에 실패했습니다');
-            }
-        } else {
-            // 푸시 구독 해제 + 사용자 거부 저장
-            localStorage.setItem('pushUserDenied', 'true');
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey
+            });
             
-            try {
-                userPushStatusText.textContent = '알림 해제 중...';
-                
-                const registration = await navigator.serviceWorker.ready;
-                const subscription = await registration.pushManager.getSubscription();
-                
-                if (subscription) {
-                    await fetch('/api/push/unsubscribe', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        credentials: 'include',
-                        body: JSON.stringify({ endpoint: subscription.endpoint })
-                    });
-                    
-                    await subscription.unsubscribe();
-                }
-                
-                userPushStatusText.textContent = '알림이 꺼져 있습니다';
-                showToast('푸시 알림이 비활성화되었습니다');
-            } catch (error) {
-                console.error('푸시 구독 해제 오류:', error);
-                userPushStatusText.textContent = '알림 해제에 실패했습니다';
-                showToast('알림 해제에 실패했습니다');
+            const response = await fetch('/api/push/subscribe', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    endpoint: subscription.endpoint,
+                    keys: {
+                        p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('p256dh')))),
+                        auth: btoa(String.fromCharCode.apply(null, new Uint8Array(subscription.getKey('auth'))))
+                    },
+                    userAgent: navigator.userAgent
+                })
+            });
+            
+            if (response.ok) {
+                userPushStatusText.textContent = '알림이 켜져 있습니다';
+                showToast('푸시 알림이 활성화되었습니다');
+            } else {
+                throw new Error('서버 구독 등록 실패');
             }
+        } catch (error) {
+            console.error('푸시 구독 오류:', error);
+            userPushToggle.checked = false;
+            userPushStatusText.textContent = '알림 설정에 실패했습니다';
+            showToast('푸시 알림 설정에 실패했습니다');
         }
     }
     
