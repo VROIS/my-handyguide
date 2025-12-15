@@ -1434,7 +1434,7 @@
                 this._els.textOverlay.style.opacity = this._state.isTextVisible ? '1' : '0';
             },
 
-            // 💾 로컬 보관함(IndexedDB)에 저장 (저장만, 페이지 이동 없음)
+            // 💾 로컬 보관함(IndexedDB)에 저장 + 서버 DB 동기화 (2025-12-15 수정)
             _saveToLocal: async function() {
                 const data = this._state.currentGuideData;
                 if (!data) {
@@ -1457,12 +1457,46 @@
                         timestamp: Date.now()
                     };
 
+                    // 1. IndexedDB 저장
                     const savedId = await this._addToIndexedDB(guideData);
                     console.log('[ProfileDetailPage] IndexedDB 저장 완료, ID:', savedId);
                     
+                    // 2. 서버 DB 동기화 (index.js handleSaveClick과 동일)
+                    try {
+                        const userLang = localStorage.getItem('appLanguage') || 'ko';
+                        const response = await fetch('/api/guides/batch', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'include',
+                            body: JSON.stringify({
+                                language: userLang,
+                                guides: [{
+                                    localId: savedId,
+                                    title: guideData.title,
+                                    description: guideData.description,
+                                    imageDataUrl: guideData.imageDataUrl,
+                                    latitude: data.latitude?.toString() || null,
+                                    longitude: data.longitude?.toString() || null,
+                                    locationName: guideData.locationName,
+                                    aiGeneratedContent: guideData.description,
+                                    voiceLang: guideData.voiceLang,
+                                    voiceName: guideData.voiceName
+                                }]
+                            })
+                        });
+                        
+                        if (response.ok) {
+                            const result = await response.json();
+                            console.log('[ProfileDetailPage] 서버 DB 동기화 완료:', result);
+                        } else {
+                            console.warn('[ProfileDetailPage] 서버 DB 동기화 실패 (인증 필요 또는 서버 오류)');
+                        }
+                    } catch (dbError) {
+                        console.error('[ProfileDetailPage] 서버 DB 동기화 오류 (IndexedDB는 저장됨):', dbError);
+                    }
+                    
                     showToast('보관함에 저장되었습니다');
                     
-                    // ✅ 저장만 하고 페이지 이동/닫기 없음
                     this._els.saveBtn.disabled = false;
                     this._els.saveBtn.style.opacity = '1';
                     
