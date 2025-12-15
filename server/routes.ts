@@ -1341,7 +1341,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: guide.id,
           imageDataUrl,
           description: guide.description || "",
-          voiceLang: 'ko-KR'
+          voiceLang: guide.voiceLang || 'ko-KR',
+          locationName: guide.locationName || null,
+          voiceQuery: guide.voiceQuery || null,
+          voiceName: guide.voiceName || null
         };
       });
 
@@ -2854,8 +2857,13 @@ self.addEventListener('fetch', (event) => {
       // V2 표준 템플릿 데이터 준비
       const user = await storage.getUser(userId);
       const guideItems = guides.map(guide => ({
+        id: guide.id,
         imageDataUrl: guide.imageUrl || '',
-        description: guide.description || ''
+        description: guide.description || '',
+        voiceLang: guide.voiceLang || 'ko-KR',
+        locationName: guide.locationName || null,
+        voiceQuery: guide.voiceQuery || null,
+        voiceName: guide.voiceName || null
       }));
 
       const templateData = {

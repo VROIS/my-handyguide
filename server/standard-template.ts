@@ -26,6 +26,9 @@ export interface GuideItem {
   imageDataUrl: string;
   description: string;
   voiceLang?: string; // TTS 언어 코드 (예: ko-KR, fr-FR)
+  locationName?: string; // 📍 GPS 위치 이름 (이미지 모드)
+  voiceQuery?: string; // 🎤 음성 질문/키워드 (음성 모드)
+  voiceName?: string; // 🔊 저장된 음성 이름
 }
 
 export function generateStandardShareHTML(data: StandardTemplateData): string {
@@ -63,7 +66,10 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
     guid: item.id || '',
     imageDataUrl: item.imageDataUrl || '',
     description: item.description || '',
-    voiceLang: item.voiceLang
+    voiceLang: item.voiceLang || 'ko-KR',
+    locationName: item.locationName || null,
+    voiceQuery: item.voiceQuery || null,
+    voiceName: item.voiceName || null
   })));
 
   // UTF-8 안전한 base64 인코딩
