@@ -271,24 +271,31 @@ app.get('/s/:id', async (req, res) => {
       return result;
     };
     
-    // 1. guideIds가 있으면 동적 생성 (최신 guides DB 데이터 반영)
+    // 1. guideIds가 있으면 동적 생성 시도 (단, htmlContent보다 데이터가 적으면 fallback)
     if (page.guideIds && page.guideIds.length > 0) {
-      log(`[SHARE] 🔄 Dynamic generation from guideIds (${page.guideIds.length} guides)`);
-      try {
-        const dynamicHtml = await storage.buildSharePageFromGuides(
-          page.guideIds,
-          {
-            title: page.name || '손안에 가이드',
-            sender: page.sender || '여행자',
-            location: page.location || '미지정',
-            date: page.createdAt?.toLocaleDateString('ko-KR') || new Date().toLocaleDateString('ko-KR'),
-            appOrigin: `${req.protocol}://${req.get('host')}`
-          }
-        );
-        return res.send(injectReferralAndUpdateButton(dynamicHtml));
-      } catch (dynamicError) {
-        log(`[SHARE] ⚠️ Dynamic generation failed, falling back to htmlContent: ${dynamicError}`);
-        // Fallback to htmlContent if dynamic generation fails
+      // htmlContent에 저장된 아이템 수 확인
+      const htmlItemCount = page.htmlContent ? (page.htmlContent.match(/data-id="/g) || []).length : 0;
+      
+      // guideIds 개수가 htmlContent 아이템 수의 50% 이상일 때만 동적 생성
+      if (page.guideIds.length >= htmlItemCount * 0.5 || htmlItemCount === 0) {
+        log(`[SHARE] 🔄 Dynamic generation from guideIds (${page.guideIds.length} guides, htmlContent has ${htmlItemCount})`);
+        try {
+          const dynamicHtml = await storage.buildSharePageFromGuides(
+            page.guideIds,
+            {
+              title: page.name || '손안에 가이드',
+              sender: page.sender || '여행자',
+              location: page.location || '미지정',
+              date: page.createdAt?.toLocaleDateString('ko-KR') || new Date().toLocaleDateString('ko-KR'),
+              appOrigin: `${req.protocol}://${req.get('host')}`
+            }
+          );
+          return res.send(injectReferralAndUpdateButton(dynamicHtml));
+        } catch (dynamicError) {
+          log(`[SHARE] ⚠️ Dynamic generation failed, falling back to htmlContent: ${dynamicError}`);
+        }
+      } else {
+        log(`[SHARE] ⚠️ guideIds (${page.guideIds.length}) < htmlContent items (${htmlItemCount}), using htmlContent`);
       }
     }
     
