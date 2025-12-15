@@ -271,13 +271,34 @@ app.get('/s/:id', async (req, res) => {
       return result;
     };
     
-    // 1. DB htmlContent 우선 (신규 데이터)
+    // 1. guideIds가 있으면 동적 생성 (최신 guides DB 데이터 반영)
+    if (page.guideIds && page.guideIds.length > 0) {
+      log(`[SHARE] 🔄 Dynamic generation from guideIds (${page.guideIds.length} guides)`);
+      try {
+        const dynamicHtml = await storage.buildSharePageFromGuides(
+          page.guideIds,
+          {
+            title: page.name || '손안에 가이드',
+            sender: page.sender || '여행자',
+            location: page.location || '미지정',
+            date: page.createdAt?.toLocaleDateString('ko-KR') || new Date().toLocaleDateString('ko-KR'),
+            appOrigin: `${req.protocol}://${req.get('host')}`
+          }
+        );
+        return res.send(injectReferralAndUpdateButton(dynamicHtml));
+      } catch (dynamicError) {
+        log(`[SHARE] ⚠️ Dynamic generation failed, falling back to htmlContent: ${dynamicError}`);
+        // Fallback to htmlContent if dynamic generation fails
+      }
+    }
+    
+    // 2. DB htmlContent fallback (구 데이터 또는 동적 생성 실패 시)
     if (page.htmlContent) {
       log(`[SHARE] ✅ Serving from DB (htmlContent)`);
       return res.send(injectReferralAndUpdateButton(page.htmlContent));
     }
     
-    // 2. htmlFilePath fallback (구 데이터 호환성)
+    // 3. htmlFilePath fallback (구 데이터 호환성)
     if (page.htmlFilePath) {
       const relativePath = page.htmlFilePath.replace(/^\//, '');
       const fullPath = path.join(process.cwd(), 'public', relativePath);
