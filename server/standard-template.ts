@@ -450,7 +450,7 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                         <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
                         <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
                     </svg>
-                    <span id="detail-voice-query-text" style="font-size: 1rem; font-weight: 600; color: #1f2937;"></span>
+                    <span id="detail-voice-query-text" style="font-size: 1rem; font-weight: 600; color: #1f2937; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;"></span>
                 </div>
                 <p id="detail-description" class="readable-on-image" style="font-size: 1.25rem; line-height: 1.75rem;"></p>
             </div>
@@ -661,24 +661,21 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                     locationInfo.classList.add('hidden');
                     locationInfo.style.display = 'none';
                     if (voiceQueryInfo && voiceQueryText) {
-                        voiceQueryText.textContent = itemData.voiceQuery || '';
+                        // 🎤 voiceQuery || title 폴백 (DB에 voiceQuery 없으면 title 사용)
+                        voiceQueryText.textContent = itemData.voiceQuery || itemData.title || '';
                         voiceQueryInfo.classList.remove('hidden');
                         voiceQueryInfo.style.display = 'flex';
                     }
-                    console.log('[Share] 음성 모드:', itemData.voiceQuery);
+                    console.log('[Share] 음성 모드:', itemData.voiceQuery || itemData.title);
                 } else {
-                    // 이미지 모드: locationInfo 표시, voiceQueryInfo 숨김
+                    // 이미지 모드: locationInfo 항상 표시 (없으면 '위치 정보 없음'), voiceQueryInfo 숨김
                     voiceQueryInfo.classList.add('hidden');
                     voiceQueryInfo.style.display = 'none';
-                    if (itemData.locationName) {
-                        locationName.textContent = itemData.locationName;
-                        locationInfo.classList.remove('hidden');
-                        locationInfo.style.display = 'flex';
-                    } else {
-                        locationInfo.classList.add('hidden');
-                        locationInfo.style.display = 'none';
-                    }
-                    console.log('[Share] 이미지 모드:', itemData.locationName);
+                    // 📍 locationName이 없어도 패널 표시 (위치 정보 없음)
+                    locationName.textContent = itemData.locationName || '위치 정보 없음';
+                    locationInfo.classList.remove('hidden');
+                    locationInfo.style.display = 'flex';
+                    console.log('[Share] 이미지 모드:', itemData.locationName || '(위치 정보 없음)');
                 }
                 
                 // 텍스트 설정
