@@ -280,7 +280,8 @@ app.get('/s/:id', async (req, res) => {
       result = result.replace(/<button[^>]*id\s*=\s*["']?closeWindowBtn["']?[^>]*>[\s\S]*?<\/button>/gi, '');
       
       // 리턴 버튼 삽입 (없으면) - </body> 앞에 추가
-      if (!result.includes('shareReturnBtn')) {
+      // ⚠️ detail-back 버튼이 있는 페이지(상세페이지)에는 추가하지 않음 (중복 방지)
+      if (!result.includes('shareReturnBtn') && !result.includes('detail-back')) {
         result = result.replace(/<\/body>/i, returnButtonHTML + '</body>');
       }
       
