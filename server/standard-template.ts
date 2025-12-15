@@ -887,7 +887,7 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
     <div class="ui-layer">
         <!-- 헤더 (리턴 버튼) -->
         <header class="header-safe-area">
-            <button id="detail-back" onclick="window.close()" class="interactive-btn" style="width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); color: #4285F4; box-shadow: 0 4px 12px rgba(0,0,0,0.3); position: fixed; top: 1rem; right: 1rem; z-index: 10001;" aria-label="닫기">
+            <button id="detail-back" onclick="history.back()" class="interactive-btn" style="width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(0,0,0,0.6); backdrop-filter: blur(12px); color: #4285F4; box-shadow: 0 4px 12px rgba(0,0,0,0.3); position: fixed; top: 1rem; right: 1rem; z-index: 10001;" aria-label="닫기">
                 <svg xmlns="http://www.w3.org/2000/svg" style="width: 1.5rem; height: 1.5rem;" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
                 </svg>
