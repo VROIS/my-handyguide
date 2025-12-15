@@ -2669,6 +2669,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // 🎤 음성 가이드: imageDataUrl 없어도 저장 가능 (voiceQuery로 대체)
         if (!currentContent.description) return;
         if (!currentContent.imageDataUrl && !currentContent.voiceQuery) return;
+        
+        // 🔊 2025-12-15: 음성 재생 중이면 먼저 정지
+        synth.cancel();
+        stopTTS();
+        
         saveBtn.disabled = true;
 
         try {
@@ -2688,10 +2693,11 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // 1. IndexedDB 저장 (voiceLang, voiceName 포함)
             const savedId = await addItem(currentContent);
-            showToast("보관함에 저장되었습니다.");
+            console.log('📦 IndexedDB 저장 완료, ID:', savedId);
             
-            // 2. guides DB 저장 (추가 - 백그라운드 저장)
-            // ✅ 핵심: 보관 시 즉시 guides DB에도 저장 (공유 시가 아님!)
+            // 2. guides DB 저장 (서버 동기화 완료까지 대기!)
+            // ✅ 2025-12-15: 서버 동기화 완료 후 토스트 + 버튼 활성화
+            let serverSyncSuccess = false;
             try {
                 console.log('📦 guides DB 저장 시작...');
                 const userLang = localStorage.getItem('appLanguage') || 'ko';
@@ -2700,12 +2706,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: {
                         'Content-Type': 'application/json'
                     },
+                    credentials: 'include',
                     body: JSON.stringify({
-                        language: userLang, // 사용자 선택 언어
+                        language: userLang,
                         guides: [
                             {
-                                localId: savedId, // IndexedDB ID
-                                // 🎤 음성 가이드: voiceQuery를 title로 사용
+                                localId: savedId,
                                 title: currentContent.voiceQuery || currentContent.title || '제목 없음',
                                 description: currentContent.description,
                                 imageDataUrl: currentContent.imageDataUrl,
@@ -2713,8 +2719,8 @@ document.addEventListener('DOMContentLoaded', () => {
                                 longitude: currentContent.longitude?.toString(),
                                 locationName: currentContent.locationName,
                                 aiGeneratedContent: currentContent.description,
-                                voiceLang: voiceInfo.voiceLang, // TTS 언어 코드
-                                voiceName: voiceInfo.voiceName  // TTS 음성 이름
+                                voiceLang: voiceInfo.voiceLang,
+                                voiceName: voiceInfo.voiceName
                             }
                         ]
                     })
@@ -2723,17 +2729,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     const result = await response.json();
                     console.log(`✅ guides DB 저장 완료: ${result.success}/${result.total}개`);
+                    serverSyncSuccess = true;
                 } else {
-                    // 인증 실패 등 (로그만 출력, 사용자에게는 알리지 않음)
                     console.warn('⚠️ guides DB 저장 실패 (인증 필요 또는 서버 오류)');
                 }
             } catch (dbError) {
-                // guides DB 저장 실패해도 IndexedDB는 저장됨 (중요!)
-                console.error('⚠️ guides DB 저장 오류 (IndexedDB는 저장됨):', dbError);
+                console.error('⚠️ guides DB 저장 오류:', dbError);
+            }
+            
+            // 3. 저장 완료 (서버 동기화 완료 후)
+            if (serverSyncSuccess) {
+                showToast("저장 완료! (로컬+서버)");
+            } else {
+                showToast("로컬 저장 완료 (서버 동기화 실패)");
             }
             
             // GPS 데이터 초기화
             window.currentGPS = null;
+            
+            // 버튼 활성화
+            saveBtn.disabled = false;
         } catch(e) {
             console.error("Failed to save to archive:", e);
             showToast("저장에 실패했습니다. 저장 공간이 부족할 수 있습니다.");
