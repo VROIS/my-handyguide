@@ -1436,6 +1436,9 @@
 
             // 💾 로컬 보관함(IndexedDB)에 저장 + 서버 DB 동기화 (2025-12-15 수정)
             _saveToLocal: async function() {
+                // 🔊 음성 재생 중이면 먼저 정지
+                this._stopAudio();
+                
                 const data = this._state.currentGuideData;
                 if (!data) {
                     console.warn('[ProfileDetailPage] 저장할 데이터 없음');
