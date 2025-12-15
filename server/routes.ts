@@ -420,6 +420,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
           }
           
+          // 🔧 이미 data URL 형태면 base64 부분만 추출
+          if (imageUrl.startsWith('data:image/')) {
+            const base64Match = imageUrl.match(/base64,(.+)$/);
+            if (base64Match) {
+              return base64Match[1];
+            }
+          }
+          
           if (imageUrl.startsWith('/uploads/') || !imageUrl.startsWith('http')) {
             const imagePath = path.join(process.cwd(), 'uploads', path.basename(imageUrl));
             if (fs.existsSync(imagePath)) {
@@ -444,7 +452,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: guide.aiGeneratedContent || guide.description || `${guide.title}에 대한 설명입니다.`,
           voiceLang: guide.voiceLang || 'ko-KR',
           locationName: guide.locationName || '',
-          voiceQuery: (guide as any).voiceQuery || '',  // DB 스키마에 없을 수 있음
+          voiceQuery: (guide as any).voiceQuery || guide.title || '',  // 🎤 voiceQuery 없으면 title 폴백
           voiceName: guide.voiceName || ''
         }))
       );
@@ -517,11 +525,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const imageToBase64 = async (imageUrl: string): Promise<string> => {
         try {
           if (!imageUrl) {
-            // Return a small placeholder image
             return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
           }
           
-          // If it's a local file path
+          // 🔧 이미 data URL 형태면 base64 부분만 추출
+          if (imageUrl.startsWith('data:image/')) {
+            const base64Match = imageUrl.match(/base64,(.+)$/);
+            if (base64Match) {
+              return base64Match[1];
+            }
+          }
+          
           if (imageUrl.startsWith('/uploads/') || !imageUrl.startsWith('http')) {
             const imagePath = path.join(process.cwd(), 'uploads', path.basename(imageUrl));
             if (fs.existsSync(imagePath)) {
@@ -530,7 +544,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
           
-          // For HTTP URLs, we'll use placeholder for now
           return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
         } catch (error) {
           console.error('이미지 변환 오류:', error);
@@ -547,7 +560,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: guide.aiGeneratedContent || guide.description || `${guide.title}에 대한 설명입니다.`,
           voiceLang: guide.voiceLang || 'ko-KR',
           locationName: guide.locationName || '',
-          voiceQuery: (guide as any).voiceQuery || '',  // DB 스키마에 없을 수 있음
+          voiceQuery: (guide as any).voiceQuery || guide.title || '',  // 🎤 voiceQuery 없으면 title 폴백
           voiceName: guide.voiceName || ''
         }))
       );
