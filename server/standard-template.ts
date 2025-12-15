@@ -52,12 +52,36 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
   // 갤러리 그리드 아이템 생성 (2열)
   // ✅ 2025-11-26: data-id는 인덱스 (클릭 핸들러용), data-guid는 UUID (parseGuidesFromHtml용)
   // ⚠️ CRITICAL: data-id는 반드시 숫자 인덱스여야 함! parseInt(data-id)로 appData 접근하기 때문
-  const galleryItemsHTML = guideItems.map((item, index) => `
+  // 🎤 2025-12-15: 음성 모드일 때 보관함 형식 적용 (마이크+키워드+워터마크)
+  const galleryItemsHTML = guideItems.map((item, index) => {
+    // 🎤 음성 모드 판별: 이미지 없거나 1x1 투명 PNG면 음성 모드
+    const hasImage = item.imageDataUrl && !item.imageDataUrl.includes('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAY');
+    const isVoiceGuide = !hasImage && (item.voiceQuery || item.title);
+    
+    if (isVoiceGuide) {
+      // 🎤 음성 모드: 보관함 형식 적용 (마이크 아이콘 + 키워드 + 워터마크)
+      return `
+            <div class="gallery-item" data-id="${index}" data-guid="${item.id || ''}">
+                <div class="voice-thumbnail">
+                    <img src="/images/landing-logo.jpg" alt="내손가이드 로고" class="voice-bg-logo">
+                    <div class="voice-content">
+                        <svg class="voice-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                        </svg>
+                        <span class="voice-keyword">${escapeHTML(item.voiceQuery || item.title || '음성 질문')}</span>
+                    </div>
+                </div>
+                <p>가이드 ${index + 1}</p>
+            </div>`;
+    } else {
+      // 이미지 모드: 기존 형식
+      return `
             <div class="gallery-item" data-id="${index}" data-guid="${item.id || ''}">
                 <img src="${item.imageDataUrl || ''}" alt="가이드 ${index + 1}" loading="lazy">
                 <p>가이드 ${index + 1}</p>
-            </div>
-        `).join('');
+            </div>`;
+    }
+  }).join('');
 
   // 데이터 JSON (이미지 + 설명 + 음성정보)
   // ✅ 2025-11-26: id는 인덱스 (클릭 핸들러용), guid는 UUID (parseGuidesFromHtml용)
@@ -354,6 +378,59 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             font-weight: 700;
             color: #333;
             font-size: 14px;
+        }
+        
+        /* 🎤 음성 가이드 썸네일 (보관함 형식) */
+        .voice-thumbnail {
+            width: 100%;
+            height: 150px;
+            background: #000;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .gallery-item:hover .voice-thumbnail {
+            transform: scale(1.05);
+            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+        }
+        .voice-bg-logo {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0.1;
+        }
+        .voice-content {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            text-align: center;
+        }
+        .voice-icon {
+            width: 32px;
+            height: 32px;
+            color: #4285F4;
+            margin-bottom: 8px;
+        }
+        .voice-keyword {
+            color: white;
+            font-size: 12px;
+            line-height: 1.3;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
         }
         
         /* 갤러리 하단 버튼 */
