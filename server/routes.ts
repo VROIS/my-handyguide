@@ -1342,9 +1342,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           imageDataUrl,
           description: guide.description || "",
           voiceLang: guide.voiceLang || 'ko-KR',
-          locationName: guide.locationName || null,
-          voiceQuery: guide.voiceQuery || null,
-          voiceName: guide.voiceName || null
+          locationName: guide.locationName || undefined,
+          voiceQuery: guide.title || undefined,
+          voiceName: guide.voiceName || undefined
         };
       });
 
@@ -2861,9 +2861,9 @@ self.addEventListener('fetch', (event) => {
         imageDataUrl: guide.imageUrl || '',
         description: guide.description || '',
         voiceLang: guide.voiceLang || 'ko-KR',
-        locationName: guide.locationName || null,
-        voiceQuery: guide.voiceQuery || null,
-        voiceName: guide.voiceName || null
+        locationName: guide.locationName || undefined,
+        voiceQuery: guide.title || undefined,
+        voiceName: guide.voiceName || undefined
       }));
 
       const templateData = {
