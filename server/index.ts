@@ -268,25 +268,20 @@ app.get('/s/:id', async (req, res) => {
             `href='$1$2?ref=${creatorReferralCode}'`);
       }
       
-      // 3. X 버튼 → 리턴 버튼 교체 (갤러리: window.close)
+      // 3. X 버튼 → 리턴 버튼 교체 (우측 상단 고정, 기존 X버튼 자리)
       const returnButtonHTML = `
-        <div style="position: sticky; top: 0; z-index: 100; height: 60px; display: flex; align-items: center; padding: 0 1rem; background: #4285F4;">
-            <button onclick="window.close()" style="width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(255, 255, 255, 0.95); color: #4285F4; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); transition: all 0.3s;" aria-label="창 닫기">
-                <svg xmlns="http://www.w3.org/2000/svg" style="width: 1.5rem; height: 1.5rem;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                </svg>
-            </button>
-        </div>`;
+        <button id="shareReturnBtn" onclick="window.close()" style="position: fixed; top: 1rem; right: 1rem; z-index: 10000; width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); color: #4285F4; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.2s ease;" aria-label="창 닫기">
+            <svg xmlns="http://www.w3.org/2000/svg" style="width: 1.5rem; height: 1.5rem;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+            </svg>
+        </button>`;
       
-      // X 버튼(closeWindowBtn) 제거 + 리턴 버튼 삽입
-      result = result.replace(/<button id="closeWindowBtn"[^>]*>[\s\S]*?<\/button>/g, '');
+      // X 버튼(closeWindowBtn) 제거 - 다양한 HTML 구조 대응
+      result = result.replace(/<button[^>]*id\s*=\s*["']?closeWindowBtn["']?[^>]*>[\s\S]*?<\/button>/gi, '');
       
-      // gallery-view 시작 직후에 리턴 버튼 삽입 (없으면)
-      if (!result.includes('onclick="window.close()"') || result.includes('closeWindowBtn')) {
-        result = result.replace(
-          /<div id="gallery-view"[^>]*>/g, 
-          '$&' + returnButtonHTML
-        );
+      // 리턴 버튼 삽입 (없으면) - </body> 앞에 추가
+      if (!result.includes('shareReturnBtn')) {
+        result = result.replace(/<\/body>/i, returnButtonHTML + '</body>');
       }
       
       // 4. TTS 음성 최적화 스크립트 주입 (guideDetailPage.js 로직 복사)
