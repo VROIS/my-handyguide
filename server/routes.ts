@@ -435,13 +435,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
 
-      // Convert guides to template format with real data
+      // Convert guides to template format with real data (2025-12-15 표준화 완료)
       const guideItems = await Promise.all(
         guides.map(async (guide) => ({
           id: guide.id,
           imageDataUrl: `data:image/jpeg;base64,${await imageToBase64(guide.imageUrl || '')}`,
           description: guide.aiGeneratedContent || guide.description || `${guide.title}에 대한 설명입니다.`,
-          voiceLang: 'ko-KR'
+          voiceLang: guide.voiceLang || 'ko-KR',
+          locationName: guide.locationName || '',
+          voiceQuery: guide.voiceQuery || '',
+          voiceName: guide.voiceName || ''
         }))
       );
 
@@ -534,13 +537,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
       
-      // Convert guides to template format with real data
+      // Convert guides to template format with real data (2025-12-15 표준화 완료)
       const guideItems = await Promise.all(
         actualGuides.map(async (guide) => ({
           id: guide.id,
           imageDataUrl: `data:image/jpeg;base64,${await imageToBase64(guide.imageUrl || '')}`,
           description: guide.aiGeneratedContent || guide.description || `${guide.title}에 대한 설명입니다.`,
-          voiceLang: 'ko-KR'
+          voiceLang: guide.voiceLang || 'ko-KR',
+          locationName: guide.locationName || '',
+          voiceQuery: guide.voiceQuery || '',
+          voiceName: guide.voiceName || ''
         }))
       );
 
