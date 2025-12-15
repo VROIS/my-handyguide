@@ -54,13 +54,10 @@ if (includeAudio) {
         window.stopAudio();
         currentUtterance = new SpeechSynthesisUtterance(text);
         
-        // ⭐ 2025-12-08: 한국어 하드코딩 (Yuna/Sora 우선순위)
+        // ⭐ 2025-12-15: 한국어 하드코딩 (MS Heami 1순위)
         const koVoices = voices.filter(v => v.lang.startsWith('ko'));
-        const targetVoice = koVoices.find(v => v.name.includes('Yuna'))
-                         || koVoices.find(v => v.name.includes('Sora'))
-                         || koVoices.find(v => v.name.includes('유나'))
-                         || koVoices.find(v => v.name.includes('소라'))
-                         || koVoices.find(v => v.name.includes('Heami'))
+        const targetVoice = koVoices.find(v => v.name.includes('Heami'))
+                         || koVoices.find(v => v.name.includes('Yuna'))
                          || koVoices[0];
         if (targetVoice) currentUtterance.voice = targetVoice;
         currentUtterance.lang = 'ko-KR';
