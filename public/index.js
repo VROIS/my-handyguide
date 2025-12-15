@@ -2691,58 +2691,61 @@ document.addEventListener('DOMContentLoaded', () => {
             currentContent.voiceName = voiceInfo.voiceName;
             console.log('🎤 음성 정보 저장:', voiceInfo);
             
-            // 1. IndexedDB 저장 (voiceLang, voiceName 포함)
-            const savedId = await addItem(currentContent);
-            console.log('📦 IndexedDB 저장 완료, ID:', savedId);
+            // ✅ 2025-12-15: 서버 먼저 저장 → 성공 시에만 로컬 저장 (DB 일관성 보장)
+            // 1. 서버 DB 먼저 저장
+            console.log('📦 guides DB 저장 시작...');
+            const userLang = localStorage.getItem('appLanguage') || 'ko';
+            const tempLocalId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             
-            // 2. guides DB 저장 (서버 동기화 완료까지 대기!)
-            // ✅ 2025-12-15: 서버 동기화 완료 후 토스트 + 버튼 활성화
-            let serverSyncSuccess = false;
-            try {
-                console.log('📦 guides DB 저장 시작...');
-                const userLang = localStorage.getItem('appLanguage') || 'ko';
-                const response = await fetch('/api/guides/batch', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    credentials: 'include',
-                    body: JSON.stringify({
-                        language: userLang,
-                        guides: [
-                            {
-                                localId: savedId,
-                                title: currentContent.voiceQuery || currentContent.title || '제목 없음',
-                                description: currentContent.description,
-                                imageDataUrl: currentContent.imageDataUrl,
-                                latitude: currentContent.latitude?.toString(),
-                                longitude: currentContent.longitude?.toString(),
-                                locationName: currentContent.locationName,
-                                aiGeneratedContent: currentContent.description,
-                                voiceLang: voiceInfo.voiceLang,
-                                voiceName: voiceInfo.voiceName
-                            }
-                        ]
-                    })
-                });
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    console.log(`✅ guides DB 저장 완료: ${result.success}/${result.total}개`);
-                    serverSyncSuccess = true;
-                } else {
-                    console.warn('⚠️ guides DB 저장 실패 (인증 필요 또는 서버 오류)');
-                }
-            } catch (dbError) {
-                console.error('⚠️ guides DB 저장 오류:', dbError);
+            const response = await fetch('/api/guides/batch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'include',
+                body: JSON.stringify({
+                    language: userLang,
+                    guides: [
+                        {
+                            localId: tempLocalId,
+                            title: currentContent.voiceQuery || currentContent.title || '제목 없음',
+                            description: currentContent.description,
+                            imageDataUrl: currentContent.imageDataUrl,
+                            latitude: currentContent.latitude?.toString(),
+                            longitude: currentContent.longitude?.toString(),
+                            locationName: currentContent.locationName,
+                            aiGeneratedContent: currentContent.description,
+                            voiceLang: voiceInfo.voiceLang,
+                            voiceName: voiceInfo.voiceName
+                        }
+                    ]
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('서버 저장 실패');
             }
             
-            // 3. 저장 완료 (서버 동기화 완료 후)
-            if (serverSyncSuccess) {
-                showToast("저장 완료! (로컬+서버)");
-            } else {
-                showToast("로컬 저장 완료 (서버 동기화 실패)");
+            const result = await response.json();
+            const serverId = result.guideIds?.[0];
+            
+            if (!serverId) {
+                throw new Error('서버 ID를 받지 못했습니다');
             }
+            
+            console.log(`✅ guides DB 저장 완료: serverId=${serverId}`);
+            
+            // 2. 서버 저장 성공 후 IndexedDB 저장 (serverId 포함!)
+            const itemToSave = {
+                ...currentContent,
+                id: tempLocalId,
+                serverId: serverId // ✅ 서버 UUID 저장 (공유 시 사용)
+            };
+            await addItem(itemToSave);
+            console.log('📦 IndexedDB 저장 완료 (serverId 포함):', serverId);
+            
+            // 3. 저장 완료
+            showToast("저장 완료!");
             
             // GPS 데이터 초기화
             window.currentGPS = null;
@@ -2751,7 +2754,7 @@ document.addEventListener('DOMContentLoaded', () => {
             saveBtn.disabled = false;
         } catch(e) {
             console.error("Failed to save to archive:", e);
-            showToast("저장에 실패했습니다. 저장 공간이 부족할 수 있습니다.");
+            showToast("저장에 실패했습니다. 네트워크 연결을 확인해주세요.");
             saveBtn.disabled = false;
         }
     }
