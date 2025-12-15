@@ -2672,7 +2672,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // 🔊 2025-12-15: 음성 재생 중이면 먼저 정지
         synth.cancel();
-        stopTTS();
+        resetSpeechState();
         
         saveBtn.disabled = true;
 
