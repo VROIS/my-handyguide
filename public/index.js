@@ -3072,22 +3072,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (currentShareItems[0]?.locationName) {
                 locationName = currentShareItems[0].locationName;
             }
-            
-            // 📄 HTML 콘텐츠 생성 (완전한 독립 HTML 문서)
-            const appOrigin = window.location.origin;
-            const userLang = localStorage.getItem('appLanguage') || 'ko';
-            const htmlContent = generateShareHTML(
-                linkName,
-                senderName,
-                locationName,
-                today,
-                currentShareItems, // 선택된 가이드들
-                appOrigin,
-                false, // isFeatured
-                userLang // language
-            );
 
-            // 📦 서버로 보낼 데이터 준비
+            // 📦 서버로 보낼 데이터 준비 (HTML은 서버에서 생성)
             // ✅ 2025-12-15: serverId 사용 (DB 일관성 보장)
             const guideIds = currentShareItems
                 .map(item => item.serverId || item.id) // serverId 우선, 없으면 id 사용
@@ -3099,9 +3085,10 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const requestData = {
                 name: linkName,
-                htmlContent: htmlContent,
                 guideIds: guideIds,
                 thumbnail: currentShareItems[0]?.imageDataUrl || null,
+                sender: senderName,
+                location: locationName,
                 featured: false
             };
 
@@ -3201,34 +3188,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 링크 이름 자동 생성
             const linkName = `내 여행 가이드 ${new Date().toLocaleDateString('ko-KR')}`;
-            
-            // HTML 콘텐츠 생성
-            const appOrigin = window.location.origin;
-            const userLang = localStorage.getItem('appLanguage') || 'ko';
-            const htmlContent = generateShareHTML(
-                linkName,
-                '여행자',
-                '파리, 프랑스',
-                today,
-                selectedItems,
-                appOrigin,
-                false, // isFeatured
-                userLang // language
-            );
 
-            // 서버로 보낼 데이터 준비
+            // 서버로 보낼 데이터 준비 (HTML은 서버에서 생성)
             // ✅ 2025-12-15: serverId 사용 (DB 일관성 보장)
             const guideIds = selectedItems
                 .map(item => item.serverId || item.id) // serverId 우선
                 .filter(id => id);
             
+            // 위치 정보 가져오기 (첫 번째 가이드에서)
+            const locationName = selectedItems[0]?.locationName || '파리, 프랑스';
+            
             const requestData = {
                 name: linkName,
-                htmlContent: htmlContent,
                 guideIds: guideIds,
                 thumbnail: selectedItems[0]?.imageDataUrl || null,
                 sender: '여행자',
-                location: '파리, 프랑스',
+                location: locationName,
                 featured: false
             };
 
