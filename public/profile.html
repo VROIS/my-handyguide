@@ -1457,7 +1457,8 @@
                         voiceLang: data.voiceLang || this._state.savedVoiceLang || 'ko-KR',
                         voiceName: data.voiceName || this._state.savedVoiceName || '',
                         title: data.title || data.voiceQuery || '제목 없음',
-                        timestamp: Date.now()
+                        timestamp: Date.now(),
+                        serverId: data.id || null
                     };
 
                     // 1. IndexedDB 저장
