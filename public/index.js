@@ -3088,10 +3088,19 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
             // 📦 서버로 보낼 데이터 준비
+            // ✅ 2025-12-15: serverId 사용 (DB 일관성 보장)
+            const guideIds = currentShareItems
+                .map(item => item.serverId || item.id) // serverId 우선, 없으면 id 사용
+                .filter(id => id); // null/undefined 제거
+            
+            if (guideIds.length !== currentShareItems.length) {
+                console.warn(`⚠️ 일부 아이템에 serverId 없음: ${currentShareItems.length - guideIds.length}개 누락`);
+            }
+            
             const requestData = {
                 name: linkName,
                 htmlContent: htmlContent,
-                guideIds: currentShareItems.map(item => item.id),
+                guideIds: guideIds,
                 thumbnail: currentShareItems[0]?.imageDataUrl || null,
                 featured: false
             };
@@ -3208,10 +3217,15 @@ document.addEventListener('DOMContentLoaded', () => {
             );
 
             // 서버로 보낼 데이터 준비
+            // ✅ 2025-12-15: serverId 사용 (DB 일관성 보장)
+            const guideIds = selectedItems
+                .map(item => item.serverId || item.id) // serverId 우선
+                .filter(id => id);
+            
             const requestData = {
                 name: linkName,
                 htmlContent: htmlContent,
-                guideIds: selectedItems.map(item => item.id),
+                guideIds: guideIds,
                 thumbnail: selectedItems[0]?.imageDataUrl || null,
                 sender: '여행자',
                 location: '파리, 프랑스',
