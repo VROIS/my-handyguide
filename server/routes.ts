@@ -16,7 +16,7 @@ import path from "path";
 import fs from "fs";
 import crypto from "crypto";
 import { generateShareHtml } from "./html-template";
-import { generateSingleGuideHTML } from "./standard-template";
+import { generateSingleGuideHTML, generateStandardShareHTML } from "./standard-template";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import profileRoutes from "./profileRoutes";
 import { notificationService } from "./notificationService";
@@ -436,25 +436,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
 
       // Convert guides to template format with real data
-      const guidesWithBase64 = await Promise.all(
+      const guideItems = await Promise.all(
         guides.map(async (guide) => ({
           id: guide.id,
-          title: guide.title,
+          imageDataUrl: `data:image/jpeg;base64,${await imageToBase64(guide.imageUrl || '')}`,
           description: guide.aiGeneratedContent || guide.description || `${guide.title}에 대한 설명입니다.`,
-          imageBase64: await imageToBase64(guide.imageUrl || ''),
-          location: shareLink.includeLocation ? (guide.locationName || undefined) : undefined,
-          locationName: shareLink.includeLocation ? (guide.locationName || undefined) : undefined // 🗺️ GPS 위치 (2025-10-26)
+          voiceLang: 'ko-KR'
         }))
       );
 
-      // Generate HTML using standard template (476 lines, Gemini Blue)
-      const htmlContent = generateShareHtml({
+      // Generate HTML using standard template (2025-12-15 표준화)
+      const htmlContent = generateStandardShareHTML({
         title: shareLink.name,
-        items: guidesWithBase64,
-        createdAt: shareLink.createdAt?.toISOString() || new Date().toISOString(),
-        location: (shareLink.includeLocation || false) && guidesWithBase64[0]?.location ? guidesWithBase64[0].location : undefined,
-        sender: undefined,
-        includeAudio: shareLink.includeAudio || false
+        sender: '여행자',
+        location: (shareLink.includeLocation || false) && guides[0]?.locationName ? guides[0].locationName : '여행지',
+        date: new Date(shareLink.createdAt || new Date()).toLocaleDateString('ko-KR'),
+        guideItems,
+        appOrigin: 'https://My-handyguide1.replit.app',
+        isFeatured: false,
+        creatorReferralCode: ''
       });
 
       // 디버그: 생성된 HTML 일부 출력
@@ -535,25 +535,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       // Convert guides to template format with real data
-      const guidesWithBase64 = await Promise.all(
+      const guideItems = await Promise.all(
         actualGuides.map(async (guide) => ({
           id: guide.id,
-          title: guide.title,
+          imageDataUrl: `data:image/jpeg;base64,${await imageToBase64(guide.imageUrl || '')}`,
           description: guide.aiGeneratedContent || guide.description || `${guide.title}에 대한 설명입니다.`,
-          imageBase64: await imageToBase64(guide.imageUrl || ''),
-          location: includeLocation ? (guide.locationName || undefined) : undefined,
-          locationName: includeLocation ? (guide.locationName || undefined) : undefined // 🗺️ GPS 위치 (2025-10-26)
+          voiceLang: 'ko-KR'
         }))
       );
 
-      // Generate HTML using standard template (476 lines, Gemini Blue)
-      const htmlContent = generateShareHtml({
+      // Generate HTML using standard template (2025-12-15 표준화)
+      const htmlContent = generateStandardShareHTML({
         title: name || "공유된 가이드북",
-        items: guidesWithBase64,
-        createdAt: new Date().toISOString(),
-        location: includeLocation && guidesWithBase64[0]?.location ? guidesWithBase64[0].location : undefined,
-        sender: undefined,
-        includeAudio: includeAudio || false
+        sender: '여행자',
+        location: includeLocation && actualGuides[0]?.locationName ? actualGuides[0].locationName : '여행지',
+        date: new Date().toLocaleDateString('ko-KR'),
+        guideItems,
+        appOrigin: 'https://My-handyguide1.replit.app',
+        isFeatured: false,
+        creatorReferralCode: ''
       });
 
       // Generate safe filename for download
@@ -564,7 +564,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ 
         htmlContent: htmlContent,
         fileName: fileName,
-        itemCount: guidesWithBase64.length
+        itemCount: guideItems.length
       });
       
     } catch (error) {
@@ -1314,22 +1314,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         guides.push(guide);
       }
 
-      // HTML 데이터 준비
-      const shareItems = guides.map(guide => {
-        let imageBase64 = "";
+      // HTML 데이터 준비 (2025-12-15 표준화)
+      const guideItems = guides.map(guide => {
+        let imageDataUrl = "";
         
         // imageUrl에서 Base64 데이터 읽기
         if (guide.imageUrl) {
           try {
             if (guide.imageUrl.startsWith('data:image/')) {
-              // 이미 Base64 형태인 경우
-              imageBase64 = guide.imageUrl.replace(/^data:image\/[a-z]+;base64,/, '');
+              // 이미 data URL 형태인 경우
+              imageDataUrl = guide.imageUrl;
             } else {
               // 파일 경로인 경우 파일을 읽어서 Base64로 변환
               const imagePath = path.join(process.cwd(), guide.imageUrl);
               if (fs.existsSync(imagePath)) {
                 const imageBuffer = fs.readFileSync(imagePath);
-                imageBase64 = imageBuffer.toString('base64');
+                imageDataUrl = `data:image/jpeg;base64,${imageBuffer.toString('base64')}`;
               }
             }
           } catch (error) {
@@ -1339,27 +1339,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         return {
           id: guide.id,
-          title: guide.title || "제목 없음",
+          imageDataUrl,
           description: guide.description || "",
-          imageBase64,
-          location: includeLocation ? (guide.locationName || undefined) : undefined,
-          locationName: includeLocation ? (guide.locationName || undefined) : undefined // 🗺️ GPS 위치 (2025-10-26)
+          voiceLang: 'ko-KR'
         };
       });
 
-      const sharePageData = {
+      // HTML 생성 (2025-12-15 표준화)
+      const htmlContent = generateStandardShareHTML({
         title: name,
-        items: shareItems,
-        createdAt: new Date().toISOString(),
-        location: includeLocation ? (guides[0]?.locationName || undefined) : undefined,
-        includeAudio: includeAudio || false,
-        isFeatured: false
-      };
-
-      // HTML 생성 (표준 템플릿: 476줄, Gemini Blue)
-      const htmlContent = generateShareHtml({
-        ...sharePageData,
-        sender: undefined
+        sender: '여행자',
+        location: includeLocation ? (guides[0]?.locationName || '여행지') : '여행지',
+        date: new Date().toLocaleDateString('ko-KR'),
+        guideItems,
+        appOrigin: 'https://My-handyguide1.replit.app',
+        isFeatured: false,
+        creatorReferralCode: ''
       });
       
       // ═══════════════════════════════════════════════════════════════
@@ -1377,7 +1372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         htmlContent: htmlContent, // ✅ DB에 HTML 직접 저장 (파일 시스템 X)
         htmlFilePath: null, // ✅ 파일 경로는 null (사용 안 함)
         guideIds: guideIds,
-        thumbnail: shareItems[0]?.imageBase64 ? `data:image/jpeg;base64,${shareItems[0].imageBase64}` : null,
+        thumbnail: guideItems[0]?.imageDataUrl || null,
         location: includeLocation ? (guides[0]?.locationName || null) : null,
         date: new Date().toISOString().split('T')[0], // YYYY-MM-DD
         featured: false,
@@ -1393,8 +1388,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         success: true,
         shareUrl,
         shareId: sharePage.id,
-        itemCount: shareItems.length,
-        createdAt: sharePageData.createdAt
+        itemCount: guideItems.length,
+        createdAt: new Date().toISOString()
       });
 
     } catch (error) {
