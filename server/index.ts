@@ -268,38 +268,129 @@ app.get('/s/:id', async (req, res) => {
             `href='$1$2?ref=${creatorReferralCode}'`);
       }
       
+      // 3. X 버튼 → 리턴 버튼 교체 (갤러리: window.close)
+      const returnButtonHTML = `
+        <div style="position: sticky; top: 0; z-index: 100; height: 60px; display: flex; align-items: center; padding: 0 1rem; background: #4285F4;">
+            <button onclick="window.close()" style="width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(255, 255, 255, 0.95); color: #4285F4; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); transition: all 0.3s;" aria-label="창 닫기">
+                <svg xmlns="http://www.w3.org/2000/svg" style="width: 1.5rem; height: 1.5rem;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                </svg>
+            </button>
+        </div>`;
+      
+      // X 버튼(closeWindowBtn) 제거 + 리턴 버튼 삽입
+      result = result.replace(/<button id="closeWindowBtn"[^>]*>[\s\S]*?<\/button>/g, '');
+      
+      // gallery-view 시작 직후에 리턴 버튼 삽입 (없으면)
+      if (!result.includes('onclick="window.close()"') || result.includes('closeWindowBtn')) {
+        result = result.replace(
+          /<div id="gallery-view"[^>]*>/g, 
+          '$&' + returnButtonHTML
+        );
+      }
+      
+      // 4. TTS 음성 최적화 스크립트 주입 (guideDetailPage.js 로직 복사)
+      const ttsVoiceOptimizationScript = `
+    <!-- 🔊 2025.12.15: TTS 음성 최적화 (앱과 동일한 voicePriority 로직) -->
+    <script>
+        (function() {
+            // 플랫폼 감지
+            function detectPlatform() {
+                var ua = navigator.userAgent;
+                if (/iPhone|iPad|iPod/.test(ua)) return 'ios';
+                if (/Mac/.test(ua) && 'ontouchend' in document) return 'ios';
+                if (/Android/.test(ua)) return 'android';
+                if (/Mac/.test(ua)) return 'macos';
+                if (/Windows/.test(ua)) return 'windows';
+                return 'default';
+            }
+            
+            // DB 기반 음성 우선순위 (앱과 동일)
+            var defaultVoicePriorities = {
+                'ko-KR': {
+                    'ios': ['Yuna', 'Sora'],
+                    'macos': ['Yuna', 'Sora'],
+                    'windows': ['Heami', 'Microsoft Heami', 'SunHi'],
+                    'android': ['Korean', 'ko-KR'],
+                    'default': ['Heami', 'Yuna', 'Sora', 'Korean']
+                },
+                'en-US': {
+                    'ios': ['Samantha', 'Karen'],
+                    'macos': ['Samantha', 'Karen'],
+                    'windows': ['Zira', 'Microsoft Zira', 'David'],
+                    'android': ['English', 'en-US'],
+                    'default': ['Samantha', 'Zira', 'Google US English', 'English']
+                },
+                'ja-JP': {
+                    'ios': ['Kyoko', 'Otoya'],
+                    'macos': ['Kyoko', 'Otoya'],
+                    'windows': ['Haruka', 'Microsoft Haruka'],
+                    'android': ['Japanese', 'ja-JP'],
+                    'default': ['Kyoko', 'Haruka', 'Google 日本語', 'Japanese']
+                },
+                'zh-CN': {
+                    'ios': ['Ting-Ting', 'Meijia'],
+                    'macos': ['Ting-Ting', 'Meijia'],
+                    'windows': ['Huihui', 'Microsoft Huihui'],
+                    'android': ['Chinese', 'zh-CN'],
+                    'default': ['Ting-Ting', 'Huihui', 'Google 普通话', 'Chinese']
+                },
+                'fr-FR': {
+                    'ios': ['Thomas', 'Amelie'],
+                    'macos': ['Thomas', 'Amelie'],
+                    'windows': ['Hortense', 'Microsoft Hortense'],
+                    'android': ['French', 'fr-FR'],
+                    'default': ['Thomas', 'Hortense', 'Google français', 'French']
+                },
+                'de-DE': {
+                    'ios': ['Anna', 'Markus'],
+                    'macos': ['Anna', 'Markus'],
+                    'windows': ['Hedda', 'Microsoft Hedda'],
+                    'android': ['German', 'de-DE'],
+                    'default': ['Anna', 'Hedda', 'Google Deutsch', 'German']
+                },
+                'es-ES': {
+                    'ios': ['Monica', 'Jorge'],
+                    'macos': ['Monica', 'Jorge'],
+                    'windows': ['Helena', 'Microsoft Helena'],
+                    'android': ['Spanish', 'es-ES'],
+                    'default': ['Monica', 'Helena', 'Google español', 'Spanish']
+                }
+            };
+            
+            // 언어별 최적 음성 찾기
+            window.getOptimalVoice = function(langCode, voices) {
+                var platform = detectPlatform();
+                var priorities = defaultVoicePriorities[langCode];
+                if (!priorities) priorities = defaultVoicePriorities['ko-KR'];
+                
+                var platformPriorities = priorities[platform] || priorities['default'];
+                
+                for (var i = 0; i < platformPriorities.length; i++) {
+                    var voiceName = platformPriorities[i];
+                    var found = voices.find(function(v) { return v.name.includes(voiceName); });
+                    if (found) return found;
+                }
+                
+                // 언어 코드로 fallback
+                var langPrefix = langCode.substring(0, 2);
+                var fallback = voices.find(function(v) { return v.lang.replace('_', '-').startsWith(langPrefix); });
+                return fallback || voices[0];
+            };
+            
+            console.log('🔊 TTS 음성 최적화 로드 완료, 플랫폼:', detectPlatform());
+        })();
+    </script>`;
+      
+      // </head> 앞에 TTS 최적화 스크립트 삽입 (없으면)
+      if (!result.includes('getOptimalVoice')) {
+        result = result.replace(/<\/head>/i, ttsVoiceOptimizationScript + '</head>');
+      }
+      
       return result;
     };
     
-    // 1. guideIds가 있으면 동적 생성 시도 (단, htmlContent보다 데이터가 적으면 fallback)
-    if (page.guideIds && page.guideIds.length > 0) {
-      // htmlContent에 저장된 아이템 수 확인
-      const htmlItemCount = page.htmlContent ? (page.htmlContent.match(/data-id="/g) || []).length : 0;
-      
-      // guideIds 개수가 htmlContent 아이템 수의 50% 이상일 때만 동적 생성
-      if (page.guideIds.length >= htmlItemCount * 0.5 || htmlItemCount === 0) {
-        log(`[SHARE] 🔄 Dynamic generation from guideIds (${page.guideIds.length} guides, htmlContent has ${htmlItemCount})`);
-        try {
-          const dynamicHtml = await storage.buildSharePageFromGuides(
-            page.guideIds,
-            {
-              title: page.name || '손안에 가이드',
-              sender: page.sender || '여행자',
-              location: page.location || '미지정',
-              date: page.createdAt?.toLocaleDateString('ko-KR') || new Date().toLocaleDateString('ko-KR'),
-              appOrigin: `${req.protocol}://${req.get('host')}`
-            }
-          );
-          return res.send(injectReferralAndUpdateButton(dynamicHtml));
-        } catch (dynamicError) {
-          log(`[SHARE] ⚠️ Dynamic generation failed, falling back to htmlContent: ${dynamicError}`);
-        }
-      } else {
-        log(`[SHARE] ⚠️ guideIds (${page.guideIds.length}) < htmlContent items (${htmlItemCount}), using htmlContent`);
-      }
-    }
-    
-    // 2. DB htmlContent fallback (구 데이터 또는 동적 생성 실패 시)
+    // 1. DB htmlContent 우선 (런타임 변환 적용)
     if (page.htmlContent) {
       log(`[SHARE] ✅ Serving from DB (htmlContent)`);
       return res.send(injectReferralAndUpdateButton(page.htmlContent));
