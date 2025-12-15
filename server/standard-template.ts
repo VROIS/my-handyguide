@@ -23,6 +23,7 @@ export interface StandardTemplateData {
 
 export interface GuideItem {
   id?: string; // Guide UUID (optional, fallback to index)
+  title?: string; // 🎤 음성키워드 폴백용 (voiceQuery 없으면 title 사용)
   imageDataUrl: string;
   description: string;
   voiceLang?: string; // TTS 언어 코드 (예: ko-KR, fr-FR)
@@ -64,6 +65,7 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
   const dataJSON = JSON.stringify(guideItems.map((item, index) => ({
     id: index,
     guid: item.id || '',
+    title: item.title || '',  // 🎤 음성키워드 폴백용
     imageDataUrl: item.imageDataUrl || '',
     description: item.description || '',
     voiceLang: item.voiceLang || 'ko-KR',
