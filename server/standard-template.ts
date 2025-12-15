@@ -968,25 +968,20 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
                 targetVoice = allVoices.find(v => v.name === savedVoiceName);
             }
             
-            // 없으면 언어 코드로 찾기
+            // 없으면 언어별 로직
             if (!targetVoice) {
-                const voicePriority = {
-                    'ko-KR': ['Microsoft Heami', 'Yuna'],
-                    'en-US': ['Samantha', 'Microsoft Zira', 'Google US English'],
-                    'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語'],
-                    'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话'],
-                    'fr-FR': ['Thomas', 'Microsoft Hortense', 'Google français'],
-                    'de-DE': ['Anna', 'Microsoft Hedda', 'Google Deutsch'],
-                    'es-ES': ['Monica', 'Microsoft Helena', 'Google español']
-                };
-                
-                const priorities = voicePriority[voiceLang] || [];
-                for (const voiceName of priorities) {
-                    targetVoice = allVoices.find(v => v.name.includes(voiceName));
-                    if (targetVoice) break;
-                }
-                
-                if (!targetVoice) {
+                // ⭐ 한국어 하드코딩 (Yuna → Sora → 유나 → 소라 → Heami)
+                if (voiceLang === 'ko-KR' || voiceLang.startsWith('ko')) {
+                    const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
+                    targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                               || koVoices.find(v => v.name.includes('Sora'))
+                               || koVoices.find(v => v.name.includes('유나'))
+                               || koVoices.find(v => v.name.includes('소라'))
+                               || koVoices.find(v => v.name.includes('Heami'))
+                               || koVoices[0];
+                    console.log('[Single TTS] 한국어 음성:', targetVoice?.name || 'default');
+                } else {
+                    // 다른 언어: 언어 코드로 찾기
                     targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(voiceLang.substring(0, 2)));
                 }
             }
