@@ -38,9 +38,9 @@ const SharePageTranslation = {
         'es-ES': ['Monica', 'Microsoft Helena', 'Google español', 'Spanish']
     },
     
-    // ⭐ 2025-12-15: 한국어 하드코딩 (MS Heami 1순위)
+    // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
     getKoreanVoicePriority: function() {
-        return ['Heami', 'Yuna'];
+        return ['Yuna', 'Sora', '유나', '소라', 'Heami'];
     },
 
     // 인라인 스크립트 반환 (standard-template.ts에서 사용)

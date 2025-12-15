@@ -1331,10 +1331,14 @@
                 const shortLang = fullLang.substring(0, 2);
                 
                 if (shortLang === 'ko') {
-                    // 🔊 2025-12-12: 정확한 한국어 우선순위 (Microsoft Heami → Yuna)
+                    // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
                     const koVoices = voices.filter(v => v.lang.startsWith('ko'));
-                    targetVoice = koVoices.find(v => v.name.includes('Heami'))
-                               || koVoices.find(v => v.name.includes('Yuna'))
+                    // Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
+                    targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                               || koVoices.find(v => v.name.includes('Sora'))
+                               || koVoices.find(v => v.name.includes('유나'))
+                               || koVoices.find(v => v.name.includes('소라'))
+                               || koVoices.find(v => v.name.includes('Heami'))
                                || koVoices[0];
                     console.log('[ProfileDetailPage TTS] 한국어 음성:', targetVoice?.name);
                 } else {

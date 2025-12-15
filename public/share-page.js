@@ -234,17 +234,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // === 보관함에서 그대로 복사한 TTS 시스템 ===
 
-// ⭐ 2025-12-15: 한국어 하드코딩 (MS Heami 1순위)
+// ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
 function getOptimalKoreanVoice() {
     const allVoices = synth.getVoices();
     const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
     
-    // Heami → Yuna → 첫 번째 한국어 음성
-    const targetVoice = koVoices.find(v => v.name.includes('Heami'))
-                     || koVoices.find(v => v.name.includes('Yuna'))
+    // Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
+    const targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                     || koVoices.find(v => v.name.includes('Sora'))
+                     || koVoices.find(v => v.name.includes('유나'))
+                     || koVoices.find(v => v.name.includes('소라'))
+                     || koVoices.find(v => v.name.includes('Heami'))
                      || koVoices[0];
     
-    console.log('🎤 [한국어 하드코딩] 음성:', targetVoice?.name || 'default', '(전체 한국어 음성:', koVoices.length + '개)');
+    console.log('🎤 [한국어] 음성:', targetVoice?.name || 'default', '(전체 한국어 음성:', koVoices.length + '개)');
     return targetVoice;
 }
 

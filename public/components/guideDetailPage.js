@@ -658,13 +658,16 @@ const guideDetailPage = {
         const shortLang = fullLang.substring(0, 2);
         
         if (shortLang === 'ko') {
-            // ⭐ 2025-12-15: 한국어 MS Heami 1순위 하드코딩
+            // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
             const koVoices = voices.filter(v => v.lang.startsWith('ko'));
-            // Microsoft Heami 1순위 → Yuna fallback
-            targetVoice = koVoices.find(v => v.name.includes('Heami'))
-                       || koVoices.find(v => v.name.includes('Yuna'))
+            // Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
+            targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                       || koVoices.find(v => v.name.includes('Sora'))
+                       || koVoices.find(v => v.name.includes('유나'))
+                       || koVoices.find(v => v.name.includes('소라'))
+                       || koVoices.find(v => v.name.includes('Heami'))
                        || koVoices[0];
-            console.log('[TTS] 한국어 MS Heami 음성:', targetVoice?.name);
+            console.log('[TTS] 한국어 음성:', targetVoice?.name);
         } else {
             // 다른 언어: 현재 앱 언어에 맞는 음성 사용 (savedVoiceName 무시)
             targetVoice = this._getVoiceForLanguage(shortLang === 'zh' ? 'zh-CN' : shortLang);

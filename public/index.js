@@ -1249,18 +1249,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const userLang = localStorage.getItem('appLanguage') || 'ko';
             const langCode = langCodeMap[userLang] || 'ko-KR';
             
-            // ⭐ 2025-12-15: 한국어 MS Heami 1순위 하드코딩
+            // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
             if (userLang === 'ko') {
                 const allVoices = synth.getVoices();
                 const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
-                // Microsoft Heami 1순위 → Yuna fallback
-                const targetVoice = koVoices.find(v => v.name.includes('Heami'))
-                                 || koVoices.find(v => v.name.includes('Yuna'))
+                // Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
+                const targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                                 || koVoices.find(v => v.name.includes('Sora'))
+                                 || koVoices.find(v => v.name.includes('유나'))
+                                 || koVoices.find(v => v.name.includes('소라'))
+                                 || koVoices.find(v => v.name.includes('Heami'))
                                  || koVoices[0];
                 currentUtterance.voice = targetVoice;
                 currentUtterance.lang = 'ko-KR';
                 currentUtterance.rate = 1.0;
-                console.log('🎤 [한국어 MS Heami] 음성:', targetVoice?.name || 'default');
+                console.log('🎤 [한국어] 음성:', targetVoice?.name || 'default');
             } else {
                 // 다른 6개 언어는 기존 DB 기반 유지
                 const targetVoice = getVoiceForLanguage(userLang, synth.getVoices());
@@ -3679,17 +3682,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('[TTS] 저장된 음성 사용:', targetVoice.name);
             }
         } else {
-            // ⭐ 2025-12-15: 한국어 MS Heami 1순위 하드코딩
+            // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
             const allVoices = synth.getVoices();
             let targetVoice = null;
             
             if (langCode === 'ko-KR') {
                 const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
-                // Microsoft Heami 1순위 → Yuna fallback
-                targetVoice = koVoices.find(v => v.name.includes('Heami'))
-                           || koVoices.find(v => v.name.includes('Yuna'))
+                // Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
+                targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                           || koVoices.find(v => v.name.includes('Sora'))
+                           || koVoices.find(v => v.name.includes('유나'))
+                           || koVoices.find(v => v.name.includes('소라'))
+                           || koVoices.find(v => v.name.includes('Heami'))
                            || koVoices[0];
-                console.log('🎤 [한국어 MS Heami] 음성:', targetVoice?.name || 'default');
+                console.log('🎤 [한국어] 음성:', targetVoice?.name || 'default');
             } else {
                 // 다른 6개 언어는 DB 기반 유지
                 const voiceConfig = getVoicePriorityFromDB(langCode);
