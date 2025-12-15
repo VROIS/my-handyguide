@@ -756,13 +756,14 @@ export interface SingleGuidePageData {
   imageUrl: string;
   description: string;
   locationName?: string;
+  voiceQuery?: string;  // 🎤 음성 키워드 (2025-12-15 추가)
   voiceLang?: string;
   voiceName?: string;
   createdAt?: string;
 }
 
 export function generateSingleGuideHTML(data: SingleGuidePageData): string {
-  const { id, imageUrl, description, locationName, voiceLang, voiceName, createdAt } = data;
+  const { id, imageUrl, description, locationName, voiceQuery, voiceLang, voiceName, createdAt } = data;
   
   const escapeHTML = (str: string) => {
     if (!str) return '';
@@ -909,6 +910,15 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
                         <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
                     </svg>
                     <span>${escapeHTML(locationName)}</span>
+                </div>
+                ` : ''}
+                ${voiceQuery ? `
+                <div class="voice-query-info" style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(8px); border-radius: 0.5rem; padding: 0.75rem 1rem; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);">
+                    <svg xmlns="http://www.w3.org/2000/svg" style="width: 1.25rem; height: 1.25rem; color: #4285F4; flex-shrink: 0;" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
+                        <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
+                    </svg>
+                    <span style="font-size: 1rem; font-weight: 600; color: #1f2937;">${escapeHTML(voiceQuery)}</span>
                 </div>
                 ` : ''}
                 <p id="detail-description" class="readable-on-image" style="font-size: 1.25rem; line-height: 1.75rem;">${escapeHTML(description)}</p>

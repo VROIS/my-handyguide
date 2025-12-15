@@ -443,7 +443,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: guide.aiGeneratedContent || guide.description || `${guide.title}에 대한 설명입니다.`,
           voiceLang: guide.voiceLang || 'ko-KR',
           locationName: guide.locationName || '',
-          voiceQuery: guide.voiceQuery || '',
+          voiceQuery: (guide as any).voiceQuery || '',  // DB 스키마에 없을 수 있음
           voiceName: guide.voiceName || ''
         }))
       );
@@ -545,7 +545,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: guide.aiGeneratedContent || guide.description || `${guide.title}에 대한 설명입니다.`,
           voiceLang: guide.voiceLang || 'ko-KR',
           locationName: guide.locationName || '',
-          voiceQuery: guide.voiceQuery || '',
+          voiceQuery: (guide as any).voiceQuery || '',  // DB 스키마에 없을 수 있음
           voiceName: guide.voiceName || ''
         }))
       );
