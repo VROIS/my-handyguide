@@ -284,96 +284,44 @@ app.get('/s/:id', async (req, res) => {
         result = result.replace(/<\/body>/i, returnButtonHTML + '</body>');
       }
       
-      // 4. TTS 음성 최적화 스크립트 주입 (guideDetailPage.js 로직 복사)
+      // 4. TTS 음성 최적화 스크립트 주입 (한국어 하드코딩 + 다른언어 저장된 voiceName)
       const ttsVoiceOptimizationScript = `
-    <!-- 🔊 2025.12.15: TTS 음성 최적화 (앱과 동일한 voicePriority 로직) -->
+    <!-- 🔊 2025.12.15: TTS 음성 최적화 (한국어 하드코딩: Yuna→Sora→유나→소라→Heami) -->
     <script>
         (function() {
-            // 플랫폼 감지
-            function detectPlatform() {
-                var ua = navigator.userAgent;
-                if (/iPhone|iPad|iPod/.test(ua)) return 'ios';
-                if (/Mac/.test(ua) && 'ontouchend' in document) return 'ios';
-                if (/Android/.test(ua)) return 'android';
-                if (/Mac/.test(ua)) return 'macos';
-                if (/Windows/.test(ua)) return 'windows';
-                return 'default';
-            }
-            
-            // DB 기반 음성 우선순위 (앱과 동일)
-            var defaultVoicePriorities = {
-                'ko-KR': {
-                    'ios': ['Yuna', 'Sora'],
-                    'macos': ['Yuna', 'Sora'],
-                    'windows': ['Heami', 'Microsoft Heami', 'SunHi'],
-                    'android': ['Korean', 'ko-KR'],
-                    'default': ['Heami', 'Yuna', 'Sora', 'Korean']
-                },
-                'en-US': {
-                    'ios': ['Samantha', 'Karen'],
-                    'macos': ['Samantha', 'Karen'],
-                    'windows': ['Zira', 'Microsoft Zira', 'David'],
-                    'android': ['English', 'en-US'],
-                    'default': ['Samantha', 'Zira', 'Google US English', 'English']
-                },
-                'ja-JP': {
-                    'ios': ['Kyoko', 'Otoya'],
-                    'macos': ['Kyoko', 'Otoya'],
-                    'windows': ['Haruka', 'Microsoft Haruka'],
-                    'android': ['Japanese', 'ja-JP'],
-                    'default': ['Kyoko', 'Haruka', 'Google 日本語', 'Japanese']
-                },
-                'zh-CN': {
-                    'ios': ['Ting-Ting', 'Meijia'],
-                    'macos': ['Ting-Ting', 'Meijia'],
-                    'windows': ['Huihui', 'Microsoft Huihui'],
-                    'android': ['Chinese', 'zh-CN'],
-                    'default': ['Ting-Ting', 'Huihui', 'Google 普通话', 'Chinese']
-                },
-                'fr-FR': {
-                    'ios': ['Thomas', 'Amelie'],
-                    'macos': ['Thomas', 'Amelie'],
-                    'windows': ['Hortense', 'Microsoft Hortense'],
-                    'android': ['French', 'fr-FR'],
-                    'default': ['Thomas', 'Hortense', 'Google français', 'French']
-                },
-                'de-DE': {
-                    'ios': ['Anna', 'Markus'],
-                    'macos': ['Anna', 'Markus'],
-                    'windows': ['Hedda', 'Microsoft Hedda'],
-                    'android': ['German', 'de-DE'],
-                    'default': ['Anna', 'Hedda', 'Google Deutsch', 'German']
-                },
-                'es-ES': {
-                    'ios': ['Monica', 'Jorge'],
-                    'macos': ['Monica', 'Jorge'],
-                    'windows': ['Helena', 'Microsoft Helena'],
-                    'android': ['Spanish', 'es-ES'],
-                    'default': ['Monica', 'Helena', 'Google español', 'Spanish']
-                }
-            };
-            
             // 언어별 최적 음성 찾기
-            window.getOptimalVoice = function(langCode, voices) {
-                var platform = detectPlatform();
-                var priorities = defaultVoicePriorities[langCode];
-                if (!priorities) priorities = defaultVoicePriorities['ko-KR'];
+            window.getOptimalVoice = function(langCode, voices, savedVoiceName) {
+                var allVoices = voices || speechSynthesis.getVoices();
+                var targetVoice = null;
                 
-                var platformPriorities = priorities[platform] || priorities['default'];
-                
-                for (var i = 0; i < platformPriorities.length; i++) {
-                    var voiceName = platformPriorities[i];
-                    var found = voices.find(function(v) { return v.name.includes(voiceName); });
-                    if (found) return found;
+                // ⭐ 한국어 하드코딩 (Yuna → Sora → 유나 → 소라 → Heami)
+                if (langCode === 'ko-KR' || (langCode && langCode.startsWith('ko'))) {
+                    var koVoices = allVoices.filter(function(v) { return v.lang.startsWith('ko'); });
+                    targetVoice = koVoices.find(function(v) { return v.name.includes('Yuna'); })
+                               || koVoices.find(function(v) { return v.name.includes('Sora'); })
+                               || koVoices.find(function(v) { return v.name.includes('유나'); })
+                               || koVoices.find(function(v) { return v.name.includes('소라'); })
+                               || koVoices.find(function(v) { return v.name.includes('Heami'); })
+                               || koVoices[0];
+                    console.log('[Runtime TTS] 한국어 음성:', targetVoice ? targetVoice.name : 'default');
+                } else {
+                    // 다른 언어: 저장된 voiceName 사용
+                    if (savedVoiceName) {
+                        targetVoice = allVoices.find(function(v) { return v.name.includes(savedVoiceName); });
+                        console.log('[Runtime TTS] 저장된 음성:', savedVoiceName, '→', targetVoice ? targetVoice.name : 'not found');
+                    }
+                    
+                    // 저장된 음성 없으면 언어 코드로 찾기
+                    if (!targetVoice && langCode) {
+                        var langPrefix = langCode.substring(0, 2);
+                        targetVoice = allVoices.find(function(v) { return v.lang.replace('_', '-').startsWith(langPrefix); });
+                    }
                 }
                 
-                // 언어 코드로 fallback
-                var langPrefix = langCode.substring(0, 2);
-                var fallback = voices.find(function(v) { return v.lang.replace('_', '-').startsWith(langPrefix); });
-                return fallback || voices[0];
+                return targetVoice || allVoices[0];
             };
             
-            console.log('🔊 TTS 음성 최적화 로드 완료, 플랫폼:', detectPlatform());
+            console.log('🔊 TTS 음성 최적화 로드 완료 (한국어 하드코딩)');
         })();
     </script>`;
       
