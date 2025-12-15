@@ -439,6 +439,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const guideItems = await Promise.all(
         guides.map(async (guide) => ({
           id: guide.id,
+          title: guide.title || '',  // 🎤 음성키워드 폴백용
           imageDataUrl: `data:image/jpeg;base64,${await imageToBase64(guide.imageUrl || '')}`,
           description: guide.aiGeneratedContent || guide.description || `${guide.title}에 대한 설명입니다.`,
           voiceLang: guide.voiceLang || 'ko-KR',
@@ -541,6 +542,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const guideItems = await Promise.all(
         actualGuides.map(async (guide) => ({
           id: guide.id,
+          title: guide.title || '',  // 🎤 음성키워드 폴백용
           imageDataUrl: `data:image/jpeg;base64,${await imageToBase64(guide.imageUrl || '')}`,
           description: guide.aiGeneratedContent || guide.description || `${guide.title}에 대한 설명입니다.`,
           voiceLang: guide.voiceLang || 'ko-KR',
@@ -1345,6 +1347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         return {
           id: guide.id,
+          title: guide.title || '',  // 🎤 음성키워드 폴백용
           imageDataUrl,
           description: guide.description || "",
           voiceLang: guide.voiceLang || 'ko-KR',
@@ -2864,6 +2867,7 @@ self.addEventListener('fetch', (event) => {
       const user = await storage.getUser(userId);
       const guideItems = guides.map(guide => ({
         id: guide.id,
+        title: guide.title || '',  // 🎤 음성키워드 폴백용
         imageDataUrl: guide.imageUrl || '',
         description: guide.description || '',
         voiceLang: guide.voiceLang || 'ko-KR',
