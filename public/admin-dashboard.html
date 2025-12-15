@@ -62,13 +62,127 @@
         }
         .text-gemini-blue { color: var(--gemini-blue); }
         .hidden { display: none !important; }
+        
+        /* ⚠️ 상세페이지 컴포넌트 스타일 (profile.html 복붙 - 2025-12-15) */
+        #adminDetailPage {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9998;
+            display: flex;
+            flex-direction: column;
+        }
+        #adminDetailPage .full-screen-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+            z-index: 1;
+        }
+        #adminDetailPage .header-safe-area {
+            position: relative;
+            width: 100%;
+            height: 60px;
+            flex-shrink: 0;
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 1rem;
+        }
+        #adminDetailPage .info-fixed-area {
+            position: relative;
+            width: 100%;
+            flex-shrink: 0;
+            z-index: 25;
+            padding: 0 1rem 0.5rem 1rem;
+        }
+        #adminDetailPage .content-safe-area {
+            position: relative;
+            flex: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            background: transparent;
+            z-index: 20;
+        }
+        #adminDetailPage .text-content {
+            padding: 1.5rem;
+            line-height: 1.8;
+            word-break: keep-all;
+            overflow-wrap: break-word;
+        }
+        #adminDetailPage .readable-on-image {
+            color: white;
+        }
+        #adminDetailPage .footer-safe-area {
+            position: relative;
+            width: 100%;
+            height: 100px;
+            flex-shrink: 0;
+            z-index: 30;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1.5rem;
+            padding: 0 1rem;
+            background: transparent;
+        }
+        #adminDetailPage .interactive-btn {
+            transition: transform 0.1s ease, background-color 0.2s ease;
+        }
+        #adminDetailPage .interactive-btn:active {
+            transform: scale(0.95);
+        }
     </style>
-    <!-- ⚠️ 2025-12-04: 상세페이지 표준 컴포넌트 import -->
-    <script src="/components/guideDetailPage.js"></script>
 </head>
 <body class="min-h-screen">
-    <!-- 상세페이지 컴포넌트: 동적 삽입 (guideDetailPage.getHTML()) -->
-    <div id="guideDetailPageContainer"></div>
+    <!-- ⚠️ 상세페이지 컴포넌트 HTML (profile.html 복붙 - 2025-12-15) -->
+    <div id="adminDetailPage" class="hidden">
+        <img id="adminDetailImage" src="" alt="상세페이지 이미지" class="full-screen-bg">
+        <header class="header-safe-area">
+            <button id="adminDetailBackBtn" class="w-12 h-12 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl absolute top-1/2 right-4 -translate-y-1/2" style="z-index: 10001; pointer-events: auto;" aria-label="닫기">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </header>
+        <div class="info-fixed-area">
+            <div id="adminDetailLocationInfo" class="hidden flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gemini-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+                </svg>
+                <span id="adminDetailLocationName" class="text-base font-semibold text-gray-800"></span>
+            </div>
+            <div id="adminDetailVoiceQueryInfo" class="hidden flex items-center gap-2 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-2 shadow-md mt-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gemini-blue flex-shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8.25 4.5a3.75 3.75 0 117.5 0v8.25a3.75 3.75 0 11-7.5 0V4.5z" />
+                    <path d="M6 10.5a.75.75 0 01.75.75v1.5a5.25 5.25 0 1010.5 0v-1.5a.75.75 0 011.5 0v1.5a6.751 6.751 0 01-6 6.709v2.291h3a.75.75 0 010 1.5h-7.5a.75.75 0 010-1.5h3v-2.291a6.751 6.751 0 01-6-6.709v-1.5A.75.75 0 016 10.5z" />
+                </svg>
+                <span id="adminDetailVoiceQueryText" class="text-base font-semibold text-gray-800"></span>
+            </div>
+        </div>
+        <div class="content-safe-area">
+            <div id="adminDetailTextOverlay" class="text-content">
+                <p id="adminDetailDescription" class="readable-on-image text-xl leading-relaxed"></p>
+            </div>
+        </div>
+        <footer class="footer-safe-area">
+            <button id="adminDetailAudioBtn" aria-label="오디오 재생" class="w-16 h-16 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
+                    <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.648c1.295.748 1.295 2.538 0 3.286L7.279 20.99c-1.25.717-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
+                </svg>
+            </button>
+            <button id="adminDetailTextToggleBtn" aria-label="해설 읽기" class="w-16 h-16 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            </button>
+        </footer>
+    </div>
 
     <div class="max-w-7xl mx-auto p-6">
         <!-- 헤더 -->
@@ -1041,24 +1155,491 @@
             updateGuideNumbers();
         }
 
-        // ═══════════════════════════════════════════════════
-        // ⚠️ 2025-12-04: 상세페이지 표준 컴포넌트 사용
-        // 컴포넌트 파일: /components/guideDetailPage.js
-        // ═══════════════════════════════════════════════════
+        // ═══════════════════════════════════════════════════════════════
+        // ⚠️ profile.html 복붙 (2025-12-15)
+        // admin-dashboard.html용: adminDetailPage 객체
+        // race condition 방지: synth.cancel() + renderId 패턴
+        // ═══════════════════════════════════════════════════════════════
         
-        // 컴포넌트 초기화 (HTML, CSS 동적 삽입)
+        const adminDetailPage = {
+            _isInitialized: false,
+            
+            _state: {
+                isTextVisible: true,
+                synth: null,
+                voices: [],
+                currentUtterance: null,
+                originalText: '',
+                onClose: null,
+                translationComplete: true,
+                translationObserver: null,
+                voiceConfigsCache: null,
+                voiceConfigsLoading: false,
+                currentGuideData: null,
+                renderId: 0,
+                savedVoiceLang: null,
+                savedVoiceName: null
+            },
+            
+            _defaultVoicePriorities: {
+                'ko-KR': { default: ['Microsoft Heami', 'Yuna'] },
+                'en-US': { default: ['Samantha', 'Microsoft Zira', 'Google US English', 'English'] },
+                'ja-JP': { default: ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'] },
+                'zh-CN': { default: ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'] },
+                'fr-FR': { default: ['Thomas', 'Microsoft Hortense', 'Google français', 'French'] },
+                'de-DE': { default: ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'] },
+                'es-ES': { default: ['Monica', 'Microsoft Helena', 'Google español', 'Spanish'] }
+            },
+
+            init: function(options = {}) {
+                if (this._isInitialized) {
+                    console.log('[AdminDetailPage] 이미 초기화됨, 스킵');
+                    return;
+                }
+                this._isInitialized = true;
+                
+                const self = this;
+                this._state.synth = window.speechSynthesis;
+                this._state.onClose = options.onClose || null;
+
+                this._els = {
+                    page: document.getElementById('adminDetailPage'),
+                    image: document.getElementById('adminDetailImage'),
+                    description: document.getElementById('adminDetailDescription'),
+                    locationInfo: document.getElementById('adminDetailLocationInfo'),
+                    locationName: document.getElementById('adminDetailLocationName'),
+                    voiceQueryInfo: document.getElementById('adminDetailVoiceQueryInfo'),
+                    voiceQueryText: document.getElementById('adminDetailVoiceQueryText'),
+                    textOverlay: document.getElementById('adminDetailTextOverlay'),
+                    audioBtn: document.getElementById('adminDetailAudioBtn'),
+                    textToggleBtn: document.getElementById('adminDetailTextToggleBtn'),
+                    backBtn: document.getElementById('adminDetailBackBtn')
+                };
+
+                this._populateVoiceList();
+                if (speechSynthesis.onvoiceschanged !== undefined) {
+                    speechSynthesis.onvoiceschanged = () => self._populateVoiceList();
+                }
+
+                this._loadVoiceConfigsFromDB();
+
+                this._els.backBtn.addEventListener('click', () => self.close());
+                this._els.audioBtn.addEventListener('click', () => self._toggleAudio());
+                this._els.textToggleBtn.addEventListener('click', () => { self._stopAudio(); self._toggleText(); });
+
+                this._initTranslationWatcher();
+                console.log('[AdminDetailPage] Initialized');
+            },
+            
+            _loadVoiceConfigsFromDB: async function() {
+                if (this._state.voiceConfigsCache) return this._state.voiceConfigsCache;
+                if (this._state.voiceConfigsLoading) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                    return this._state.voiceConfigsCache || null;
+                }
+                
+                this._state.voiceConfigsLoading = true;
+                try {
+                    const response = await fetch('/api/voice-configs');
+                    if (response.ok) {
+                        const configs = await response.json();
+                        this._state.voiceConfigsCache = {};
+                        for (const config of configs) {
+                            if (!this._state.voiceConfigsCache[config.langCode]) {
+                                this._state.voiceConfigsCache[config.langCode] = {};
+                            }
+                            this._state.voiceConfigsCache[config.langCode][config.platform] = {
+                                priorities: config.voicePriorities,
+                                excludeVoices: config.excludeVoices || []
+                            };
+                        }
+                        console.log('🔊 [AdminDetailPage Voice DB] 설정 로드 완료:', Object.keys(this._state.voiceConfigsCache));
+                    }
+                } catch (error) {
+                    console.warn('🔊 [AdminDetailPage Voice DB] 로드 실패, 기본값 사용:', error.message);
+                }
+                this._state.voiceConfigsLoading = false;
+                return this._state.voiceConfigsCache;
+            },
+            
+            _detectPlatform: function() {
+                const ua = navigator.userAgent;
+                if (/iPhone|iPad|iPod|Mac/.test(ua)) return 'ios';
+                if (/Android/.test(ua)) return 'android';
+                if (/Windows/.test(ua)) return 'windows';
+                return 'default';
+            },
+            
+            _getVoicePriorityFromDB: function(langCode) {
+                const platform = this._detectPlatform();
+                
+                if (this._state.voiceConfigsCache && this._state.voiceConfigsCache[langCode]) {
+                    const config = this._state.voiceConfigsCache[langCode][platform] || this._state.voiceConfigsCache[langCode]['default'];
+                    if (config) {
+                        return { priorities: config.priorities, excludeVoices: config.excludeVoices };
+                    }
+                }
+                
+                const fallback = this._defaultVoicePriorities[langCode];
+                if (fallback) {
+                    const priorities = fallback[platform] || fallback['default'] || fallback[Object.keys(fallback)[0]];
+                    return { priorities, excludeVoices: [] };
+                }
+                
+                return { priorities: [], excludeVoices: [] };
+            },
+
+            _initTranslationWatcher: function() {
+                const self = this;
+                const userLang = localStorage.getItem('appLanguage') || 'ko';
+                
+                if (userLang === 'ko') {
+                    this._state.translationComplete = true;
+                    return;
+                }
+                
+                const hasTranslateClass = document.body.classList.contains('translated-ltr') || 
+                                          document.body.classList.contains('translated-rtl');
+                if (hasTranslateClass) {
+                    this._state.translationComplete = true;
+                    return;
+                }
+                
+                this._state.translationComplete = false;
+                
+                this._state.translationObserver = new MutationObserver(function(mutations) {
+                    const hasTranslated = document.body.classList.contains('translated-ltr') || 
+                                          document.body.classList.contains('translated-rtl');
+                    if (hasTranslated) {
+                        self._state.translationComplete = true;
+                        self._state.translationObserver.disconnect();
+                        window.dispatchEvent(new CustomEvent('adminTranslationComplete'));
+                    }
+                });
+                
+                this._state.translationObserver.observe(document.body, { 
+                    attributes: true, 
+                    attributeFilter: ['class'] 
+                });
+                
+                setTimeout(function() {
+                    if (!self._state.translationComplete) {
+                        self._state.translationComplete = true;
+                        if (self._state.translationObserver) {
+                            self._state.translationObserver.disconnect();
+                        }
+                        window.dispatchEvent(new CustomEvent('adminTranslationComplete', { detail: { timeout: true } }));
+                    }
+                }, 3000);
+            },
+
+            _populateVoiceList: function() {
+                this._state.voices = this._state.synth.getVoices();
+            },
+            
+            _getVoiceForLanguage: function(userLang) {
+                const langMap = {
+                    'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN',
+                    'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES'
+                };
+                
+                const fullLang = langMap[userLang] || 'ko-KR';
+                const langCode = fullLang.substring(0, 2);
+                
+                const voiceConfig = this._getVoicePriorityFromDB(fullLang);
+                const priorities = voiceConfig.priorities;
+                const excludeVoices = voiceConfig.excludeVoices;
+                
+                const allVoices = this._state.voices;
+                let targetVoice = null;
+                
+                for (const voiceName of priorities) {
+                    targetVoice = allVoices.find(v => 
+                        v.name.includes(voiceName) && !excludeVoices.some(ex => v.name.includes(ex))
+                    );
+                    if (targetVoice) break;
+                }
+                
+                if (!targetVoice) {
+                    targetVoice = allVoices.find(v => 
+                        v.lang.replace('_', '-').startsWith(langCode) && !excludeVoices.some(ex => v.name.includes(ex))
+                    );
+                }
+                
+                return targetVoice || allVoices[0];
+            },
+
+            // 데이터로 직접 열기 (guideId 대신 guide 객체 전달)
+            openWithData: function(guide) {
+                // 🔒 강제 초기화 - 이전 음성/데이터 완전 정리
+                if (this._state.synth) {
+                    this._state.synth.cancel();
+                }
+                this._stopAudio();
+                
+                // 상태 초기화
+                this._state.currentGuideData = null;
+                this._state.savedVoiceLang = null;
+                this._state.savedVoiceName = null;
+                this._state.originalText = '';
+                this._state.currentUtterance = null;
+                
+                // 렌더 ID 증가 - 이전 콜백 무효화
+                this._state.renderId++;
+                const thisRenderId = this._state.renderId;
+                
+                console.log('[AdminDetailPage] openWithData() renderId:', thisRenderId);
+                
+                this._show();
+                this._state.currentGuideData = guide;
+                this._render(guide, thisRenderId);
+            },
+
+            _render: function(guide, renderId) {
+                const isVoiceGuide = (!guide.imageUrl && !guide.imageDataUrl) && (guide.voiceQuery || guide.title);
+                const imageUrl = guide.imageUrl || guide.imageDataUrl || '/images/landing-logo.jpg';
+                this._els.image.src = imageUrl;
+                
+                if (!guide.imageUrl && !guide.imageDataUrl) {
+                    this._els.image.style.filter = 'blur(8px) brightness(0.7)';
+                    this._els.image.style.transform = 'scale(1.1)';
+                } else {
+                    this._els.image.style.filter = '';
+                    this._els.image.style.transform = '';
+                }
+                
+                this._els.description.textContent = guide.description || '내용 없음';
+                
+                if (isVoiceGuide) {
+                    this._els.locationInfo.classList.add('hidden');
+                    if (this._els.voiceQueryInfo && this._els.voiceQueryText) {
+                        this._els.voiceQueryText.textContent = guide.voiceQuery || guide.title || '';
+                        this._els.voiceQueryInfo.classList.remove('hidden');
+                    }
+                } else {
+                    if (this._els.voiceQueryInfo) {
+                        this._els.voiceQueryInfo.classList.add('hidden');
+                    }
+                    if (guide.locationName) {
+                        this._els.locationName.textContent = guide.locationName;
+                        this._els.locationInfo.classList.remove('hidden');
+                    } else {
+                        this._els.locationInfo.classList.add('hidden');
+                    }
+                }
+
+                this._state.savedVoiceLang = guide.voiceLang || null;
+                this._state.savedVoiceName = guide.voiceName || null;
+
+                if (guide.description) {
+                    this._playAudio(guide.description, guide.voiceLang, guide.voiceName, renderId);
+                }
+            },
+
+            _show: function() {
+                this._els.page.classList.remove('hidden');
+                document.documentElement.style.overflow = 'hidden';
+                document.body.style.overflow = 'hidden';
+                this._refreshTranslationState();
+            },
+            
+            _refreshTranslationState: function() {
+                const self = this;
+                const userLang = localStorage.getItem('appLanguage') || 'ko';
+                
+                if (userLang === 'ko') {
+                    this._state.translationComplete = true;
+                    return;
+                }
+                
+                const hasTranslateClass = document.body.classList.contains('translated-ltr') || 
+                                          document.body.classList.contains('translated-rtl');
+                if (hasTranslateClass) {
+                    this._state.translationComplete = true;
+                    return;
+                }
+                
+                this._state.translationComplete = false;
+                
+                if (this._state.translationObserver) {
+                    this._state.translationObserver.disconnect();
+                }
+                
+                this._state.translationObserver = new MutationObserver(function(mutations) {
+                    const hasTranslated = document.body.classList.contains('translated-ltr') || 
+                                          document.body.classList.contains('translated-rtl');
+                    if (hasTranslated) {
+                        self._state.translationComplete = true;
+                        self._state.translationObserver.disconnect();
+                        window.dispatchEvent(new CustomEvent('adminTranslationComplete'));
+                    }
+                });
+                
+                this._state.translationObserver.observe(document.body, { 
+                    attributes: true, 
+                    attributeFilter: ['class'] 
+                });
+            },
+
+            close: function() {
+                this._stopAudio();
+                this._els.page.classList.add('hidden');
+                document.documentElement.style.overflow = '';
+                document.body.style.overflow = '';
+                
+                if (this._state.onClose) {
+                    this._state.onClose();
+                }
+            },
+
+            _playAudio: async function(text, savedVoiceLang, savedVoiceName, renderId) {
+                const self = this;
+                const thisRenderId = renderId || this._state.renderId;
+                this._stopAudio();
+                
+                const userLang = localStorage.getItem('appLanguage') || 'ko';
+                if (userLang !== 'ko' && !this._state.translationComplete) {
+                    await new Promise(resolve => {
+                        const handler = () => {
+                            window.removeEventListener('adminTranslationComplete', handler);
+                            resolve();
+                        };
+                        window.addEventListener('adminTranslationComplete', handler);
+                        setTimeout(resolve, 3500);
+                    });
+                }
+                
+                const currentText = this._els.description.textContent || text;
+                const cleanText = currentText.replace(new RegExp('<br\\s*/?>', 'gi'), ' ');
+                const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
+                
+                this._state.originalText = cleanText;
+                this._state.currentUtterance = new SpeechSynthesisUtterance(cleanText);
+                
+                const langFullMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
+                const fullLang = (userLang !== 'ko') ? (langFullMap[userLang] || 'ko-KR') : (savedVoiceLang || 'ko-KR');
+                
+                let voices = this._state.synth.getVoices();
+                if (voices.length === 0) {
+                    await new Promise(resolve => {
+                        const checkVoices = () => {
+                            voices = self._state.synth.getVoices();
+                            if (voices.length > 0) resolve();
+                            else setTimeout(checkVoices, 100);
+                        };
+                        setTimeout(checkVoices, 100);
+                        setTimeout(resolve, 1000);
+                    });
+                    voices = this._state.synth.getVoices();
+                }
+                this._state.voices = voices;
+                
+                let targetVoice = null;
+                const shortLang = fullLang.substring(0, 2);
+                
+                if (shortLang === 'ko') {
+                    // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
+                    const koVoices = voices.filter(v => v.lang.startsWith('ko'));
+                    targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                               || koVoices.find(v => v.name.includes('Sora'))
+                               || koVoices.find(v => v.name.includes('유나'))
+                               || koVoices.find(v => v.name.includes('소라'))
+                               || koVoices.find(v => v.name.includes('Heami'))
+                               || koVoices[0];
+                    console.log('[AdminDetailPage TTS] 한국어 음성:', targetVoice?.name);
+                } else {
+                    targetVoice = this._getVoiceForLanguage(shortLang === 'zh' ? 'zh-CN' : shortLang);
+                }
+                
+                this._state.currentUtterance.voice = targetVoice;
+                this._state.currentUtterance.lang = fullLang;
+                this._state.currentUtterance.rate = 1.0;
+                
+                let currentSentenceIndex = 0;
+                
+                this._state.currentUtterance.onstart = () => {
+                    self._updateAudioButtonIcon(true);
+                };
+                
+                this._state.currentUtterance.onboundary = (event) => {
+                    if (thisRenderId !== self._state.renderId) return;
+                    
+                    if (event.name === 'sentence') {
+                        const highlightedHTML = sentences.map((sentence, idx) => {
+                            if (idx === currentSentenceIndex) {
+                                return '<span class="current-sentence" style="background-color: rgba(66, 133, 244, 0.3); font-weight: 600;">' + sentence + '</span>';
+                            }
+                            return sentence;
+                        }).join('');
+                        
+                        self._els.description.innerHTML = highlightedHTML;
+                        currentSentenceIndex++;
+                        
+                        const currentSpan = self._els.description.querySelector('.current-sentence');
+                        if (currentSpan) {
+                            currentSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                };
+                
+                this._state.currentUtterance.onend = () => {
+                    if (thisRenderId !== self._state.renderId) return;
+                    self._updateAudioButtonIcon(false);
+                    self._els.description.textContent = self._state.originalText;
+                };
+                
+                this._state.synth.speak(this._state.currentUtterance);
+            },
+
+            _stopAudio: function() {
+                if (this._state.currentUtterance) {
+                    this._state.currentUtterance.onboundary = null;
+                    this._state.currentUtterance.onend = null;
+                    this._state.currentUtterance.onstart = null;
+                    this._state.currentUtterance.onerror = null;
+                }
+                if (this._state.synth && this._state.synth.speaking) {
+                    this._state.synth.pause();
+                    this._state.synth.cancel();
+                }
+                this._updateAudioButtonIcon(false);
+                if (this._state.originalText && this._els.description) {
+                    this._els.description.textContent = this._state.originalText;
+                }
+            },
+
+            _toggleAudio: function() {
+                const text = this._els.description.textContent;
+                if (!text || text === '불러오는 중...') return;
+
+                if (this._state.synth.speaking) {
+                    this._stopAudio();
+                } else {
+                    this._playAudio(text, this._state.savedVoiceLang, this._state.savedVoiceName);
+                }
+            },
+
+            _updateAudioButtonIcon: function(isPlaying) {
+                this._els.audioBtn.innerHTML = isPlaying ? `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z" clip-rule="evenodd" />
+                    </svg>
+                ` : `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
+                        <path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.648c1.295.748 1.295 2.538 0 3.286L7.279 20.99c-1.25.717-2.779-.217-2.779-1.643V5.653z" clip-rule="evenodd" />
+                    </svg>
+                `;
+            },
+
+            _toggleText: function() {
+                this._state.isTextVisible = !this._state.isTextVisible;
+                this._els.textOverlay.style.opacity = this._state.isTextVisible ? '1' : '0';
+            }
+        };
+        
+        // 초기화
         document.addEventListener('DOMContentLoaded', () => {
-            // HTML 삽입
-            const container = document.getElementById('guideDetailPageContainer');
-            container.innerHTML = guideDetailPage.getHTML();
-            
-            // CSS 삽입
-            const style = document.createElement('style');
-            style.textContent = guideDetailPage.getCSS();
-            document.head.appendChild(style);
-            
-            // 초기화
-            guideDetailPage.init();
+            adminDetailPage.init();
         });
 
         // 상세보기 열기 함수
@@ -1066,7 +1647,7 @@
             const guide = allGuides.find(g => g.id === guideId);
             if (!guide) return;
 
-            guideDetailPage.openWithData({
+            adminDetailPage.openWithData({
                 imageUrl: guide.imageUrl,
                 description: guide.description,
                 locationName: guide.locationName,
