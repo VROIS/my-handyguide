@@ -397,14 +397,12 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             </button>
         </div>
         ` : `
-        <!-- 🔙 일반 공유페이지 리턴 버튼 (왼쪽 상단, 창 닫기) -->
-        <div style="position: sticky; top: 0; z-index: 100; height: 60px; display: flex; align-items: center; padding: 0 1rem; background: #4285F4;">
-            <button onclick="window.close()" style="width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(255, 255, 255, 0.95); color: #4285F4; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); transition: all 0.3s;" aria-label="창 닫기">
-                <svg xmlns="http://www.w3.org/2000/svg" style="width: 1.5rem; height: 1.5rem;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
-                </svg>
-            </button>
-        </div>
+        <!-- 🔙 일반 공유페이지 리턴 버튼 (우측 상단 고정, 창 닫기) -->
+        <button onclick="window.close()" style="position: fixed; top: 1rem; right: 1rem; z-index: 10000; width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); color: #4285F4; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.2s ease;" aria-label="창 닫기">
+            <svg xmlns="http://www.w3.org/2000/svg" style="width: 1.5rem; height: 1.5rem;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+            </svg>
+        </button>
         `}
         <div class="gallery-grid">
             ${galleryItemsHTML}
@@ -526,31 +524,34 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             }
             const langCode = voiceLang;
             
-            // 플랫폼별 최적 음성 우선순위 (2025-12-07: 한국어 iOS/Android 분기)
-            const isIOS = /iPhone|iPad|iPod|Mac/.test(navigator.userAgent);
-            const voicePriority = {
-                'ko-KR': ['Microsoft Heami', 'Yuna'],
-                'en-US': ['Samantha', 'Microsoft Zira', 'Google US English', 'English'],
-                'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'],
-                'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'],
-                'fr-FR': ['Thomas', 'Microsoft Hortense', 'Google français', 'French'],
-                'de-DE': ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'],
-                'es-ES': ['Monica', 'Microsoft Helena', 'Google español', 'Spanish']
-            };
-            
             const allVoices = synth.getVoices();
             let targetVoice = null;
             
-            // 우선순위대로 음성 찾기
-            const priorities = voicePriority[langCode] || [];
-            for (const voiceName of priorities) {
-                targetVoice = allVoices.find(v => v.name.includes(voiceName));
-                if (targetVoice) break;
-            }
-            
-            // 우선순위에 없으면 언어 코드로 찾기
-            if (!targetVoice) {
-                targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
+            // ⭐ 한국어 하드코딩 (Yuna → Sora → 유나 → 소라 → Heami)
+            if (langCode === 'ko-KR' || langCode.startsWith('ko')) {
+                const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
+                targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                           || koVoices.find(v => v.name.includes('Sora'))
+                           || koVoices.find(v => v.name.includes('유나'))
+                           || koVoices.find(v => v.name.includes('소라'))
+                           || koVoices.find(v => v.name.includes('Heami'))
+                           || koVoices[0];
+                console.log('[Share TTS] 한국어 음성:', targetVoice?.name || 'default');
+            } else {
+                // 다른 언어: 저장된 voiceName 사용 (각 가이드별 원본 음성)
+                // voiceName이 appData에 있으면 그 음성 사용
+                const currentItem = appData.find(item => item.voiceLang === langCode);
+                const savedVoiceName = currentItem?.voiceName;
+                
+                if (savedVoiceName) {
+                    targetVoice = allVoices.find(v => v.name.includes(savedVoiceName));
+                    console.log('[Share TTS] 저장된 음성:', savedVoiceName, '→', targetVoice?.name);
+                }
+                
+                // 저장된 음성 없으면 언어 코드로 찾기
+                if (!targetVoice) {
+                    targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
+                }
             }
             
             currentUtterance.voice = targetVoice || null;
