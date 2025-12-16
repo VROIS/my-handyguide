@@ -166,16 +166,19 @@ POST /api/admin/regenerate-all
 # 응답: { success, total, successCount, failCount, errors[] }
 ```
 
-### 🛒 공유페이지 생성 사용처 (3곳)
-| # | 경로 | API | 설명 |
-|---|------|-----|------|
-| 1 | 사용자 보관함 → 공유 모달 | `POST /api/share/create` | 신규 생성 → DB 저장 |
-| 2 | 관리자 대시보드 → 상세페이지 목록 선택 | `POST /api/admin/create-share-from-guides` | 신규 생성 → 전체 목록 게시 |
-| 3 | 게시된 공유페이지 → 관리자 편집 | `POST /api/admin/featured/:id/regenerate` | 기존 편집 → 재생성 |
+### 🛒 공유페이지 생성 사용처 (5곳)
+| # | 경로 | API | 라인 | 설명 |
+|---|------|-----|------|------|
+| 1 | 사용자 보관함 → 공유 모달 | `POST /api/share/create` | 1572 | 신규 생성 → buildSharePageFromGuides() |
+| 2 | 관리자 대시보드 → 상세페이지 목록 선택 | `POST /api/admin/create-share-from-guides` | 2919 | 신규 생성 → 직접 매핑 |
+| 3 | 게시된 공유페이지 → 관리자 편집 | `POST /api/admin/featured/:id/regenerate` | 1941 | 재생성 → regenerateFeaturedHtml() |
+| 4 | 비인증 HTML 다운로드 | `POST /api/generate-share-html` | 505 | 직접 매핑 |
+| 5 | 인증 HTML 다운로드 | `POST /api/generate-share-html` | 1308 | 직접 매핑 |
 
 **공통 로직:**
 - 모든 생성 API는 `storage.buildSharePageFromGuides()` 또는 `generateStandardShareHTML()` 사용
 - GuideItem 필수 필드: id, title, imageDataUrl, description, voiceLang, locationName, voiceQuery, voiceName
+- ✅ 2025-12-16: 모든 5곳 V1 필드 포함 확인 완료
 
 ### 👀 공유페이지 미리보기 사용처 (4곳)
 | # | 경로 | URL | 설명 |
