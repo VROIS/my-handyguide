@@ -533,6 +533,10 @@ document.addEventListener('DOMContentLoaded', () => {
     /**
      * AI 호출 후 사용량 차감
      * @param {string} type - 'detail' | 'share'
+     * 
+     * ⚠️ 2025-12-16: 가입자 크레딧 차감은 서버에서 처리 (이중 차감 방지)
+     * - /api/gemini: AI 호출 시 -2 크레딧 (서버에서 직접 차감)
+     * - /api/share/create: 공유페이지 생성 시 -5 +1 크레딧 (서버에서 직접 차감)
      */
     async function deductUsage(type = 'detail') {
         // 관리자는 차감 안 함
@@ -541,27 +545,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const user = await checkUserAuth();
 
         if (!user) {
-            // 비가입자: 횟수 증가
+            // 비가입자: 횟수 증가 (localStorage)
             incrementGuestUsage(type);
             const usage = getGuestUsage();
             console.log(`📊 비가입자 사용량 업데이트: detail=${usage.detail}, share=${usage.share}`);
-        } else {
-            // 가입자: 크레딧 차감 (서버에서 처리)
-            try {
-                const cost = type === 'detail' ? USAGE_LIMITS.DETAIL_CREDIT_COST : USAGE_LIMITS.SHARE_CREDIT_COST;
-                const description = type === 'detail' ? 'AI 응답 생성' : '공유페이지 생성';
-                
-                await fetch('/api/profile/use-credits', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ amount: cost, description })
-                });
-                console.log(`💳 크레딧 차감: -${cost} (${description})`);
-            } catch (error) {
-                console.error('크레딧 차감 오류:', error);
-            }
         }
+        // ✅ 가입자 크레딧 차감은 서버에서 자동 처리됨 (이중 차감 방지)
     }
     let selectedItemIds = []; // ✅ Array로 변경 (클릭 순서 보존!)
     
