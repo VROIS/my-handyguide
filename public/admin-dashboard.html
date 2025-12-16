@@ -307,11 +307,11 @@
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-lg font-semibold text-gray-900">전체목록</h2>
                     <div class="flex gap-3">
-                        <button onclick="migrateToV2()" class="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition flex items-center gap-2">
+                        <button onclick="regenerateAllV1()" class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition flex items-center gap-2" data-testid="btn-regenerate-all-v1">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
-                            v1→v2 마이그레이션
+                            V1 일괄 재생성
                         </button>
                         <input type="text" id="allSharesSearch" placeholder="검색..." class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
                         <select id="sortOrder" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none">
@@ -2189,10 +2189,10 @@
         }
 
         // ═══════════════════════════════════════════════════════════════
-        // ⭐ Phase 1: 템플릿 v1 → v2 일괄 마이그레이션 (2025-11-13)
+        // ⭐ V1 공유페이지 일괄 재생성 (2025-12-16)
         // ═══════════════════════════════════════════════════════════════
-        async function migrateToV2() {
-            if (!confirm('모든 공유페이지를 v2 템플릿으로 업그레이드하시겠습니까?\n\n• URL 불변 (카카오톡 링크 정상)\n• v2.js 수정 시 모든 페이지 일괄 적용\n• 파일 크기 90% 감소')) {
+        async function regenerateAllV1() {
+            if (!confirm('모든 공유페이지를 V1 표준 템플릿으로 재생성하시겠습니까?\n\n• 음성 가이드 썸네일 표준화\n• locationName/voiceQuery 필드 적용\n• TTS 음성 우선순위 적용')) {
                 return;
             }
 
@@ -2202,23 +2202,22 @@
                 button.disabled = true;
                 button.innerHTML = '<svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
 
-                const res = await fetch('/api/admin/migrate-to-v2', {
+                const res = await fetch('/api/admin/regenerate-all', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' }
                 });
 
                 if (!res.ok) {
-                    throw new Error('마이그레이션 실패');
+                    throw new Error('재생성 실패');
                 }
 
                 const data = await res.json();
-                alert(`✅ 마이그레이션 완료!\n\n${data.message}`);
+                alert(`✅ V1 일괄 재생성 완료!\n\n성공: ${data.successCount}개\n실패: ${data.failCount}개`);
                 
-                // 페이지 새로고침
                 location.reload();
             } catch (error) {
-                console.error('마이그레이션 오류:', error);
-                alert('❌ 마이그레이션에 실패했습니다.');
+                console.error('V1 재생성 오류:', error);
+                alert('❌ V1 일괄 재생성에 실패했습니다.');
                 button.disabled = false;
                 button.innerHTML = originalText;
             }
