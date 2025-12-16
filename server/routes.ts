@@ -20,6 +20,7 @@ import { generateSingleGuideHTML, generateStandardShareHTML } from "./standard-t
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import profileRoutes from "./profileRoutes";
 import { notificationService } from "./notificationService";
+import { creditService, CREDIT_CONFIG } from "./creditService";
 
 // Configure multer for image uploads
 const upload = multer({
@@ -209,7 +210,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Gemini streaming endpoint
-  app.post('/api/gemini', async (req, res) => {
+  app.post('/api/gemini', async (req: any, res) => {
     try {
       const { base64Image, prompt, systemInstruction } = req.body;
 
@@ -218,6 +219,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (isPromptEmpty && isImageEmpty) {
         return res.status(400).json({ error: "요청 본문에 필수 데이터(prompt 또는 base64Image)가 누락되었습니다." });
+      }
+      
+      // 🎯 크레딧 차감 로직 (인증된 사용자만)
+      const userId = req.user?.id;
+      if (userId && userId !== 'temp-user-id') {
+        const user = await storage.getUser(userId);
+        if (user && !user.isAdmin) {
+          const result = await creditService.useCredits(
+            userId, 
+            CREDIT_CONFIG.DETAIL_PAGE_COST, 
+            'AI 응답 생성'
+          );
+          if (!result.success) {
+            return res.status(402).json({ 
+              error: "크레딧이 부족합니다.", 
+              required: CREDIT_CONFIG.DETAIL_PAGE_COST,
+              balance: result.balance
+            });
+          }
+          console.log(`💳 크레딧 차감: ${userId} -${CREDIT_CONFIG.DETAIL_PAGE_COST} (잔액: ${result.balance})`);
+        }
       }
 
       let parts = [];
@@ -1573,6 +1595,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // 🔑 사용자 ID (테스트용 임시 ID 사용)
       const userId = req.user?.id || 'temp-user-id';
+      
+      // 🎯 크레딧 차감 로직 (인증된 사용자만, -5 차감 + 1 보상 = 순 -4)
+      if (userId && userId !== 'temp-user-id') {
+        const user = await storage.getUser(userId);
+        if (user && !user.isAdmin) {
+          // 먼저 -5 크레딧 차감
+          const result = await creditService.useCredits(
+            userId, 
+            CREDIT_CONFIG.SHARE_PAGE_COST, 
+            '공유 페이지 생성'
+          );
+          if (!result.success) {
+            return res.status(402).json({ 
+              error: "크레딧이 부족합니다.", 
+              required: CREDIT_CONFIG.SHARE_PAGE_COST,
+              balance: result.balance
+            });
+          }
+          console.log(`💳 크레딧 차감: ${userId} -${CREDIT_CONFIG.SHARE_PAGE_COST} (잔액: ${result.balance})`);
+          
+          // 공유링크 생성 보상 +1 (replit.md 명세)
+          await creditService.addCredits(userId, 1, 'share_reward', '공유링크 생성 보상');
+          console.log(`🎁 공유링크 보상: ${userId} +1`);
+        }
+      }
       
       // ✅ 요청 데이터 검증 (Zod 스키마)
       const validation = insertSharedHtmlPageSchema.safeParse(req.body);
