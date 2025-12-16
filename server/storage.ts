@@ -1384,6 +1384,7 @@ export class DatabaseStorage implements IStorage {
     });
     
     // 2. Guide[] → GuideItem[] 변환 (순서 유지용 임시 데이터)
+    // 🎤 2025-12-16: title, locationName, voiceQuery, voiceName 필드 추가
     const guideItemsWithId = await Promise.all(guidesData.map(async (guide) => {
       // ✨ 파일 경로 → Base64 변환 (2025-11-24 수정)
       let imageDataUrl = guide.imageUrl || '';
@@ -1399,9 +1400,13 @@ export class DatabaseStorage implements IStorage {
       return {
         id: guide.id,
         localId: guide.localId || undefined,
+        title: guide.title || '',  // 🎤 음성키워드 폴백용
         imageDataUrl, // Base64 또는 기존 Base64 유지
         description: guide.description || guide.aiGeneratedContent || '', // description 우선, 없으면 aiGeneratedContent
-        voiceLang: guide.voiceLang || undefined // TTS 언어 코드
+        voiceLang: guide.voiceLang || undefined, // TTS 언어 코드
+        locationName: guide.locationName || undefined, // 📍 위치정보
+        voiceQuery: guide.title || undefined,  // 🎤 음성키워드 (title 사용)
+        voiceName: guide.voiceName || undefined // 🔊 저장된 음성 이름
       };
     }));
     
@@ -1416,9 +1421,13 @@ export class DatabaseStorage implements IStorage {
         console.log(`✅ [${idx}] guideId "${id}" 찾음 - imageDataUrl 길이: ${found.imageDataUrl.length}`);
         return {
           id: found.id, // ✅ 2025-11-25: 실제 guideId(UUID) 추가 (parseGuidesFromHtml 정상화)
+          title: found.title, // 🎤 2025-12-16: 음성키워드 폴백용
           imageDataUrl: found.imageDataUrl,
           description: found.description,
-          voiceLang: found.voiceLang // TTS 언어 코드
+          voiceLang: found.voiceLang, // TTS 언어 코드
+          locationName: found.locationName, // 📍 위치정보
+          voiceQuery: found.voiceQuery,  // 🎤 음성키워드
+          voiceName: found.voiceName // 🔊 저장된 음성 이름
         } as GuideItem;
       })
       .filter((item): item is GuideItem => item !== null);
