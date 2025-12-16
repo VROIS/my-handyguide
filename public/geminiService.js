@@ -77,6 +77,7 @@ async function* streamResponseFromServer(body) {
             headers: {
                 'Content-Type': 'application/json',
             },
+            credentials: 'include',  // 🔧 크레딧 차감용 인증 쿠키 전송
             body: JSON.stringify(body),
         });
 
