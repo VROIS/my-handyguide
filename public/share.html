@@ -275,15 +275,15 @@
 
     <script src="./share-page.js"></script>
     <script>
-        // 서비스 워커 등록 (보관함과 동일)
+        // 서비스 워커 등록 (공유페이지 전용 - Network First)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
+                navigator.serviceWorker.register('/sw-share.js')
                     .then((registration) => {
-                        console.log('SW registered: ', registration);
+                        console.log('✅ [SW-Share] v10 등록 성공:', registration.scope);
                     })
                     .catch((registrationError) => {
-                        console.log('SW registration failed: ', registrationError);
+                        console.log('❌ [SW-Share] 등록 실패:', registrationError);
                     });
             });
         }
