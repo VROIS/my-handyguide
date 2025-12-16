@@ -74,36 +74,96 @@ Parses guide data from HTML (specifically from `<script id="app-data">`) to pres
 ### TTS Logic
 For Korean, specific voice names (Yuna, Sora, Heami) are hardcoded with a priority list. For other languages (English, Japanese, Chinese, French, German, Spanish), voice preferences are managed via a `voice_configs` table in PostgreSQL, allowing for platform-specific voice priorities. All TTS playback waits for Google Translate to complete, using a 3-second timeout fallback.
 
-## 🚨 profile.html 상세페이지 버그 (2025-12-12)
+## 🎯 V1 공유페이지 시스템 (2025-12-16 완성)
 
-### 현재 문제점 (8시간째 미해결)
-| # | 문제 | 원인 | 해결방향 |
-|---|------|------|----------|
-| 1 | 음성 우선순위 미적용 | DB 기반 voicePriority 로직 누락 | server/standard-template.ts 535-542줄 참조 |
-| 2 | 이미지/음성 모드 분기 안됨 | type 체크 로직 없음 | `data.type` 분기 처리 |
-| 3 | 저장 시 보관함에 게시 안됨 | IndexedDB archive 스토어 저장 오류 | 저장 로직 수정 |
-| 4 | **다음 콘텐츠 클릭 시 이전 것 재생** | open() 시 데이터 초기화 안됨 | 새 open() 전에 state 리셋 |
-| 5 | **이동 후 이전 음성 안 멈춤** | synth.cancel() 미호출 | open()/close() 시 강제 중지 |
+### 핵심 파일 및 역할
+| 파일 | 역할 | 핵심 라인 |
+|------|------|----------|
+| `server/standard-template.ts` | V1 HTML 템플릿 생성 | 전체 (1200+ 줄) |
+| `server/storage.ts` | DB 조회 → 템플릿 데이터 변환 | buildSharePageFromGuides() 1362-1448 |
+| `server/routes.ts` | API 엔드포인트 | POST /api/share/create (1572-1636) |
+| `public/components/guideDetailPage.js` | 프론트엔드 상세보기 컴포넌트 | 전체 |
 
-### TTS 음성 우선순위 (2025-12-07 확정)
-소스: `server/standard-template.ts` → voicePriority (535-542줄)
+### 데이터 플로우
+```
+1. 프론트엔드에서 /api/share/create 호출 (guideIds 배열 전달)
+2. routes.ts → storage.buildSharePageFromGuides() 호출
+3. storage.ts → guides 테이블에서 데이터 조회 + GuideItem[] 변환
+4. standard-template.ts → generateStandardShareHTML() 호출
+5. 생성된 HTML을 sharedHtmlPages.htmlContent에 저장
+6. /s/:id 접속 시 DB에서 htmlContent 조회 → 렌더링
+```
 
+### GuideItem 필수 필드 (storage.ts 1400-1412)
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `id` | string | 가이드 UUID |
+| `title` | string | 음성키워드 폴백용 |
+| `imageDataUrl` | string | Base64 또는 /uploads/ 경로 |
+| `description` | string | AI 생성 콘텐츠 |
+| `voiceLang` | string | TTS 언어 코드 (ko-KR, en-US 등) |
+| `locationName` | string | 위치정보 (이미지 가이드용) |
+| `voiceQuery` | string | 음성키워드 (title 사용) |
+| `voiceName` | string | 저장된 TTS 음성 이름 |
+
+### TTS 음성 우선순위 (standard-template.ts 630-655)
 | 언어 | 음성 우선순위 |
 |------|--------------|
-| ko-KR | Microsoft Heami → Yuna |
-| en-US | Samantha → Microsoft Zira → Google US English → English |
-| ja-JP | Kyoko → Microsoft Haruka → Google 日本語 → Japanese |
-| zh-CN | Ting-Ting → Microsoft Huihui → Google 普通话 → Chinese |
-| fr-FR | Thomas → Microsoft Hortense → Google français → French |
-| de-DE | Anna → Microsoft Hedda → Google Deutsch → German |
-| es-ES | Monica → Microsoft Helena → Google español → Spanish |
+| ko-KR | Yuna → Sora → 유나 → 소라 → Heami |
+| 기타 언어 | savedVoiceName → 언어코드 매칭 |
 
-### 해결 방향
-1. guideDetailPage.js 원본 그대로 복붙 (객체명만 변경)
-2. open() 시작 시: `synth.cancel()` + state 초기화 + 데이터 리셋
-3. close() 시: `synth.cancel()` + 이벤트 리스너 정리
-4. init() 중복 호출 방지: `isInitialized` 플래그
-5. _saveToLocal: IndexedDB archive 스토어 정확히 저장
+### 음성 가이드 썸네일 (standard-template.ts 63-75, 382-408)
+```html
+<div class="voice-thumbnail">
+    <img src="/images/landing-logo.jpg" class="voice-bg-logo">  <!-- 블러 로고 -->
+    <div class="voice-content">
+        <svg class="voice-icon">...</svg>  <!-- 마이크 아이콘 -->
+        <span class="voice-keyword">음성키워드</span>
+    </div>
+</div>
+```
+CSS: 검정 배경(#000) + 로고 opacity 0.1 + 마이크 아이콘 파란색
+
+### Google Translate 대기 로직 (standard-template.ts 168-180)
+```javascript
+var observer = new MutationObserver(function() {
+    var hasTranslateClass = document.body.classList.contains('translated-ltr') || 
+                            document.body.classList.contains('translated-rtl');
+    if (hasTranslateClass) {
+        window.__translationComplete = true;
+        observer.disconnect();
+        // 대기열 TTS 재생
+    }
+});
+observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+```
+- 3초 타임아웃 폴백 포함
+
+### 오프라인 저장 (standard-template.ts 1177-1221)
+```javascript
+const dbRequest = indexedDB.open('MyAppDB', 1);
+// objectStore: 'archive'
+// keyPath: 'id', autoIncrement: true
+```
+
+### API 사용법
+```bash
+# 새 공유페이지 생성
+POST /api/share/create
+{
+  "name": "파리 여행",
+  "guideIds": ["uuid1", "uuid2", ...],
+  "sender": "여행자",
+  "location": "파리",
+  "date": "2025년 12월 16일"
+}
+
+# 개별 페이지 재생성
+PUT /api/admin/featured/:id/regenerate
+
+# 일괄 재생성 (TODO)
+POST /api/admin/regenerate-all
+```
 
 # External Dependencies
 
