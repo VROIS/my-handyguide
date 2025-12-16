@@ -1,20 +1,24 @@
 // sw-share.js - 공유 페이지용 Service Worker
-// v2 - 오프라인 지원 및 캐싱
+// v10 - Network First 전략 (2025-12-16)
+// 배경: 공유페이지 업데이트 시 캐시 문제 해결
 
-const CACHE_NAME = 'share-cache-v2';
+const CACHE_NAME = 'share-cache-v10';
 
 self.addEventListener('install', event => {
-  console.log('[SW-Share] v2 설치됨');
+  console.log('[SW-Share] v10 설치됨');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
-  console.log('[SW-Share] v2 활성화됨');
+  console.log('[SW-Share] v10 활성화됨');
   event.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(
         keys.filter(key => key !== CACHE_NAME)
-          .map(key => caches.delete(key))
+          .map(key => {
+            console.log('[SW-Share] 오래된 캐시 삭제:', key);
+            return caches.delete(key);
+          })
       );
     })
   );
@@ -24,21 +28,27 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   
-  // 공유 페이지 (/s/*) - Cache First 전략
+  // 공유 페이지 (/s/*) - Network First 전략
+  // 온라인: 항상 서버에서 최신 가져옴
+  // 오프라인: 캐시된 버전 사용
   if (url.pathname.startsWith('/s/')) {
     event.respondWith(
-      caches.open(CACHE_NAME).then(cache => {
-        return cache.match(event.request).then(cached => {
-          if (cached) return cached;
-          
-          return fetch(event.request).then(response => {
-            if (response && response.status === 200) {
-              cache.put(event.request, response.clone());
-            }
-            return response;
-          });
-        });
-      })
+      fetch(event.request)
+        .then(response => {
+          // 성공하면 캐시 업데이트
+          if (response && response.status === 200) {
+            const responseClone = response.clone();
+            caches.open(CACHE_NAME).then(cache => {
+              cache.put(event.request, responseClone);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          // 오프라인일 때만 캐시 사용
+          console.log('[SW-Share] 오프라인 - 캐시 사용:', url.pathname);
+          return caches.match(event.request);
+        })
     );
     return;
   }
