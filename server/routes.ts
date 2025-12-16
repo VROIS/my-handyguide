@@ -1971,6 +1971,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // ═══════════════════════════════════════════════════════════════
+  // POST /api/admin/regenerate-all - 모든 공유페이지 V1 템플릿으로 일괄 재생성
+  // ⭐ 2025-12-16: V1 공유페이지 시스템 표준화
+  // ═══════════════════════════════════════════════════════════════
+  app.post('/api/admin/regenerate-all', requireAdmin, async (req: any, res) => {
+    try {
+      console.log('🔄 모든 공유페이지 V1 템플릿 일괄 재생성 시작...');
+      
+      // 1. 모든 공유페이지 조회
+      const allPages = await storage.getAllSharedHtmlPages();
+      console.log(`📦 총 ${allPages.length}개 공유페이지 발견`);
+      
+      let successCount = 0;
+      let failCount = 0;
+      const errors: string[] = [];
+      
+      // 2. 각 페이지 재생성
+      for (const page of allPages) {
+        try {
+          // guideIds가 없으면 스킵
+          if (!page.guideIds || page.guideIds.length === 0) {
+            console.warn(`⚠️ [${page.id}] guideIds 없음 - 스킵`);
+            failCount++;
+            errors.push(`${page.id}: guideIds 없음`);
+            continue;
+          }
+          
+          await storage.regenerateFeaturedHtml(page.id, {
+            title: page.name || '제목 없음',
+            sender: page.sender || '여행자',
+            location: page.location || '미지정',
+            date: page.date || new Date().toLocaleDateString('ko-KR'),
+            guideIds: page.guideIds
+          });
+          
+          successCount++;
+          console.log(`✅ [${successCount}/${allPages.length}] ${page.id} 재생성 완료`);
+        } catch (pageError: any) {
+          failCount++;
+          errors.push(`${page.id}: ${pageError.message}`);
+          console.error(`❌ [${page.id}] 재생성 실패:`, pageError.message);
+        }
+      }
+      
+      console.log(`✅ 일괄 재생성 완료: 성공 ${successCount}개, 실패 ${failCount}개`);
+      
+      res.json({
+        success: true,
+        message: `V1 템플릿 일괄 재생성 완료`,
+        total: allPages.length,
+        successCount,
+        failCount,
+        errors: errors.slice(0, 10) // 처음 10개 에러만 반환
+      });
+    } catch (error) {
+      console.error('일괄 재생성 오류:', error);
+      res.status(500).json({ error: '일괄 재생성에 실패했습니다.' });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════
   // POST /api/admin/migrate-to-v2 - 템플릿 v1 → v2 일괄 마이그레이션
   // ⭐ Phase 1 (2025-11-13): 모든 공유페이지를 v2 템플릿으로 업그레이드
   // ═══════════════════════════════════════════════════════════════

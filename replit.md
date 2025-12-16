@@ -159,10 +159,11 @@ POST /api/share/create
 }
 
 # 개별 페이지 재생성
-PUT /api/admin/featured/:id/regenerate
+POST /api/admin/featured/:id/regenerate
 
-# 일괄 재생성 (TODO)
+# 일괄 재생성 (V1 템플릿으로 모든 페이지 업데이트)
 POST /api/admin/regenerate-all
+# 응답: { success, total, successCount, failCount, errors[] }
 ```
 
 # External Dependencies
