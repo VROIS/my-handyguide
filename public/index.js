@@ -4899,6 +4899,12 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('🔓 Test logout clicked');
         if (confirm('로그아웃하시겠습니까? (테스트용)')) {
             console.log('✅ User confirmed, logging out...');
+            // 🔧 관리자 상태 및 게스트 사용량 초기화
+            localStorage.removeItem('adminAuthenticated');
+            localStorage.removeItem('adminAuthTime');
+            localStorage.removeItem('adminPassword');
+            localStorage.removeItem('guestDetailUsage');
+            localStorage.removeItem('guestShareUsage');
             window.location.href = '/api/auth/logout';
         }
     });
