@@ -166,6 +166,29 @@ POST /api/admin/regenerate-all
 # 응답: { success, total, successCount, failCount, errors[] }
 ```
 
+### 🛒 공유페이지 생성 사용처 (3곳)
+| # | 경로 | API | 설명 |
+|---|------|-----|------|
+| 1 | 사용자 보관함 → 공유 모달 | `POST /api/share/create` | 신규 생성 → DB 저장 |
+| 2 | 관리자 대시보드 → 상세페이지 목록 선택 | `POST /api/admin/create-share-from-guides` | 신규 생성 → 전체 목록 게시 |
+| 3 | 게시된 공유페이지 → 관리자 편집 | `POST /api/admin/featured/:id/regenerate` | 기존 편집 → 재생성 |
+
+**공통 로직:**
+- 모든 생성 API는 `storage.buildSharePageFromGuides()` 또는 `generateStandardShareHTML()` 사용
+- GuideItem 필수 필드: id, title, imageDataUrl, description, voiceLang, locationName, voiceQuery, voiceName
+
+### 👀 공유페이지 미리보기 사용처 (4곳)
+| # | 경로 | URL | 설명 |
+|---|------|-----|------|
+| 1 | 추천모음 게시 | `/s/:id` (featured=true) | 관리자 선정 |
+| 2 | 사용자 프로필 페이지 | `/s/:id` (본인 생성) | 본인 생성 목록 |
+| 3 | 공유링크로 외부 열기 | `/s/:id` | ⚠️ 카톡 인앱 이슈 → QR 임시 배포 |
+| 4 | 관리자 대시보드 | `/s/:id` 직접 접속 | 선별/삭제 시 확인용 |
+
+**미리보기 동작:**
+- `/s/:id` → `routes.ts` GET 핸들러 → DB에서 `htmlContent` 조회 → 렌더링
+- 기존 페이지는 일괄 재생성 전까지 구버전 유지 (DB에 저장된 HTML 그대로)
+
 # External Dependencies
 
 ## Core Services
