@@ -192,6 +192,39 @@ POST /api/admin/regenerate-all
 - `/s/:id` → `routes.ts` GET 핸들러 → DB에서 `htmlContent` 조회 → 렌더링
 - 기존 페이지는 일괄 재생성 전까지 구버전 유지 (DB에 저장된 HTML 그대로)
 
+## 🔧 Service Worker 매핑 (2025-12-16)
+
+### Service Worker 파일
+| 파일 | 버전 | 전략 | 용도 |
+|------|------|------|------|
+| `public/service-worker.js` | v7 | Cache First | 메인 앱 (index.html) |
+| `public/sw-share.js` | v10 | **Network First** | 공유페이지 (/s/:id) |
+
+### 페이지별 SW 등록
+| 페이지 유형 | 파일 | 등록 SW | 비고 |
+|------------|------|---------|------|
+| 메인 앱 (SPA) | `public/index.js` | `/service-worker.js` | 랜딩, 기능, 상세, 보관함, 설정 |
+| 공유페이지 템플릿 | `server/standard-template.ts` | `/sw-share.js` | V1 HTML 생성 시 포함 |
+| 공유페이지 (구) | `public/share.html` | `/sw-share.js` | 구버전 템플릿 |
+| 프로필 | `public/profile.html` | 없음 | 관리 페이지 (불필요) |
+| 관리자 대시보드 | `public/admin-dashboard.html` | 없음 | 관리 페이지 (불필요) |
+| 관리자 설정 | `public/admin-settings.html` | 없음 | 관리 페이지 (불필요) |
+| 사용자 가이드 | `public/user-guide.html` | 없음 | 정보 페이지 (불필요) |
+
+### Network First 전략 (sw-share.js)
+```javascript
+// 온라인: 항상 서버에서 최신 HTML 가져옴
+// 오프라인: 캐시된 버전 사용 (오프라인 보관함 지원)
+fetch(event.request)
+  .then(response => { cache.put(); return response; })
+  .catch(() => caches.match(event.request));
+```
+
+**효과:**
+- 공유페이지 수정 후 사용자가 수동 새로고침/캐시 삭제 불필요
+- 일반 여행객도 항상 최신 버전 자동 확인
+- 오프라인 저장 기능 유지
+
 # External Dependencies
 
 ## Core Services
