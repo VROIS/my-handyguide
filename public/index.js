@@ -507,16 +507,20 @@ document.addEventListener('DOMContentLoaded', () => {
      * 사용량 제한 체크 (AI 호출 전 필수)
      * @param {string} type - 'detail' | 'share'
      * @returns {Promise<boolean>} - true: 진행 가능, false: 차단
+     * 
+     * ⚠️ 2025-12-16: 관리자 체크를 서버 기반으로 변경
+     * - localStorage isAdmin() 제거 → user.isAdmin 서버 응답 사용
+     * - 이유: 로그인 시 localStorage 관리자 상태가 잘못 남아있는 버그 수정
      */
     async function checkUsageLimit(type = 'detail') {
-        // 1. 관리자는 무제한
-        if (isAdmin()) {
-            console.log('🔓 관리자 모드: 사용량 제한 없음');
+        // 1. 사용자 인증 상태 확인 (서버 기반)
+        const user = await checkUserAuth();
+
+        // 2. 서버에서 관리자로 확인되면 무제한
+        if (user && user.isAdmin) {
+            console.log('🔓 서버 관리자 확인: 사용량 제한 없음');
             return true;
         }
-
-        // 2. 사용자 인증 상태 확인
-        const user = await checkUserAuth();
 
         if (!user) {
             // 3. 비가입자: localStorage 횟수 체크
@@ -558,10 +562,10 @@ document.addEventListener('DOMContentLoaded', () => {
      * - /api/share/create: 공유페이지 생성 시 -5 +1 크레딧 (서버에서 직접 차감)
      */
     async function deductUsage(type = 'detail') {
-        // 관리자는 차감 안 함
-        if (isAdmin()) return;
-
         const user = await checkUserAuth();
+        
+        // 서버에서 관리자로 확인되면 차감 안 함
+        if (user && user.isAdmin) return;
 
         if (!user) {
             // 비가입자: 횟수 증가 (localStorage)
