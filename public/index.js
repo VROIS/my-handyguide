@@ -433,6 +433,25 @@ document.addEventListener('DOMContentLoaded', () => {
         return localStorage.getItem('adminAuthenticated') === 'true';
     }
 
+    // 🔧 앱 시작 시 관리자 상태 서버 동기화 (2025-12-16)
+    // 서버 인증 없으면 localStorage 관리자 상태 자동 정리
+    (async function syncAdminState() {
+        try {
+            const response = await fetch('/api/auth/user', { credentials: 'include' });
+            if (!response.ok) {
+                // 서버 인증 없음 → localStorage 정리
+                localStorage.removeItem('adminAuthenticated');
+                localStorage.removeItem('adminAuthTime');
+                localStorage.removeItem('adminPassword');
+                console.log('🔧 [동기화] 서버 인증 없음 → 관리자 상태 초기화');
+            }
+        } catch (e) {
+            // 에러 시에도 정리
+            localStorage.removeItem('adminAuthenticated');
+            console.log('🔧 [동기화] 인증 확인 실패 → 관리자 상태 초기화');
+        }
+    })();
+
     async function checkUserAuth() {
         try {
             const response = await fetch('/api/auth/user', { credentials: 'include' });
