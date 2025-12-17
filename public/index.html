@@ -1532,19 +1532,39 @@
 </script>
 
 <!-- Google Translate Widget (숨김) -->
-<div id="google_translate_element" style="display:none;"></div>
+<div id="google_translate_element" style="display:none !important; visibility:hidden !important; width:0 !important; height:0 !important; overflow:hidden !important;"></div>
 
-<!-- Google Translate Initialization -->
+<!-- 🔧 2025-12-17: Google Translate 지연 로딩 (랜딩 페이지 버그 방지) -->
 <script type="text/javascript">
     function googleTranslateElementInit() {
-        new google.translate.TranslateElement({
-            pageLanguage: 'ko',
-            includedLanguages: 'ko,en,ja,zh-CN,fr,de,es',
-            autoDisplay: false
-        }, 'google_translate_element');
+        if (typeof google !== 'undefined' && google.translate) {
+            new google.translate.TranslateElement({
+                pageLanguage: 'ko',
+                includedLanguages: 'ko,en,ja,zh-CN,fr,de,es',
+                autoDisplay: false
+            }, 'google_translate_element');
+        }
     }
+    
+    // 랜딩 페이지가 아닐 때만 Google Translate 로딩
+    setTimeout(function() {
+        var landingPage = document.getElementById('landingPage');
+        var isLandingVisible = landingPage && !landingPage.classList.contains('hidden');
+        
+        // 랜딩 페이지가 보이면 로딩하지 않음
+        if (isLandingVisible) {
+            console.log('🌐 랜딩 페이지 → Google Translate 로딩 스킵');
+            return;
+        }
+        
+        // Google Translate 스크립트 동적 로딩
+        var script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
+        document.body.appendChild(script);
+        console.log('🌐 Google Translate 스크립트 로딩');
+    }, 1000);
 </script>
-<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 <!-- Google Translate CSS 숨김 + 스피너 우측 상단 -->
 <style>
