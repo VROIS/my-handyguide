@@ -426,16 +426,6 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            /* 🔧 2025-12-17: iOS PWA 터치 최적화 */
-            -webkit-tap-highlight-color: rgba(66, 133, 244, 0.3);
-            -webkit-touch-callout: none;
-            -webkit-user-select: none;
-            user-select: none;
-            touch-action: manipulation;
-        }
-        .language-item:active {
-            background-color: #dbeafe !important;
-            transform: scale(0.98);
         }
         .language-item:last-child {
             border-bottom: none;
@@ -1497,15 +1487,10 @@
             });
         }
         
-        // 🔧 2025-12-17: iOS PWA 터치 이벤트 완전 재작성
-        let isProcessing = false; // 중복 실행 방지
-        
+        // 언어 선택 시 → googtrans 쿠키 설정 → 페이지 새로고침 (2025-12-08 스크롤 리스트)
+        // 🔧 2025-12-17: PWA 모드 터치 이벤트 지원 추가
         function handleLanguageSelect(item) {
-            if (isProcessing) return; // 이미 처리 중이면 무시
-            isProcessing = true;
-            
             const selectedLang = item.getAttribute('data-value');
-            console.log('🎯 언어 선택됨:', selectedLang);
             
             // 선택된 항목 하이라이트
             languageItems.forEach(i => i.classList.remove('selected'));
@@ -1514,122 +1499,74 @@
             // 언어 저장 (LanguageHelper + localStorage)
             LanguageHelper.setLanguage(selectedLang);
             
-            // 랜딩페이지 방문 완료 표시
+            // 랜딩페이지 방문 완료 표시 (새로고침 후 기능페이지로 이동하도록)
             localStorage.setItem('landingVisited', 'true');
             
-            // Google Translate 쿠키 설정
+            // 🔧 Google Translate 쿠키 설정 후 새로고침 (2025-12-07)
             if (selectedLang !== 'ko') {
                 document.cookie = `googtrans=/ko/${selectedLang}; path=/`;
                 document.cookie = `googtrans=/ko/${selectedLang}; path=/; domain=${window.location.hostname}`;
                 console.log('🌐 Google Translate 쿠키 설정:', selectedLang);
             }
             
-            // 🔧 iOS PWA: window.location.href 사용 (reload보다 안정적)
-            setTimeout(function() {
-                window.location.href = window.location.origin + window.location.pathname;
-            }, 150);
+            // 페이지 새로고침으로 번역 적용
+            window.location.reload();
         }
         
-        // 🔧 iOS PWA 이벤트 핸들러 - 터치와 클릭 충돌 방지
-        function attachLanguageHandlers() {
-            languageItems.forEach(item => {
-                // 기존 핸들러 제거 (중복 방지)
-                item.removeEventListener('click', item._clickHandler);
-                item.removeEventListener('touchend', item._touchHandler);
-                
-                let touched = false;
-                
-                // 터치 핸들러 (touchend 사용 - touchstart는 스크롤과 충돌)
-                item._touchHandler = function(e) {
-                    touched = true;
-                    console.log('👆 터치 감지:', item.getAttribute('data-value'));
-                    handleLanguageSelect(item);
-                };
-                
-                // 클릭 핸들러 (터치가 아닌 경우에만)
-                item._clickHandler = function(e) {
-                    if (touched) {
-                        touched = false;
-                        return; // 터치 후 클릭은 무시
-                    }
-                    console.log('🖱️ 클릭 감지:', item.getAttribute('data-value'));
-                    handleLanguageSelect(item);
-                };
-                
-                item.addEventListener('touchend', item._touchHandler);
-                item.addEventListener('click', item._clickHandler);
+        languageItems.forEach(item => {
+            // 클릭 이벤트 (데스크톱 + 일부 모바일)
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleLanguageSelect(item);
             });
-            console.log('🔧 언어 선택 핸들러 등록 완료');
-        }
-        
-        // 초기 등록
-        attachLanguageHandlers();
-        
-        // 🔧 iOS PWA: 앱 전환 후 핸들러 재등록
-        document.addEventListener('visibilitychange', function() {
-            if (!document.hidden) {
-                console.log('🔧 앱 복귀 → 핸들러 재등록');
-                attachLanguageHandlers();
-            }
+            
+            // 터치 이벤트 (PWA 모드 + 모바일)
+            item.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleLanguageSelect(item);
+            }, { passive: false });
         });
     });
 </script>
 
 <!-- Google Translate Widget (숨김) -->
-<div id="google_translate_element" style="display:none !important; visibility:hidden !important; width:0 !important; height:0 !important; overflow:hidden !important;"></div>
+<div id="google_translate_element" style="display:none;"></div>
 
-<!-- 🔧 2025-12-17: Google Translate 지연 로딩 (랜딩 페이지 버그 방지) -->
+<!-- Google Translate Initialization -->
 <script type="text/javascript">
     function googleTranslateElementInit() {
-        if (typeof google !== 'undefined' && google.translate) {
-            new google.translate.TranslateElement({
-                pageLanguage: 'ko',
-                includedLanguages: 'ko,en,ja,zh-CN,fr,de,es',
-                autoDisplay: false
-            }, 'google_translate_element');
-        }
+        new google.translate.TranslateElement({
+            pageLanguage: 'ko',
+            includedLanguages: 'ko,en,ja,zh-CN,fr,de,es',
+            autoDisplay: false
+        }, 'google_translate_element');
     }
-    
-    // 랜딩 페이지가 아닐 때만 Google Translate 로딩
-    setTimeout(function() {
-        var landingPage = document.getElementById('landingPage');
-        var isLandingVisible = landingPage && !landingPage.classList.contains('hidden');
-        
-        // 랜딩 페이지가 보이면 로딩하지 않음
-        if (isLandingVisible) {
-            console.log('🌐 랜딩 페이지 → Google Translate 로딩 스킵');
-            return;
-        }
-        
-        // Google Translate 스크립트 동적 로딩
-        var script = document.createElement('script');
-        script.type = 'text/javascript';
-        script.src = '//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit';
-        document.body.appendChild(script);
-        console.log('🌐 Google Translate 스크립트 로딩');
-    }, 1000);
 </script>
+<script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-<!-- Google Translate CSS 숨김 + 터치 차단 방지 -->
+<!-- Google Translate CSS 숨김 + 스피너 우측 상단 -->
 <style>
-    .goog-te-banner-frame { display: none !important; pointer-events: none !important; }
+    .goog-te-banner-frame { display: none !important; }
     body { top: 0px !important; }
-    .goog-te-gadget { font-size: 0px !important; color: transparent !important; pointer-events: none !important; }
-    .goog-logo-link { display: none !important; pointer-events: none !important; }
-    .skiptranslate { display: none !important; pointer-events: none !important; }
-    .goog-te-spinner-pos { display: none !important; pointer-events: none !important; }
-    .goog-te-menu-frame { display: none !important; pointer-events: none !important; }
-    .goog-te-menu2 { display: none !important; pointer-events: none !important; }
-    #goog-gt-tt { display: none !important; pointer-events: none !important; }
-    .goog-te-balloon-frame { display: none !important; pointer-events: none !important; }
+    .goog-te-gadget { font-size: 0px !important; color: transparent !important; }
+    .goog-logo-link { display: none !important; }
+    .skiptranslate { display: none !important; }
+    /* 구글 번역 스피너 완전 숨김 */
+    .goog-te-spinner-pos { display: none !important; }
+    /* 🔧 2025-12-17: iOS Safari 지구본 아이콘 버그 수정 */
+    .goog-te-menu-frame { display: none !important; }
+    .goog-te-menu2 { display: none !important; }
+    #goog-gt-tt { display: none !important; }
+    .goog-te-balloon-frame { display: none !important; }
     .goog-text-highlight { background: none !important; box-shadow: none !important; }
-    iframe.goog-te-menu-frame { display: none !important; pointer-events: none !important; }
-    iframe.skiptranslate { display: none !important; pointer-events: none !important; }
-    [id^="goog-gt-"] { display: none !important; pointer-events: none !important; }
-    .goog-te-spinner { display: none !important; pointer-events: none !important; }
-    /* 🔧 2025-12-17: 모든 Google 관련 오버레이 완전 차단 */
-    [class*="goog-"] { pointer-events: none !important; }
-    #google_translate_element { pointer-events: none !important; }
+    /* Google Translate iframe 숨김 */
+    iframe.goog-te-menu-frame { display: none !important; }
+    iframe.skiptranslate { display: none !important; }
+    /* Google Translate 모든 고정 요소 숨김 */
+    [id^="goog-gt-"] { display: none !important; }
+    .goog-te-spinner { display: none !important; }
 </style>
 
 <!-- 커튼 효과 제거됨 (2025-12-07) -->
