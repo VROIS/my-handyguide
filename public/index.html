@@ -1487,10 +1487,27 @@
             });
         }
         
+        // 🔧 PWA standalone 모드 감지 (2025-12-17)
+        function isPWAMode() {
+            return window.matchMedia('(display-mode: standalone)').matches || 
+                   window.navigator.standalone === true ||
+                   document.referrer.includes('android-app://');
+        }
+        
         // 언어 선택 시 → googtrans 쿠키 설정 → 페이지 새로고침 (2025-12-08 스크롤 리스트)
-        // 🔧 2025-12-17: PWA 모드 터치 이벤트 지원 추가
+        // 🔧 2025-12-17: PWA 모드 터치 이벤트 지원 + 직접 페이지 전환
+        let isLanguageSelecting = false; // 중복 실행 방지 플래그
+        
         function handleLanguageSelect(item) {
+            // 중복 실행 방지
+            if (isLanguageSelecting) {
+                console.log('⚠️ 언어 선택 중복 호출 방지');
+                return;
+            }
+            isLanguageSelecting = true;
+            
             const selectedLang = item.getAttribute('data-value');
+            console.log('🌐 언어 선택:', selectedLang, 'PWA 모드:', isPWAMode());
             
             // 선택된 항목 하이라이트
             languageItems.forEach(i => i.classList.remove('selected'));
@@ -1499,6 +1516,22 @@
             // 언어 저장 (LanguageHelper + localStorage)
             LanguageHelper.setLanguage(selectedLang);
             
+            // 🔧 PWA 모드: reload() 대신 직접 페이지 전환
+            if (isPWAMode()) {
+                console.log('📱 PWA 모드 → 직접 페이지 전환');
+                
+                // 랜딩페이지 숨기고 기능페이지 표시
+                if (landingPage && featuresPage) {
+                    landingPage.classList.add('hidden');
+                    featuresPage.classList.add('visible');
+                }
+                
+                // 플래그 초기화 (다음 선택 허용)
+                setTimeout(() => { isLanguageSelecting = false; }, 500);
+                return;
+            }
+            
+            // 일반 브라우저: 기존 동작 유지
             // 랜딩페이지 방문 완료 표시 (새로고침 후 기능페이지로 이동하도록)
             localStorage.setItem('landingVisited', 'true');
             
@@ -1514,19 +1547,27 @@
         }
         
         languageItems.forEach(item => {
-            // 클릭 이벤트 (데스크톱 + 일부 모바일)
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleLanguageSelect(item);
-            });
+            let touchHandled = false; // 터치 후 클릭 중복 방지
             
-            // 터치 이벤트 (PWA 모드 + 모바일)
+            // 터치 이벤트 (모바일 우선)
             item.addEventListener('touchend', (e) => {
                 e.preventDefault();
-                e.stopPropagation();
+                touchHandled = true;
                 handleLanguageSelect(item);
+                
+                // 300ms 후 플래그 초기화
+                setTimeout(() => { touchHandled = false; }, 300);
             }, { passive: false });
+            
+            // 클릭 이벤트 (데스크톱 + 터치 후 클릭 방지)
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (touchHandled) {
+                    console.log('⚠️ 터치 후 클릭 무시');
+                    return;
+                }
+                handleLanguageSelect(item);
+            });
         });
     });
 </script>
