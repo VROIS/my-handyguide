@@ -1488,31 +1488,45 @@
         }
         
         // 언어 선택 시 → googtrans 쿠키 설정 → 페이지 새로고침 (2025-12-08 스크롤 리스트)
+        // 🔧 2025-12-17: PWA 모드 터치 이벤트 지원 추가
+        function handleLanguageSelect(item) {
+            const selectedLang = item.getAttribute('data-value');
+            
+            // 선택된 항목 하이라이트
+            languageItems.forEach(i => i.classList.remove('selected'));
+            item.classList.add('selected');
+            
+            // 언어 저장 (LanguageHelper + localStorage)
+            LanguageHelper.setLanguage(selectedLang);
+            
+            // 랜딩페이지 방문 완료 표시 (새로고침 후 기능페이지로 이동하도록)
+            localStorage.setItem('landingVisited', 'true');
+            
+            // 🔧 Google Translate 쿠키 설정 후 새로고침 (2025-12-07)
+            if (selectedLang !== 'ko') {
+                document.cookie = `googtrans=/ko/${selectedLang}; path=/`;
+                document.cookie = `googtrans=/ko/${selectedLang}; path=/; domain=${window.location.hostname}`;
+                console.log('🌐 Google Translate 쿠키 설정:', selectedLang);
+            }
+            
+            // 페이지 새로고침으로 번역 적용
+            window.location.reload();
+        }
+        
         languageItems.forEach(item => {
+            // 클릭 이벤트 (데스크톱 + 일부 모바일)
             item.addEventListener('click', (e) => {
+                e.preventDefault();
                 e.stopPropagation();
-                const selectedLang = item.getAttribute('data-value');
-                
-                // 선택된 항목 하이라이트
-                languageItems.forEach(i => i.classList.remove('selected'));
-                item.classList.add('selected');
-                
-                // 언어 저장 (LanguageHelper + localStorage)
-                LanguageHelper.setLanguage(selectedLang);
-                
-                // 랜딩페이지 방문 완료 표시 (새로고침 후 기능페이지로 이동하도록)
-                localStorage.setItem('landingVisited', 'true');
-                
-                // 🔧 Google Translate 쿠키 설정 후 새로고침 (2025-12-07)
-                if (selectedLang !== 'ko') {
-                    document.cookie = `googtrans=/ko/${selectedLang}; path=/`;
-                    document.cookie = `googtrans=/ko/${selectedLang}; path=/; domain=${window.location.hostname}`;
-                    console.log('🌐 Google Translate 쿠키 설정:', selectedLang);
-                }
-                
-                // 페이지 새로고침으로 번역 적용
-                window.location.reload();
+                handleLanguageSelect(item);
             });
+            
+            // 터치 이벤트 (PWA 모드 + 모바일)
+            item.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                handleLanguageSelect(item);
+            }, { passive: false });
         });
     });
 </script>
