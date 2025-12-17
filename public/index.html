@@ -1498,9 +1498,14 @@
         }
         
         // 🔧 2025-12-17: iOS PWA 터치 이벤트 완전 재작성
-        // 참고: iOS PWA에서 touchend 대신 touchstart + 짧은 딜레이 필요
+        let isProcessing = false; // 중복 실행 방지
+        
         function handleLanguageSelect(item) {
+            if (isProcessing) return; // 이미 처리 중이면 무시
+            isProcessing = true;
+            
             const selectedLang = item.getAttribute('data-value');
+            console.log('🎯 언어 선택됨:', selectedLang);
             
             // 선택된 항목 하이라이트
             languageItems.forEach(i => i.classList.remove('selected'));
@@ -1519,35 +1524,40 @@
                 console.log('🌐 Google Translate 쿠키 설정:', selectedLang);
             }
             
-            // 페이지 새로고침으로 번역 적용
+            // 🔧 iOS PWA: window.location.href 사용 (reload보다 안정적)
             setTimeout(function() {
-                window.location.reload();
-            }, 100);
+                window.location.href = window.location.origin + window.location.pathname;
+            }, 150);
         }
         
-        // 🔧 iOS PWA 이벤트 핸들러 등록 함수
+        // 🔧 iOS PWA 이벤트 핸들러 - 터치와 클릭 충돌 방지
         function attachLanguageHandlers() {
             languageItems.forEach(item => {
                 // 기존 핸들러 제거 (중복 방지)
                 item.removeEventListener('click', item._clickHandler);
-                item.removeEventListener('touchstart', item._touchHandler);
+                item.removeEventListener('touchend', item._touchHandler);
                 
-                // 클릭 핸들러
-                item._clickHandler = function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleLanguageSelect(item);
-                };
+                let touched = false;
                 
-                // 터치 핸들러 (iOS PWA용 - touchstart 사용)
+                // 터치 핸들러 (touchend 사용 - touchstart는 스크롤과 충돌)
                 item._touchHandler = function(e) {
-                    e.stopPropagation();
-                    // touchstart 시 즉시 처리
+                    touched = true;
+                    console.log('👆 터치 감지:', item.getAttribute('data-value'));
                     handleLanguageSelect(item);
                 };
                 
+                // 클릭 핸들러 (터치가 아닌 경우에만)
+                item._clickHandler = function(e) {
+                    if (touched) {
+                        touched = false;
+                        return; // 터치 후 클릭은 무시
+                    }
+                    console.log('🖱️ 클릭 감지:', item.getAttribute('data-value'));
+                    handleLanguageSelect(item);
+                };
+                
+                item.addEventListener('touchend', item._touchHandler);
                 item.addEventListener('click', item._clickHandler);
-                item.addEventListener('touchstart', item._touchHandler, { passive: true });
             });
             console.log('🔧 언어 선택 핸들러 등록 완료');
         }
