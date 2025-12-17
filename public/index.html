@@ -1600,27 +1600,26 @@
     }, 1000);
 </script>
 
-<!-- Google Translate CSS 숨김 + 스피너 우측 상단 -->
+<!-- Google Translate CSS 숨김 + 터치 차단 방지 -->
 <style>
-    .goog-te-banner-frame { display: none !important; }
+    .goog-te-banner-frame { display: none !important; pointer-events: none !important; }
     body { top: 0px !important; }
-    .goog-te-gadget { font-size: 0px !important; color: transparent !important; }
-    .goog-logo-link { display: none !important; }
-    .skiptranslate { display: none !important; }
-    /* 구글 번역 스피너 완전 숨김 */
-    .goog-te-spinner-pos { display: none !important; }
-    /* 🔧 2025-12-17: iOS Safari 지구본 아이콘 버그 수정 */
-    .goog-te-menu-frame { display: none !important; }
-    .goog-te-menu2 { display: none !important; }
-    #goog-gt-tt { display: none !important; }
-    .goog-te-balloon-frame { display: none !important; }
+    .goog-te-gadget { font-size: 0px !important; color: transparent !important; pointer-events: none !important; }
+    .goog-logo-link { display: none !important; pointer-events: none !important; }
+    .skiptranslate { display: none !important; pointer-events: none !important; }
+    .goog-te-spinner-pos { display: none !important; pointer-events: none !important; }
+    .goog-te-menu-frame { display: none !important; pointer-events: none !important; }
+    .goog-te-menu2 { display: none !important; pointer-events: none !important; }
+    #goog-gt-tt { display: none !important; pointer-events: none !important; }
+    .goog-te-balloon-frame { display: none !important; pointer-events: none !important; }
     .goog-text-highlight { background: none !important; box-shadow: none !important; }
-    /* Google Translate iframe 숨김 */
-    iframe.goog-te-menu-frame { display: none !important; }
-    iframe.skiptranslate { display: none !important; }
-    /* Google Translate 모든 고정 요소 숨김 */
-    [id^="goog-gt-"] { display: none !important; }
-    .goog-te-spinner { display: none !important; }
+    iframe.goog-te-menu-frame { display: none !important; pointer-events: none !important; }
+    iframe.skiptranslate { display: none !important; pointer-events: none !important; }
+    [id^="goog-gt-"] { display: none !important; pointer-events: none !important; }
+    .goog-te-spinner { display: none !important; pointer-events: none !important; }
+    /* 🔧 2025-12-17: 모든 Google 관련 오버레이 완전 차단 */
+    [class*="goog-"] { pointer-events: none !important; }
+    #google_translate_element { pointer-events: none !important; }
 </style>
 
 <!-- 커튼 효과 제거됨 (2025-12-07) -->
