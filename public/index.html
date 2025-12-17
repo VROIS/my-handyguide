@@ -426,6 +426,16 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            /* 🔧 2025-12-17: iOS PWA 터치 최적화 */
+            -webkit-tap-highlight-color: rgba(66, 133, 244, 0.3);
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation;
+        }
+        .language-item:active {
+            background-color: #dbeafe !important;
+            transform: scale(0.98);
         }
         .language-item:last-child {
             border-bottom: none;
@@ -1487,8 +1497,8 @@
             });
         }
         
-        // 언어 선택 시 → googtrans 쿠키 설정 → 페이지 새로고침 (2025-12-08 스크롤 리스트)
-        // 🔧 2025-12-17: PWA 모드 터치 이벤트 지원 추가
+        // 🔧 2025-12-17: iOS PWA 터치 이벤트 완전 재작성
+        // 참고: iOS PWA에서 touchend 대신 touchstart + 짧은 딜레이 필요
         function handleLanguageSelect(item) {
             const selectedLang = item.getAttribute('data-value');
             
@@ -1499,10 +1509,10 @@
             // 언어 저장 (LanguageHelper + localStorage)
             LanguageHelper.setLanguage(selectedLang);
             
-            // 랜딩페이지 방문 완료 표시 (새로고침 후 기능페이지로 이동하도록)
+            // 랜딩페이지 방문 완료 표시
             localStorage.setItem('landingVisited', 'true');
             
-            // 🔧 Google Translate 쿠키 설정 후 새로고침 (2025-12-07)
+            // Google Translate 쿠키 설정
             if (selectedLang !== 'ko') {
                 document.cookie = `googtrans=/ko/${selectedLang}; path=/`;
                 document.cookie = `googtrans=/ko/${selectedLang}; path=/; domain=${window.location.hostname}`;
@@ -1510,23 +1520,47 @@
             }
             
             // 페이지 새로고침으로 번역 적용
-            window.location.reload();
+            setTimeout(function() {
+                window.location.reload();
+            }, 100);
         }
         
-        languageItems.forEach(item => {
-            // 클릭 이벤트 (데스크톱 + 일부 모바일)
-            item.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleLanguageSelect(item);
+        // 🔧 iOS PWA 이벤트 핸들러 등록 함수
+        function attachLanguageHandlers() {
+            languageItems.forEach(item => {
+                // 기존 핸들러 제거 (중복 방지)
+                item.removeEventListener('click', item._clickHandler);
+                item.removeEventListener('touchstart', item._touchHandler);
+                
+                // 클릭 핸들러
+                item._clickHandler = function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleLanguageSelect(item);
+                };
+                
+                // 터치 핸들러 (iOS PWA용 - touchstart 사용)
+                item._touchHandler = function(e) {
+                    e.stopPropagation();
+                    // touchstart 시 즉시 처리
+                    handleLanguageSelect(item);
+                };
+                
+                item.addEventListener('click', item._clickHandler);
+                item.addEventListener('touchstart', item._touchHandler, { passive: true });
             });
-            
-            // 터치 이벤트 (PWA 모드 + 모바일)
-            item.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleLanguageSelect(item);
-            }, { passive: false });
+            console.log('🔧 언어 선택 핸들러 등록 완료');
+        }
+        
+        // 초기 등록
+        attachLanguageHandlers();
+        
+        // 🔧 iOS PWA: 앱 전환 후 핸들러 재등록
+        document.addEventListener('visibilitychange', function() {
+            if (!document.hidden) {
+                console.log('🔧 앱 복귀 → 핸들러 재등록');
+                attachLanguageHandlers();
+            }
         });
     });
 </script>
