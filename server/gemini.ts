@@ -69,7 +69,7 @@ Please provide accurate, helpful information that would be valuable for traveler
     ];
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.5-flash-preview-05-20",
       config: {
         systemInstruction: systemPrompt,
         responseMimeType: "application/json",
@@ -154,7 +154,7 @@ ${guideDescriptions}
 Create a compelling description that would entice people to explore these locations.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.5-flash-preview-05-20",
       contents: prompt,
     });
 
@@ -205,7 +205,7 @@ export async function generateCinematicPrompt(
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.5-flash-preview-05-20",
       config: {
         responseMimeType: "application/json",
         responseSchema: {
@@ -270,7 +270,7 @@ export async function optimizeAudioScript(
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash",
+      model: "gemini-2.5-flash-preview-05-20",
       contents: prompt
     });
     

@@ -294,7 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
        * - 압축 0.9 절대 유지!
        * - 현장 테스트가 벤치마크보다 중요!
        */
-      const model = 'gemini-2.5-flash'; // Final: Best multimodal + prompt adherence
+      const model = 'gemini-2.5-flash-preview-05-20'; // Upgraded: Better reasoning + speed
       const contents = { parts };
 
       const config: any = {
