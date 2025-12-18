@@ -483,6 +483,51 @@
                         </svg>
                         <h2 class="text-base font-semibold">언어 선택</h2>
                     </div>
+                    <!-- 🔧 2025-12-18: 즉시 실행 전역 함수 (iOS PWA onclick 지원) -->
+                    <script>
+                    // PWA 모드 감지
+                    window.isPWAMode = function() {
+                        return window.matchMedia('(display-mode: standalone)').matches || 
+                               window.navigator.standalone === true;
+                    };
+                    
+                    // 전역 언어 선택 함수 (onclick에서 호출)
+                    window.selectLanguage = function(lang) {
+                        console.log('🌍 selectLanguage 호출:', lang, 'PWA:', window.isPWAMode());
+                        
+                        // 시각적 피드백
+                        var items = document.querySelectorAll('.language-item');
+                        items.forEach(function(item) {
+                            item.classList.remove('selected');
+                            if (item.getAttribute('data-value') === lang) {
+                                item.classList.add('selected');
+                            }
+                        });
+                        
+                        // 언어 저장
+                        localStorage.setItem('appLanguage', lang);
+                        
+                        // PWA 모드: 직접 페이지 전환
+                        if (window.isPWAMode()) {
+                            console.log('📱 PWA → 직접 페이지 전환');
+                            var landing = document.getElementById('landingPage');
+                            var features = document.getElementById('featuresPage');
+                            if (landing && features) {
+                                landing.classList.add('hidden');
+                                features.classList.add('visible');
+                            }
+                            return;
+                        }
+                        
+                        // 일반 브라우저: 기존 동작
+                        localStorage.setItem('landingVisited', 'true');
+                        if (lang !== 'ko') {
+                            document.cookie = 'googtrans=/ko/' + lang + '; path=/';
+                            document.cookie = 'googtrans=/ko/' + lang + '; path=/; domain=' + window.location.hostname;
+                        }
+                        window.location.reload();
+                    };
+                    </script>
                     <!-- 고정 리스트 + 스크롤 (2025-12-08) -->
                     <div class="language-scroll-list notranslate" id="languageScrollList">
                         <div class="language-item selected" data-value="ko" data-testid="lang-ko" onclick="window.selectLanguage('ko')">🇰🇷 한국어</div>
