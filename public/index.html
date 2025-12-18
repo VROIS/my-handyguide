@@ -1580,43 +1580,109 @@
             window.location.reload();
         }
         
-        languageItems.forEach(item => {
-            let touchHandled = false; // 터치 후 클릭 중복 방지
+        // 🔧 2025-12-18: iOS PWA 터치 이벤트 소실 버그 대응
+        // Page Visibility API로 앱 복귀 시 이벤트 리스너 재등록
+        function attachLanguageEventListeners() {
+            console.log('🔄 언어 선택 이벤트 리스너 등록/재등록');
             
-            // 🔧 2025-12-18: iOS PWA 강화 - ontouchstart 직접 할당 + pointerup
-            // iOS PWA에서 addEventListener가 안 먹히는 경우 대비
-            item.ontouchstart = function(e) {
-                console.log('📱 ontouchstart 발생:', item.getAttribute('data-value'));
-                item.style.opacity = '0.7'; // 터치 피드백
-            };
-            
-            item.ontouchend = function(e) {
-                console.log('📱 ontouchend 발생:', item.getAttribute('data-value'));
-                e.preventDefault();
-                item.style.opacity = '1';
-                touchHandled = true;
-                handleLanguageSelect(item);
-                setTimeout(() => { touchHandled = false; }, 300);
-            };
-            
-            // pointerup 이벤트 (iOS Safari PWA 호환)
-            item.addEventListener('pointerup', (e) => {
-                console.log('👆 pointerup 발생:', item.getAttribute('data-value'));
-                if (touchHandled) return;
-                e.preventDefault();
-                handleLanguageSelect(item);
+            languageItems.forEach(item => {
+                // 기존 리스너 제거 (중복 방지)
+                item.onpointerdown = null;
+                item.onpointerup = null;
+                item.ontouchstart = null;
+                item.ontouchend = null;
+                item.onclick = null;
+                
+                let isProcessing = false;
+                
+                // 🔧 Pointer Events 사용 (iOS PWA에서 가장 안정적)
+                item.onpointerdown = function(e) {
+                    console.log('👇 pointerdown:', item.getAttribute('data-value'));
+                    item.style.opacity = '0.7';
+                    item.style.transform = 'scale(0.98)';
+                };
+                
+                item.onpointerup = function(e) {
+                    console.log('👆 pointerup:', item.getAttribute('data-value'));
+                    item.style.opacity = '1';
+                    item.style.transform = 'scale(1)';
+                    
+                    if (isProcessing) return;
+                    isProcessing = true;
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // 언어 선택 실행
+                    const lang = item.getAttribute('data-value');
+                    window.selectLanguage(lang);
+                    
+                    setTimeout(() => { isProcessing = false; }, 500);
+                };
+                
+                // 터치 이벤트 폴백 (pointer 미지원 시)
+                item.ontouchstart = function(e) {
+                    console.log('📱 touchstart:', item.getAttribute('data-value'));
+                    item.style.opacity = '0.7';
+                };
+                
+                item.ontouchend = function(e) {
+                    console.log('📱 touchend:', item.getAttribute('data-value'));
+                    item.style.opacity = '1';
+                    
+                    if (isProcessing) return;
+                    isProcessing = true;
+                    
+                    e.preventDefault();
+                    
+                    const lang = item.getAttribute('data-value');
+                    window.selectLanguage(lang);
+                    
+                    setTimeout(() => { isProcessing = false; }, 500);
+                };
+                
+                // 클릭 이벤트 폴백 (데스크톱)
+                item.onclick = function(e) {
+                    console.log('🖱️ click:', item.getAttribute('data-value'));
+                    
+                    if (isProcessing) return;
+                    isProcessing = true;
+                    
+                    e.preventDefault();
+                    
+                    const lang = item.getAttribute('data-value');
+                    window.selectLanguage(lang);
+                    
+                    setTimeout(() => { isProcessing = false; }, 500);
+                };
             });
-            
-            // 클릭 이벤트 (데스크톱 폴백)
-            item.addEventListener('click', (e) => {
-                console.log('🖱️ click 발생:', item.getAttribute('data-value'));
-                e.preventDefault();
-                if (touchHandled) {
-                    console.log('⚠️ 터치 후 클릭 무시');
-                    return;
-                }
-                handleLanguageSelect(item);
-            });
+        }
+        
+        // 초기 등록
+        attachLanguageEventListeners();
+        
+        // 🔧 Page Visibility API: 앱이 포그라운드로 돌아올 때 리스너 재등록
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                console.log('👁️ 앱 포그라운드 복귀 → 이벤트 리스너 재등록');
+                attachLanguageEventListeners();
+            }
+        });
+        
+        // pageshow 이벤트 (iOS Safari PWA 추가 대응)
+        window.addEventListener('pageshow', (event) => {
+            console.log('📄 pageshow 이벤트, persisted:', event.persisted);
+            if (event.persisted || isPWAMode()) {
+                attachLanguageEventListeners();
+            }
+        });
+        
+        // focus 이벤트 (추가 안전장치)
+        window.addEventListener('focus', () => {
+            if (isPWAMode()) {
+                console.log('🎯 window focus → PWA 이벤트 리스너 재등록');
+                attachLanguageEventListeners();
+            }
         });
     });
 </script>
