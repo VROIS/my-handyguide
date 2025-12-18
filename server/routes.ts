@@ -294,7 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
        * - 압축 0.9 절대 유지!
        * - 현장 테스트가 벤치마크보다 중요!
        */
-      const model = 'gemini-3-flash'; // Gemini 3 Flash - Released Dec 17, 2025
+      const model = 'gemini-3-flash-preview'; // Gemini 3 Flash Preview - Released Dec 17, 2025
       const contents = { parts };
 
       const config: any = {
