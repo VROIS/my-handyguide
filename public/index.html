@@ -485,13 +485,13 @@
                     </div>
                     <!-- 고정 리스트 + 스크롤 (2025-12-08) -->
                     <div class="language-scroll-list notranslate" id="languageScrollList">
-                        <div class="language-item selected" data-value="ko" data-testid="lang-ko">🇰🇷 한국어</div>
-                        <div class="language-item" data-value="en" data-testid="lang-en">🇺🇸 English</div>
-                        <div class="language-item" data-value="fr" data-testid="lang-fr">🇫🇷 Français</div>
-                        <div class="language-item" data-value="zh-CN" data-testid="lang-zh">🇨🇳 中文 (简体)</div>
-                        <div class="language-item" data-value="ja" data-testid="lang-ja">🇯🇵 日本語</div>
-                        <div class="language-item" data-value="es" data-testid="lang-es">🇪🇸 Español</div>
-                        <div class="language-item" data-value="de" data-testid="lang-de">🇩🇪 Deutsch</div>
+                        <div class="language-item selected" data-value="ko" data-testid="lang-ko" onclick="window.selectLanguage('ko')">🇰🇷 한국어</div>
+                        <div class="language-item" data-value="en" data-testid="lang-en" onclick="window.selectLanguage('en')">🇺🇸 English</div>
+                        <div class="language-item" data-value="fr" data-testid="lang-fr" onclick="window.selectLanguage('fr')">🇫🇷 Français</div>
+                        <div class="language-item" data-value="zh-CN" data-testid="lang-zh" onclick="window.selectLanguage('zh-CN')">🇨🇳 中文 (简体)</div>
+                        <div class="language-item" data-value="ja" data-testid="lang-ja" onclick="window.selectLanguage('ja')">🇯🇵 日本語</div>
+                        <div class="language-item" data-value="es" data-testid="lang-es" onclick="window.selectLanguage('es')">🇪🇸 Español</div>
+                        <div class="language-item" data-value="de" data-testid="lang-de" onclick="window.selectLanguage('de')">🇩🇪 Deutsch</div>
                     </div>
                 </div>
             </div>
@@ -1494,6 +1494,40 @@
                    document.referrer.includes('android-app://');
         }
         
+        // 🔧 2025-12-18: 전역 언어 선택 함수 (onclick 속성용 - iOS PWA 최종 폴백)
+        window.selectLanguage = function(lang) {
+            console.log('🌍 window.selectLanguage 호출:', lang, 'PWA:', isPWAMode());
+            
+            // 선택된 항목 하이라이트
+            languageItems.forEach(i => {
+                i.classList.remove('selected');
+                if (i.getAttribute('data-value') === lang) {
+                    i.classList.add('selected');
+                }
+            });
+            
+            // 언어 저장
+            LanguageHelper.setLanguage(lang);
+            
+            // PWA 모드: 직접 페이지 전환
+            if (isPWAMode()) {
+                console.log('📱 PWA 모드 → 직접 페이지 전환');
+                if (landingPage && featuresPage) {
+                    landingPage.classList.add('hidden');
+                    featuresPage.classList.add('visible');
+                }
+                return;
+            }
+            
+            // 일반 브라우저: 기존 동작
+            localStorage.setItem('landingVisited', 'true');
+            if (lang !== 'ko') {
+                document.cookie = `googtrans=/ko/${lang}; path=/`;
+                document.cookie = `googtrans=/ko/${lang}; path=/; domain=${window.location.hostname}`;
+            }
+            window.location.reload();
+        };
+        
         // 언어 선택 시 → googtrans 쿠키 설정 → 페이지 새로고침 (2025-12-08 스크롤 리스트)
         // 🔧 2025-12-17: PWA 모드 터치 이벤트 지원 + 직접 페이지 전환
         let isLanguageSelecting = false; // 중복 실행 방지 플래그
@@ -1549,18 +1583,33 @@
         languageItems.forEach(item => {
             let touchHandled = false; // 터치 후 클릭 중복 방지
             
-            // 터치 이벤트 (모바일 우선)
-            item.addEventListener('touchend', (e) => {
+            // 🔧 2025-12-18: iOS PWA 강화 - ontouchstart 직접 할당 + pointerup
+            // iOS PWA에서 addEventListener가 안 먹히는 경우 대비
+            item.ontouchstart = function(e) {
+                console.log('📱 ontouchstart 발생:', item.getAttribute('data-value'));
+                item.style.opacity = '0.7'; // 터치 피드백
+            };
+            
+            item.ontouchend = function(e) {
+                console.log('📱 ontouchend 발생:', item.getAttribute('data-value'));
                 e.preventDefault();
+                item.style.opacity = '1';
                 touchHandled = true;
                 handleLanguageSelect(item);
-                
-                // 300ms 후 플래그 초기화
                 setTimeout(() => { touchHandled = false; }, 300);
-            }, { passive: false });
+            };
             
-            // 클릭 이벤트 (데스크톱 + 터치 후 클릭 방지)
+            // pointerup 이벤트 (iOS Safari PWA 호환)
+            item.addEventListener('pointerup', (e) => {
+                console.log('👆 pointerup 발생:', item.getAttribute('data-value'));
+                if (touchHandled) return;
+                e.preventDefault();
+                handleLanguageSelect(item);
+            });
+            
+            // 클릭 이벤트 (데스크톱 폴백)
             item.addEventListener('click', (e) => {
+                console.log('🖱️ click 발생:', item.getAttribute('data-value'));
                 e.preventDefault();
                 if (touchHandled) {
                     console.log('⚠️ 터치 후 클릭 무시');
