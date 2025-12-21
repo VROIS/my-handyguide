@@ -1,4 +1,5 @@
 // utils/imageOptimizer.js
+// 🔧 2025-12-21: iOS PWA 호환성을 위해 ES module → 전역 객체 변경
 
 /**
  * ⚡ 이미지 압축 최적화 로직 - AI Agent (2025-10-07)
@@ -29,7 +30,7 @@
  * @param {number} maxHeight 결과 이미지의 최대 높이입니다.
  * @returns {Promise<string>} 리사이즈된 이미지의 데이터 URL을 포함하는 Promise를 반환합니다.
  */
-export function optimizeImage(dataUrl, maxWidth = 1024, maxHeight = 1024) {
+window.optimizeImage = function(dataUrl, maxWidth = 1024, maxHeight = 1024) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.onload = () => {

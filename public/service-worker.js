@@ -1,7 +1,7 @@
 // service-worker.js
 
-const CACHE_NAME = 'travel-assistant-cache-v15';
-const API_CACHE_NAME = 'travel-assistant-api-cache-v15';
+const CACHE_NAME = 'travel-assistant-cache-v16';
+const API_CACHE_NAME = 'travel-assistant-api-cache-v16';
 const urlsToCache = [
   // 🔧 2025-12-17: HTML 캐싱 제거 (수정사항 즉시 반영)
   // '/',

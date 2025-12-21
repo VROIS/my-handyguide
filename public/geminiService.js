@@ -1,4 +1,5 @@
 // geminiservice.js
+// 🔧 2025-12-21: iOS PWA 호환성을 위해 ES module → 전역 객체 변경
 
 /**
  * ⚡ 프롬프트 최종 결론 - AI Agent (2025-10-07)
@@ -25,7 +26,10 @@
  * - Flash-Lite vs Pro 프롬프트 준수도 차이 있음
  * - 순서 강제 문구 필수!
  */
-export const DEFAULT_IMAGE_PROMPT = `당신은 세계 최고의 여행 예능 방송 진행자이자, 역사와 문화 해설 전문가입니다. 제공된 이미지(미술 작품, 건축/풍경, 음식 중 택일)를 분석하여, 다음 지침에 따라 한국어 나레이션 스크립트를 작성해야 합니다.
+
+window.gemini = window.gemini || {};
+
+window.gemini.DEFAULT_IMAGE_PROMPT = `당신은 세계 최고의 여행 예능 방송 진행자이자, 역사와 문화 해설 전문가입니다. 제공된 이미지(미술 작품, 건축/풍경, 음식 중 택일)를 분석하여, 다음 지침에 따라 한국어 나레이션 스크립트를 작성해야 합니다.
 
 [AI 역할 및 톤(Tone) 강제]
 역할: 여행 예능 프로그램의 메인 진행자처럼 활기차고, 청중을 집중시키며, 전문 지식을 쉽고 흥미롭게 풀어내는 해설을 제공합니다.
@@ -46,7 +50,7 @@ export const DEFAULT_IMAGE_PROMPT = `당신은 세계 최고의 여행 예능 �
 건축/풍경: 명칭, 역사적 의의, 건축 양식을 명시한 후, 핵심 특징, 방문자에게 유용한 사진 촬영 팁을 재미있게 전달합니다.
 음식: 음식명, 유래, 맛의 특징을 명시한 후, 식재료 특징, 추천하는 섭취 방법/음료, 술을 제안합니다.`;
 
-export const DEFAULT_TEXT_PROMPT = `당신은 세계 최고의 여행 가이드 도슨트입니다. 사용자의 질문에 한국어로 전문적으로 답변해주세요.
+window.gemini.DEFAULT_TEXT_PROMPT = `당신은 세계 최고의 여행 가이드 도슨트입니다. 사용자의 질문에 한국어로 전문적으로 답변해주세요.
 
 **[중요] 답변 구조:**
 1. **비화/가격 정보로 시작** - 흥미로운 뒷이야기나 실용 정보로 시작
@@ -135,8 +139,8 @@ function getLanguageInstruction() {
  * @param {string} base64Image - Base64로 인코딩된 이미지 데이터
  * @returns {AsyncGenerator&lt;object, void, unknown&gt;} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
  */
-export function generateDescriptionStream(base64Image) {
-    const baseInstruction = localStorage.getItem('customImagePrompt') || DEFAULT_IMAGE_PROMPT;
+window.gemini.generateDescriptionStream = function(base64Image) {
+    const baseInstruction = localStorage.getItem('customImagePrompt') || window.gemini.DEFAULT_IMAGE_PROMPT;
     const langInstruction = getLanguageInstruction();
     const systemInstruction = baseInstruction + langInstruction;
     
@@ -160,8 +164,8 @@ export function generateDescriptionStream(base64Image) {
  * @param {string} prompt - 사용자의 텍스트 질문
  * @returns {AsyncGenerator&lt;object, void, unknown&gt;} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
  */
-export function generateTextStream(prompt) {
-    const baseInstruction = localStorage.getItem('customTextPrompt') || DEFAULT_TEXT_PROMPT;
+window.gemini.generateTextStream = function(prompt) {
+    const baseInstruction = localStorage.getItem('customTextPrompt') || window.gemini.DEFAULT_TEXT_PROMPT;
     const langInstruction = getLanguageInstruction();
     const systemInstruction = baseInstruction + langInstruction;
     

@@ -1,6 +1,7 @@
-// Import services and utils from the root directory
-import * as gemini from './geminiService.js';
-import { optimizeImage } from './imageOptimizer.js';
+// 🔧 2025-12-21: iOS PWA 호환성을 위해 ES module imports 제거
+// gemini와 optimizeImage는 전역 객체로 사용 (window.gemini, window.optimizeImage)
+const gemini = window.gemini;
+const optimizeImage = window.optimizeImage;
 
 document.addEventListener('DOMContentLoaded', () => {
     // 🌐 언어 선택 바인딩 (admin-settings.html과 동일)
