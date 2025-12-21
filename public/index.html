@@ -685,7 +685,7 @@
     <div id="infographicModal" class="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center hidden" data-testid="modal-infographic">
         <div class="relative w-full h-full flex items-center justify-center p-4">
             <!-- 닫기 버튼 -->
-            <button id="closeInfographicModalBtn" data-testid="button-close-infographic-modal" class="absolute top-4 right-4 z-10 p-3 bg-white/20 hover:bg-white/40 rounded-full text-white transition duration-300">
+            <button id="closeInfographicModalBtn" data-testid="button-close-infographic-modal" class="absolute top-4 right-4 z-10 p-3 bg-white/20 hover:bg-white/40 rounded-full text-white transition duration-300" onclick="var m=document.getElementById('infographicModal'); if(m) m.classList.add('hidden')">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -699,7 +699,7 @@
     <div id="videoModal" class="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm flex items-center justify-center hidden" data-testid="modal-video">
         <div class="relative w-full h-full flex items-center justify-center p-4">
             <!-- 닫기 버튼 -->
-            <button id="closeVideoModalBtn" data-testid="button-close-video-modal" class="absolute top-4 right-4 z-10 p-3 bg-white/20 hover:bg-white/40 rounded-full text-white transition duration-300">
+            <button id="closeVideoModalBtn" data-testid="button-close-video-modal" class="absolute top-4 right-4 z-10 p-3 bg-white/20 hover:bg-white/40 rounded-full text-white transition duration-300" onclick="var m=document.getElementById('videoModal'); var v=document.getElementById('featureVideo'); if(m) m.classList.add('hidden'); if(v) v.pause()">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -720,7 +720,7 @@
                 <div class="container mx-auto px-6 text-center">
                     <div class="grid md:grid-cols-3 gap-6">
                         <!-- Feature 1: Guidebook (기존 3번 → 1번) - 클릭 시 인포그래픽 모달 -->
-                        <div id="featureCard1" data-testid="card-feature-1" class="bg-gray-50 p-6 rounded-xl shadow-lg transform hover:-translate-y-2 transition duration-300 cursor-pointer">
+                        <div id="featureCard1" data-testid="card-feature-1" class="bg-gray-50 p-6 rounded-xl shadow-lg transform hover:-translate-y-2 transition duration-300 cursor-pointer" onclick="window.openInfoModal && window.openInfoModal()">
                             <div class="bg-blue-100 text-blue-600 rounded-full w-14 h-14 flex items-center justify-center mx-auto mb-4">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -731,7 +731,7 @@
                             <p class="text-blue-500 text-xs mt-2 flex items-center justify-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>자세히 보기</p>
                         </div>
                         <!-- Feature 2: Image Recognition (메인 - 중앙) - 클릭 시 동영상 모달 -->
-                        <div id="featureCard2" data-testid="card-feature-2" class="bg-gray-50 p-6 rounded-xl shadow-lg transform hover:-translate-y-2 transition duration-300 cursor-pointer">
+                        <div id="featureCard2" data-testid="card-feature-2" class="bg-gray-50 p-6 rounded-xl shadow-lg transform hover:-translate-y-2 transition duration-300 cursor-pointer" onclick="window.openVideoModal && window.openVideoModal()">
                             <div class="bg-blue-100 text-blue-600 rounded-full w-14 h-14 flex items-center justify-center mx-auto mb-4">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                             </div>
@@ -804,6 +804,30 @@
                          main.classList.remove('hidden');
                      }
                  };
+                 
+                 // 🔧 2025-12-21: 모달 폴백 함수 (index.js 로드 전 작동)
+                 if (!window.openInfoModal) {
+                     window.openInfoModal = function() {
+                         console.log('📋 openInfoModal 폴백');
+                         var modal = document.getElementById('infographicModal');
+                         var img = document.getElementById('infographicImage');
+                         if (modal && img) {
+                             img.src = '/images/infographic-feature1.png';
+                             modal.classList.remove('hidden');
+                         }
+                     };
+                 }
+                 if (!window.openVideoModal) {
+                     window.openVideoModal = function() {
+                         console.log('🎬 openVideoModal 폴백');
+                         var modal = document.getElementById('videoModal');
+                         var video = document.getElementById('featureVideo');
+                         if (modal && video) {
+                             modal.classList.remove('hidden');
+                             video.play().catch(function(e) { console.log('Video error:', e); });
+                         }
+                     };
+                 }
                  </script>
             </div>
         </footer>

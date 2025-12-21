@@ -1885,6 +1885,14 @@ document.addEventListener('DOMContentLoaded', () => {
         openVideoModal();
     });
     
+    // 🔧 2025-12-21: iOS PWA용 전역 모달 함수 (onclick 핸들러에서 호출)
+    window.openInfoModal = function() {
+        openInfographicModal('/images/infographic-feature1.png');
+    };
+    window.openVideoModal = openVideoModal;
+    window.closeInfoModal = closeInfographicModal;
+    window.closeVideoModal = closeVideoModal;
+    
     // 프로필 버튼 클릭 → 읽지 않은 알림이 있으면 모달 먼저, 없으면 바로 프로필 페이지
     profileBtn?.addEventListener('click', async () => {
         const user = await checkUserAuth();
