@@ -797,11 +797,17 @@
                      var landing = document.getElementById('landingPage');
                      var features = document.getElementById('featuresPage');
                      var main = document.getElementById('mainPage');
-                     if (landing) landing.classList.add('hidden');
-                     if (features) features.classList.remove('visible');
+                     if (landing) {
+                         landing.classList.add('hidden');
+                         landing.classList.remove('visible');
+                     }
+                     if (features) {
+                         features.classList.add('hidden');
+                         features.classList.remove('visible');
+                     }
                      if (main) {
-                         main.style.display = 'flex';
                          main.classList.remove('hidden');
+                         main.classList.add('visible');
                      }
                  };
                  
@@ -814,6 +820,7 @@
                          if (modal && img) {
                              img.src = '/images/infographic-feature1.png';
                              modal.classList.remove('hidden');
+                             document.body.style.overflow = 'hidden';
                          }
                      };
                  }
@@ -824,6 +831,7 @@
                          var video = document.getElementById('featureVideo');
                          if (modal && video) {
                              modal.classList.remove('hidden');
+                             document.body.style.overflow = 'hidden';
                              video.play().catch(function(e) { console.log('Video error:', e); });
                          }
                      };
