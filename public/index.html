@@ -787,9 +787,24 @@
         <footer class="footer-safe-area bg-white/95 backdrop-blur-sm border-t border-gray-200/80" style="height: auto;">
             <div class="text-center w-full px-6 py-4">
                  <p class="text-sm text-gray-700 max-w-3xl mx-auto mb-3">여러분의 눈과 귀가 되어줄 <strong>'손안에 가이드'</strong>가 지금 바로 당신을 기다립니다.</p>
-                 <button id="startCameraFromFeaturesBtn" class="cta-button text-white font-bold py-3 px-10 rounded-full transition duration-300 inline-block text-lg shadow-lg transform hover:scale-105" onclick="window.handleStartFromFeatures && window.handleStartFromFeatures()">
+                 <button id="startCameraFromFeaturesBtn" class="cta-button text-white font-bold py-3 px-10 rounded-full transition duration-300 inline-block text-lg shadow-lg transform hover:scale-105" onclick="window.handleStartFromFeatures ? window.handleStartFromFeatures() : window.fallbackStart()">
                     바로 시작하기
                 </button>
+                 <script>
+                 // 🔧 2025-12-21: iOS PWA 폴백 (index.js 로드 전에도 작동)
+                 window.fallbackStart = function() {
+                     console.log('🚨 fallbackStart 실행 (index.js 아직 로드 안됨)');
+                     var landing = document.getElementById('landingPage');
+                     var features = document.getElementById('featuresPage');
+                     var main = document.getElementById('mainPage');
+                     if (landing) landing.classList.add('hidden');
+                     if (features) features.classList.remove('visible');
+                     if (main) {
+                         main.style.display = 'flex';
+                         main.classList.remove('hidden');
+                     }
+                 };
+                 </script>
             </div>
         </footer>
     </div>
@@ -1842,5 +1857,49 @@
 </style>
 
 <!-- 커튼 효과 제거됨 (2025-12-07) -->
+
+<!-- 🔧 2025-12-21: iOS PWA 디버그 - index.js 로딩 확인 -->
+<script>
+(function() {
+    var debugMode = new URLSearchParams(window.location.search).get('debug') === '1';
+    
+    // 3초 후 index.js 로딩 확인
+    setTimeout(function() {
+        var jsLoaded = typeof window.handleStartFromFeatures === 'function';
+        console.log('📱 PWA 진단:', {
+            isPWA: window.isPWAMode ? window.isPWAMode() : 'unknown',
+            indexJsLoaded: jsLoaded,
+            handleStartFromFeatures: typeof window.handleStartFromFeatures
+        });
+        
+        if (debugMode) {
+            var debugEl = document.getElementById('pwa-debug-log');
+            if (!debugEl) {
+                debugEl = document.createElement('div');
+                debugEl.id = 'pwa-debug-log';
+                debugEl.style.cssText = 'position:fixed;top:0;left:0;right:0;background:rgba(0,0,0,0.9);color:#0f0;font-size:10px;padding:4px;max-height:80px;overflow-y:auto;z-index:99999;font-family:monospace;pointer-events:none;';
+                document.body.appendChild(debugEl);
+            }
+            debugEl.innerHTML = 'JS로드:' + jsLoaded + ' PWA:' + (window.isPWAMode ? window.isPWAMode() : '?') + '<br>' + debugEl.innerHTML;
+        }
+        
+        // index.js가 로드되지 않았으면 폴백 함수 정의
+        if (!jsLoaded) {
+            console.warn('⚠️ index.js 로드 실패 - 폴백 함수 정의');
+            window.handleStartFromFeatures = function() {
+                console.log('🚨 폴백 handleStartFromFeatures 실행');
+                var landing = document.getElementById('landingPage');
+                var features = document.getElementById('featuresPage');
+                var main = document.getElementById('mainPage');
+                if (landing) landing.classList.add('hidden');
+                if (features) features.classList.remove('visible');
+                if (main) main.style.display = 'flex';
+                // 간단한 카메라 시작 시도
+                alert('앱을 다시 설치해주세요. 설정 > Safari > 방문 기록 및 웹 사이트 데이터 지우기 후 홈화면에 다시 추가하세요.');
+            };
+        }
+    }, 3000);
+})();
+</script>
 </body>
 </html>
