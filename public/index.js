@@ -3,6 +3,10 @@
 const gemini = window.gemini;
 const optimizeImage = window.optimizeImage;
 
+// 🔧 index.js 로드 확인용 플래그
+window.__indexJsLoaded = true;
+console.log('✅ index.js 로드 완료');
+
 document.addEventListener('DOMContentLoaded', () => {
     // 🌐 언어 선택 바인딩 (admin-settings.html과 동일)
     LanguageHelper.bindLanguageSelect('languageSelect');
@@ -2112,6 +2116,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
         mainLoader.classList.remove('hidden');
     
+        // 🔧 2025-12-21: iOS PWA에서도 버튼 먼저 활성화
+        [uploadBtn, archiveBtn].forEach(btn => {
+            if (btn) btn.disabled = false;
+        });
+        
         try {
             if (!stream) {
                 await startCamera();
@@ -2123,9 +2132,8 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error(`Initialization error: ${error.message}`);
             console.log('⚠️ 카메라 초기화 실패, 업로드 기능은 사용 가능합니다.');
-            showToast("카메라를 시작할 수 없습니다. 업로드 기능을 사용해주세요.");
-            // ✅ 수정: 카메라 실패해도 메인 페이지 유지 (업로드 기능은 사용 가능)
-            // showPage(featuresPage); ← 제거됨
+            // 🔧 iOS PWA: 카메라 실패해도 업로드/보관함 버튼은 이미 활성화됨
+            showToast("카메라를 시작할 수 없습니다. 갤러리 업로드를 사용해주세요.");
         } finally {
             mainLoader.classList.add('hidden');
         }
