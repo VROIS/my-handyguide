@@ -34,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const startCameraFromFeaturesBtn = document.getElementById('startCameraFromFeaturesBtn');
 
     // Main Page Elements
-    const cameraStartOverlay = document.getElementById('cameraStartOverlay');
     const mainLoader = document.getElementById('mainLoader');
     const mainFooter = mainPage.querySelector('.footer-safe-area');
     const shootBtn = document.getElementById('shootBtn');
@@ -1512,7 +1511,6 @@ document.addEventListener('DOMContentLoaded', () => {
         showPage(mainPage);
 
         detailPage.classList.remove('bg-friendly');
-        cameraStartOverlay.classList.add('hidden');
         mainFooter.classList.remove('hidden');
 
         // 카메라 상태 복원 (Featured 페이지에서 돌아온 경우)
@@ -2104,7 +2102,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleStartFeaturesClick() {
         console.log('🚀 handleStartFeaturesClick 호출됨');
         showPage(mainPage);
-        cameraStartOverlay.classList.add('hidden');
     
         if (synth && !synth.speaking) {
             const unlockUtterance = new SpeechSynthesisUtterance('');
