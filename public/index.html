@@ -1565,12 +1565,36 @@
                 }
             });
             
-            // 언어 저장
-            LanguageHelper.setLanguage(lang);
-            showDebugLog(`✅ 언어 저장 완료: ${lang}`);
+            // 언어 저장 (try-catch로 에러 감지)
+            try {
+                showDebugLog(`🔍 LanguageHelper 존재: ${typeof LanguageHelper}`);
+                if (typeof LanguageHelper !== 'undefined' && LanguageHelper.setLanguage) {
+                    LanguageHelper.setLanguage(lang);
+                    showDebugLog(`✅ 언어 저장 완료: ${lang}`);
+                } else {
+                    // LanguageHelper 없으면 직접 저장
+                    showDebugLog(`⚠️ LanguageHelper 없음 → 직접 저장`);
+                    localStorage.setItem('appLanguage', lang);
+                }
+            } catch (err) {
+                showDebugLog(`❌ LanguageHelper 에러: ${err.message}`);
+                // 에러나도 직접 저장 시도
+                try {
+                    localStorage.setItem('appLanguage', lang);
+                    showDebugLog(`✅ 직접 localStorage 저장 성공`);
+                } catch (e2) {
+                    showDebugLog(`❌ 직접 저장도 실패: ${e2.message}`);
+                }
+            }
             
             // 🔧 2025-12-21: PWA 모드에서도 reload() 허용 (Google Translate 적용 위해)
-            localStorage.setItem('landingVisited', 'true');
+            try {
+                localStorage.setItem('landingVisited', 'true');
+                showDebugLog(`✅ localStorage 저장 완료`);
+            } catch (err) {
+                showDebugLog(`❌ localStorage 에러: ${err.message}`);
+            }
+            
             if (lang !== 'ko') {
                 document.cookie = `googtrans=/ko/${lang}; path=/`;
                 document.cookie = `googtrans=/ko/${lang}; path=/; domain=${window.location.hostname}`;
@@ -1578,9 +1602,14 @@
             }
             
             showDebugLog(`🔄 reload() 호출 예정...`);
-            setTimeout(() => {
-                window.location.reload();
-            }, 300);
+            try {
+                setTimeout(() => {
+                    showDebugLog(`🔄 reload() 실행!`);
+                    window.location.reload();
+                }, 500);
+            } catch (err) {
+                showDebugLog(`❌ reload 에러: ${err.message}`);
+            }
         };
         
         // 언어 선택 시 → googtrans 쿠키 설정 → 페이지 새로고침 (2025-12-08 스크롤 리스트)
