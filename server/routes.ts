@@ -294,7 +294,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
        * - 압축 0.9 절대 유지!
        * - 현장 테스트가 벤치마크보다 중요!
        */
-      const model = 'gemini-3-flash-preview'; // Gemini 3 Flash Preview - Released Dec 17, 2025
+      // 🔄 Gemini 모델 우선순위 (Preview 실패 시 Fallback)
+      const GEMINI_MODELS = [
+        'gemini-3-flash-preview',  // 1순위: Gemini 3 Flash Preview (Dec 17, 2025)
+        'gemini-2.5-flash'         // 2순위: Fallback - 안정 버전
+      ];
+      
       const contents = { parts };
 
       const config: any = {
@@ -308,14 +313,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       };
 
-      console.log("Gemini API(스트리밍)로 전송할 요청 본문:", JSON.stringify({ model, contents, config }));
+      // 🔄 Fallback 로직: 첫 번째 모델 실패 시 다음 모델 시도
+      let responseStream = null;
+      let usedModel = '';
+      
+      for (const model of GEMINI_MODELS) {
+        try {
+          console.log(`🤖 Gemini API 시도: ${model}`);
+          responseStream = await ai.models.generateContentStream({ model, contents, config });
+          usedModel = model;
+          console.log(`✅ Gemini API 성공: ${model}`);
+          break; // 성공하면 루프 종료
+        } catch (modelError: any) {
+          console.warn(`⚠️ ${model} 실패:`, modelError?.message || modelError);
+          if (model === GEMINI_MODELS[GEMINI_MODELS.length - 1]) {
+            // 마지막 모델도 실패하면 에러 throw
+            throw modelError;
+          }
+          // 다음 모델 시도
+          continue;
+        }
+      }
 
-      // Generate streaming response
-      const responseStream = await ai.models.generateContentStream({ model, contents, config });
+      if (!responseStream) {
+        throw new Error('모든 Gemini 모델 호출 실패');
+      }
 
       // Set up streaming response
       res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       res.setHeader('Transfer-Encoding', 'chunked');
+      res.setHeader('X-Gemini-Model', usedModel); // 디버깅용: 사용된 모델 정보
 
       // Stream the response
       for await (const chunk of responseStream) {
@@ -328,7 +355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.end();
 
     } catch (error) {
-      console.error("Gemini API 오류:", error);
+      console.error("Gemini API 오류 (모든 모델 실패):", error);
       res.status(500).json({ error: `AI 통신 중 오류: ${error}` });
     }
   });
