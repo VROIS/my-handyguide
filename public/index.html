@@ -1540,12 +1540,17 @@
         }
         
         // 🔧 2025-12-21: 화면 디버그 로그 (iOS PWA 터치 이벤트 확인용)
+        // ⚠️ 디버그 모드: URL에 ?debug=1 추가 시에만 표시
+        const isDebugMode = new URLSearchParams(window.location.search).get('debug') === '1';
+        
         function showDebugLog(msg) {
+            if (!isDebugMode) return; // 디버그 모드가 아니면 무시
+            
             let debugEl = document.getElementById('pwa-debug-log');
             if (!debugEl) {
                 debugEl = document.createElement('div');
                 debugEl.id = 'pwa-debug-log';
-                debugEl.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.9);color:#0f0;font-size:12px;padding:8px;max-height:150px;overflow-y:auto;z-index:99999;font-family:monospace;';
+                debugEl.style.cssText = 'position:fixed;top:0;left:0;right:0;background:rgba(0,0,0,0.9);color:#0f0;font-size:10px;padding:4px;max-height:80px;overflow-y:auto;z-index:99999;font-family:monospace;pointer-events:none;';
                 document.body.appendChild(debugEl);
             }
             const time = new Date().toLocaleTimeString();
