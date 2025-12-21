@@ -1539,8 +1539,22 @@
                    document.referrer.includes('android-app://');
         }
         
+        // 🔧 2025-12-21: 화면 디버그 로그 (iOS PWA 터치 이벤트 확인용)
+        function showDebugLog(msg) {
+            let debugEl = document.getElementById('pwa-debug-log');
+            if (!debugEl) {
+                debugEl = document.createElement('div');
+                debugEl.id = 'pwa-debug-log';
+                debugEl.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:rgba(0,0,0,0.9);color:#0f0;font-size:12px;padding:8px;max-height:150px;overflow-y:auto;z-index:99999;font-family:monospace;';
+                document.body.appendChild(debugEl);
+            }
+            const time = new Date().toLocaleTimeString();
+            debugEl.innerHTML = `[${time}] ${msg}<br>` + debugEl.innerHTML;
+        }
+        
         // 🔧 2025-12-18: 전역 언어 선택 함수 (onclick 속성용 - iOS PWA 최종 폴백)
         window.selectLanguage = function(lang) {
+            showDebugLog(`🌍 selectLanguage(${lang}) PWA:${isPWAMode()}`);
             console.log('🌍 window.selectLanguage 호출:', lang, 'PWA:', isPWAMode());
             
             // 선택된 항목 하이라이트
@@ -1553,24 +1567,20 @@
             
             // 언어 저장
             LanguageHelper.setLanguage(lang);
+            showDebugLog(`✅ 언어 저장 완료: ${lang}`);
             
-            // PWA 모드: 직접 페이지 전환
-            if (isPWAMode()) {
-                console.log('📱 PWA 모드 → 직접 페이지 전환');
-                if (landingPage && featuresPage) {
-                    landingPage.classList.add('hidden');
-                    featuresPage.classList.add('visible');
-                }
-                return;
-            }
-            
-            // 일반 브라우저: 기존 동작
+            // 🔧 2025-12-21: PWA 모드에서도 reload() 허용 (Google Translate 적용 위해)
             localStorage.setItem('landingVisited', 'true');
             if (lang !== 'ko') {
                 document.cookie = `googtrans=/ko/${lang}; path=/`;
                 document.cookie = `googtrans=/ko/${lang}; path=/; domain=${window.location.hostname}`;
+                showDebugLog(`🍪 쿠키 설정: googtrans=/ko/${lang}`);
             }
-            window.location.reload();
+            
+            showDebugLog(`🔄 reload() 호출 예정...`);
+            setTimeout(() => {
+                window.location.reload();
+            }, 300);
         };
         
         // 언어 선택 시 → googtrans 쿠키 설정 → 페이지 새로고침 (2025-12-08 스크롤 리스트)
@@ -1642,17 +1652,22 @@
                 
                 // 🔧 Pointer Events 사용 (iOS PWA에서 가장 안정적)
                 item.onpointerdown = function(e) {
+                    showDebugLog(`👇 pointerdown: ${item.getAttribute('data-value')}`);
                     console.log('👇 pointerdown:', item.getAttribute('data-value'));
                     item.style.opacity = '0.7';
                     item.style.transform = 'scale(0.98)';
                 };
                 
                 item.onpointerup = function(e) {
+                    showDebugLog(`👆 pointerup: ${item.getAttribute('data-value')}`);
                     console.log('👆 pointerup:', item.getAttribute('data-value'));
                     item.style.opacity = '1';
                     item.style.transform = 'scale(1)';
                     
-                    if (isProcessing) return;
+                    if (isProcessing) {
+                        showDebugLog(`⚠️ isProcessing=true, 무시됨`);
+                        return;
+                    }
                     isProcessing = true;
                     
                     e.preventDefault();
@@ -1667,15 +1682,20 @@
                 
                 // 터치 이벤트 폴백 (pointer 미지원 시)
                 item.ontouchstart = function(e) {
+                    showDebugLog(`📱 touchstart: ${item.getAttribute('data-value')}`);
                     console.log('📱 touchstart:', item.getAttribute('data-value'));
                     item.style.opacity = '0.7';
                 };
                 
                 item.ontouchend = function(e) {
+                    showDebugLog(`📱 touchend: ${item.getAttribute('data-value')}`);
                     console.log('📱 touchend:', item.getAttribute('data-value'));
                     item.style.opacity = '1';
                     
-                    if (isProcessing) return;
+                    if (isProcessing) {
+                        showDebugLog(`⚠️ isProcessing=true, 무시됨`);
+                        return;
+                    }
                     isProcessing = true;
                     
                     e.preventDefault();
@@ -1688,9 +1708,13 @@
                 
                 // 클릭 이벤트 폴백 (데스크톱)
                 item.onclick = function(e) {
+                    showDebugLog(`🖱️ click: ${item.getAttribute('data-value')}`);
                     console.log('🖱️ click:', item.getAttribute('data-value'));
                     
-                    if (isProcessing) return;
+                    if (isProcessing) {
+                        showDebugLog(`⚠️ isProcessing=true, 무시됨`);
+                        return;
+                    }
                     isProcessing = true;
                     
                     e.preventDefault();
