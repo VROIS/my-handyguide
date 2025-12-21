@@ -2094,6 +2094,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function handleStartFeaturesClick() {
+        console.log('🚀 handleStartFeaturesClick 호출됨');
         showPage(mainPage);
         cameraStartOverlay.classList.add('hidden');
     
@@ -2123,6 +2124,9 @@ document.addEventListener('DOMContentLoaded', () => {
             mainLoader.classList.add('hidden');
         }
     }
+    
+    // 🔧 2025-12-21: iOS PWA용 전역 함수 (onclick 핸들러에서 호출)
+    window.handleStartFromFeatures = handleStartFeaturesClick;
 
     function startCamera() {
         return new Promise(async (resolve, reject) => {
