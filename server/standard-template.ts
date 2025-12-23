@@ -148,6 +148,28 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             // 🔒 speechSynthesis.speak 원본 백업 및 가로채기
             var originalSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);
             
+            // 🎤 2025-12-23: 언어에 맞는 음성 선택 헬퍼
+            function selectVoiceForLang(lang) {
+                var voices = window.speechSynthesis.getVoices();
+                var shortLang = lang.substring(0, 2);
+                
+                // ⭐ 한국어 하드코딩 (Yuna → Sora → Heami)
+                if (shortLang === 'ko') {
+                    var koVoices = voices.filter(function(v) { return v.lang.startsWith('ko'); });
+                    return koVoices.find(function(v) { return v.name.includes('Yuna'); })
+                        || koVoices.find(function(v) { return v.name.includes('Sora'); })
+                        || koVoices.find(function(v) { return v.name.includes('유나'); })
+                        || koVoices.find(function(v) { return v.name.includes('소라'); })
+                        || koVoices.find(function(v) { return v.name.includes('Heami'); })
+                        || koVoices[0] || null;
+                }
+                
+                // 다른 언어: 언어 코드로 찾기
+                return voices.find(function(v) { 
+                    return v.lang.replace('_', '-').startsWith(shortLang); 
+                }) || null;
+            }
+            
             window.speechSynthesis.speak = function(utterance) {
                 if (!window.__translationComplete) {
                     console.log('🎤🔒 [TTS 차단] 대기열 추가 (번역 미완료)');
@@ -161,7 +183,14 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                         var translatedText = descEl.textContent || descEl.innerText;
                         utterance.text = translatedText;
                         utterance.lang = window.__ttsTargetLang;
-                        console.log('🎤✅ [TTS 재생] 언어:', window.__ttsTargetLang, '길이:', translatedText.length);
+                        
+                        // 🎤✅ 2025-12-23: 음성도 해당 언어로 재선택 (핵심 수정!)
+                        var newVoice = selectVoiceForLang(window.__ttsTargetLang);
+                        if (newVoice) {
+                            utterance.voice = newVoice;
+                        }
+                        
+                        console.log('🎤✅ [TTS 재생] 언어:', window.__ttsTargetLang, '음성:', newVoice ? newVoice.name : 'default', '길이:', translatedText.length);
                     }
                 }
                 
@@ -188,6 +217,13 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                                 if (descEl) {
                                     utt.text = descEl.textContent || descEl.innerText;
                                     utt.lang = window.__ttsTargetLang;
+                                    
+                                    // 🎤✅ 2025-12-23: 음성도 해당 언어로 재선택
+                                    var newVoice = selectVoiceForLang(window.__ttsTargetLang);
+                                    if (newVoice) {
+                                        utt.voice = newVoice;
+                                    }
+                                    console.log('🎤✅ [대기열 TTS] 언어:', window.__ttsTargetLang, '음성:', newVoice ? newVoice.name : 'default');
                                 }
                                 originalSpeak(utt);
                             });
