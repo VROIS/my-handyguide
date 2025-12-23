@@ -377,3 +377,43 @@ export const insertVoiceConfigSchema = createInsertSchema(voiceConfigs).omit({
 // Types for voice configs
 export type InsertVoiceConfig = z.infer<typeof insertVoiceConfigSchema>;
 export type VoiceConfig = typeof voiceConfigs.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎯 AI 프롬프트 테이블 (AI Prompts Table)
+// ═══════════════════════════════════════════════════════════════════════════════
+// 
+// 목적: 언어별 AI 프롬프트를 DB에서 관리 (관리자 수정 가능)
+// 
+// 핵심 기능:
+// 1. 7개 언어별 맞춤 프롬프트 (ko, en, zh-CN, ja, fr, de, es)
+// 2. 2가지 타입 (image: 이미지 분석용, text: 텍스트 질문용)
+// 3. 버전 히스토리 관리 (이전 버전 복원 가능)
+// 4. 관리자 페이지에서 실시간 수정
+// 
+// 사용 시나리오:
+// - 사용자 언어 선택 → DB에서 해당 언어 프롬프트 조회
+// - 관리자가 프롬프트 수정 → 모든 사용자에게 즉시 적용
+// - 문제 발생 시 이전 버전으로 복원
+// 
+// 최근 변경: 2025-12-18 - 언어별 프롬프트 관리 시스템 추가
+// ═══════════════════════════════════════════════════════════════════════════════
+export const prompts = pgTable("prompts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  language: varchar("language").notNull(), // 'ko', 'en', 'zh-CN', 'ja', 'fr', 'de', 'es'
+  type: varchar("type").notNull(), // 'image' | 'text'
+  content: text("content").notNull(), // 프롬프트 내용
+  isActive: boolean("is_active").default(true), // 현재 사용중 여부
+  version: integer("version").default(1), // 버전 번호
+  createdBy: varchar("created_by").references(() => users.id, { onDelete: 'set null' }), // 생성자 (관리자)
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Insert schema for prompts
+export const insertPromptSchema = createInsertSchema(prompts).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types for prompts
+export type InsertPrompt = z.infer<typeof insertPromptSchema>;
+export type Prompt = typeof prompts.$inferSelect;
