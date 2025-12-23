@@ -3113,13 +3113,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn(`⚠️ 일부 아이템에 serverId 없음: ${currentShareItems.length - guideIds.length}개 누락`);
             }
             
+            // 🌐 2025-12-23: 생성자 언어 (공유페이지 TTS 음성 선택용)
+            const creatorLang = localStorage.getItem('appLanguage') || 'ko';
+            
             const requestData = {
                 name: linkName,
                 guideIds: guideIds,
                 thumbnail: currentShareItems[0]?.imageDataUrl || null,
                 sender: senderName,
                 location: locationName,
-                featured: false
+                featured: false,
+                creatorLang: creatorLang // 🌐 생성자 언어 전달
             };
 
             // 🚀 서버 API 호출 (공유 페이지 생성)
@@ -3228,13 +3232,17 @@ document.addEventListener('DOMContentLoaded', () => {
             // 위치 정보 가져오기 (첫 번째 가이드에서)
             const locationName = selectedItems[0]?.locationName || '파리, 프랑스';
             
+            // 🌐 2025-12-23: 생성자 언어 (공유페이지 TTS 음성 선택용)
+            const creatorLang = localStorage.getItem('appLanguage') || 'ko';
+            
             const requestData = {
                 name: linkName,
                 guideIds: guideIds,
                 thumbnail: selectedItems[0]?.imageDataUrl || null,
                 sender: '여행자',
                 location: locationName,
-                featured: false
+                featured: false,
+                creatorLang: creatorLang // 🌐 생성자 언어 전달
             };
 
             // 서버 API 호출 (공유 페이지 생성)
