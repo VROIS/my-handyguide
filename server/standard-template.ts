@@ -19,7 +19,6 @@ export interface StandardTemplateData {
   appOrigin: string;
   isFeatured?: boolean;
   creatorReferralCode?: string;
-  creatorLang?: string; // 🌐 2025-12-23: 생성자 언어 (공유페이지 TTS용)
 }
 
 export interface GuideItem {
@@ -34,7 +33,7 @@ export interface GuideItem {
 }
 
 export function generateStandardShareHTML(data: StandardTemplateData): string {
-  const { title, sender, location, date, guideItems, isFeatured = false, creatorReferralCode = '', creatorLang = 'ko' } = data;
+  const { title, sender, location, date, guideItems, isFeatured = false, creatorReferralCode = '' } = data;
   
   // ⚠️ 2025-11-23: appOrigin 하드코딩 (개발본/배포본 동일 작동 보장)
   // 홈 버튼 2개 (메인 하단 "손안에 가이드 시작하기", 가이드 페이지 하단)에서 사용
@@ -115,24 +114,20 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
         (function() {
             'use strict';
             
-            // 🌐 2025-12-23: 생성자 언어 저장 (공유페이지 생성 시점의 언어)
-            window.__pageLanguage = '${creatorLang}';
-            
             // 언어코드 매핑
             var LANG_MAP = {
                 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP',
                 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES'
             };
             
-            // 🌐 2025.12.23: URL 파라미터 > 페이지 저장 언어 > localStorage 순서
+            // 🌐 2025.12.05: URL 파라미터 + localStorage 모두 체크
             var params = new URLSearchParams(window.location.search);
             var urlLang = params.get('lang');
-            var pageLang = window.__pageLanguage;
             var storedLang = null;
             try { storedLang = localStorage.getItem('appLanguage'); } catch(e) {}
             
-            // URL 파라미터 우선, 없으면 페이지 저장 언어, 그 다음 localStorage
-            var activeLang = urlLang || pageLang || storedLang || 'ko';
+            // URL 파라미터 우선, 없으면 localStorage
+            var activeLang = urlLang || storedLang || 'ko';
             var targetLang = LANG_MAP[activeLang] || LANG_MAP[activeLang.split('-')[0]] || null;
             
             // 한국어가 아니면 → 번역 필요, TTS 대기
@@ -148,28 +143,6 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             // 🔒 speechSynthesis.speak 원본 백업 및 가로채기
             var originalSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);
             
-            // 🎤 2025-12-23: 언어에 맞는 음성 선택 헬퍼
-            function selectVoiceForLang(lang) {
-                var voices = window.speechSynthesis.getVoices();
-                var shortLang = lang.substring(0, 2);
-                
-                // ⭐ 한국어 하드코딩 (Yuna → Sora → Heami)
-                if (shortLang === 'ko') {
-                    var koVoices = voices.filter(function(v) { return v.lang.startsWith('ko'); });
-                    return koVoices.find(function(v) { return v.name.includes('Yuna'); })
-                        || koVoices.find(function(v) { return v.name.includes('Sora'); })
-                        || koVoices.find(function(v) { return v.name.includes('유나'); })
-                        || koVoices.find(function(v) { return v.name.includes('소라'); })
-                        || koVoices.find(function(v) { return v.name.includes('Heami'); })
-                        || koVoices[0] || null;
-                }
-                
-                // 다른 언어: 언어 코드로 찾기
-                return voices.find(function(v) { 
-                    return v.lang.replace('_', '-').startsWith(shortLang); 
-                }) || null;
-            }
-            
             window.speechSynthesis.speak = function(utterance) {
                 if (!window.__translationComplete) {
                     console.log('🎤🔒 [TTS 차단] 대기열 추가 (번역 미완료)');
@@ -183,14 +156,7 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                         var translatedText = descEl.textContent || descEl.innerText;
                         utterance.text = translatedText;
                         utterance.lang = window.__ttsTargetLang;
-                        
-                        // 🎤✅ 2025-12-23: 음성도 해당 언어로 재선택 (핵심 수정!)
-                        var newVoice = selectVoiceForLang(window.__ttsTargetLang);
-                        if (newVoice) {
-                            utterance.voice = newVoice;
-                        }
-                        
-                        console.log('🎤✅ [TTS 재생] 언어:', window.__ttsTargetLang, '음성:', newVoice ? newVoice.name : 'default', '길이:', translatedText.length);
+                        console.log('🎤✅ [TTS 재생] 언어:', window.__ttsTargetLang, '길이:', translatedText.length);
                     }
                 }
                 
@@ -217,13 +183,6 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                                 if (descEl) {
                                     utt.text = descEl.textContent || descEl.innerText;
                                     utt.lang = window.__ttsTargetLang;
-                                    
-                                    // 🎤✅ 2025-12-23: 음성도 해당 언어로 재선택
-                                    var newVoice = selectVoiceForLang(window.__ttsTargetLang);
-                                    if (newVoice) {
-                                        utt.voice = newVoice;
-                                    }
-                                    console.log('🎤✅ [대기열 TTS] 언어:', window.__ttsTargetLang, '음성:', newVoice ? newVoice.name : 'default');
                                 }
                                 originalSpeak(utt);
                             });
@@ -642,8 +601,8 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             if (pauseIcon) pauseIcon.style.display = 'none';
         }
         
-        // 🔧 2025-12-23: 사용자 appLanguage 우선 (window.__ttsTargetLang)
-        function playAudio(text) {
+        // 🎤 2025-12-03: voiceLang 파라미터 추가 (저장된 언어로 TTS 재생)
+        function playAudio(text, voiceLang) {
             stopAudio();
             
             // ⚠️ **핵심 로직 - 절대 수정 금지!** (2025-10-03 치명적 버그 해결)
@@ -658,14 +617,18 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             
             currentUtterance = new SpeechSynthesisUtterance(cleanText);
             
-            // 🔧 2025-12-23: 사용자 appLanguage 우선 (window.__ttsTargetLang)
-            const activeLang = window.__ttsTargetLang || 'ko-KR';
+            // 🎤 저장된 voiceLang 사용 (각 가이드별 원본 언어, 없으면 TTS 스킵)
+            if (!voiceLang) {
+                console.warn('[Share TTS] voiceLang 없음 - TTS 스킵');
+                return;
+            }
+            const langCode = voiceLang;
             
             const allVoices = synth.getVoices();
             let targetVoice = null;
             
             // ⭐ 한국어 하드코딩 (Yuna → Sora → 유나 → 소라 → Heami)
-            if (activeLang === 'ko-KR' || activeLang.startsWith('ko')) {
+            if (langCode === 'ko-KR' || langCode.startsWith('ko')) {
                 const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
                 targetVoice = koVoices.find(v => v.name.includes('Yuna'))
                            || koVoices.find(v => v.name.includes('Sora'))
@@ -675,16 +638,27 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                            || koVoices[0];
                 console.log('[Share TTS] 한국어 음성:', targetVoice?.name || 'default');
             } else {
-                // 다른 언어: 언어 코드로 찾기
-                targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(activeLang.substring(0, 2)));
-                console.log('[Share TTS] ' + activeLang + ' 음성:', targetVoice?.name || 'default');
+                // 다른 언어: 저장된 voiceName 사용 (각 가이드별 원본 음성)
+                // voiceName이 appData에 있으면 그 음성 사용
+                const currentItem = appData.find(item => item.voiceLang === langCode);
+                const savedVoiceName = currentItem?.voiceName;
+                
+                if (savedVoiceName) {
+                    targetVoice = allVoices.find(v => v.name.includes(savedVoiceName));
+                    console.log('[Share TTS] 저장된 음성:', savedVoiceName, '→', targetVoice?.name);
+                }
+                
+                // 저장된 음성 없으면 언어 코드로 찾기
+                if (!targetVoice) {
+                    targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
+                }
             }
             
             currentUtterance.voice = targetVoice || null;
-            currentUtterance.lang = activeLang;
+            currentUtterance.lang = langCode;
             currentUtterance.rate = 1.0;
             
-            console.log('[Share TTS] 최종 언어:', activeLang, '음성:', targetVoice ? targetVoice.name : 'default');
+            console.log('[Share TTS] 언어:', langCode, '음성:', targetVoice ? targetVoice.name : 'default');
             
             const playIcon = document.getElementById('play-icon');
             const pauseIcon = document.getElementById('pause-icon');
@@ -727,10 +701,16 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             synth.onvoiceschanged = populateVoiceList;
         }
         
+        // 🎤 현재 보고 있는 아이템의 voiceLang 저장
+        let currentVoiceLang = null;
+        
         // 갤러리 아이템 클릭 (앱과 100% 동일한 로직)
         document.querySelectorAll('.gallery-item').forEach(item => {
             item.addEventListener('click', () => {
                 const itemData = appData[parseInt(item.dataset.id)];
+                
+                // 🎤 현재 아이템의 voiceLang 저장 (DB에서 가져온 값 그대로)
+                currentVoiceLang = itemData.voiceLang;
                 
                 // 🎤 음성 모드 판별: 이미지 없고 voiceQuery 있으면 음성 모드
                 const hasImage = itemData.imageDataUrl && !itemData.imageDataUrl.includes('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAY');
@@ -787,8 +767,8 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                 // 텍스트는 표시 상태로 시작 (음성과 동시에 보임)
                 document.getElementById('detail-text').classList.remove('hidden');
                 
-                // 🎤 음성 자동 재생 (사용자 appLanguage 우선)
-                playAudio(itemData.description);
+                // 🎤 음성 자동 재생 (저장된 언어 사용)
+                playAudio(itemData.description, currentVoiceLang);
             });
         });
         
@@ -821,8 +801,8 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                 stopAudio();
             } else {
                 const text = document.getElementById('detail-description').textContent;
-                // 🎤 사용자 appLanguage 우선
-                playAudio(text);
+                // 🎤 저장된 언어 사용
+                playAudio(text, currentVoiceLang);
             }
         });
         
@@ -1105,6 +1085,8 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
         const synth = window.speechSynthesis;
         let voices = [];
         let currentUtterance = null;
+        const voiceLang = '${voiceLang || 'ko-KR'}';
+        const savedVoiceName = '${voiceName || ''}';
         
         function populateVoiceList() {
             voices = synth.getVoices();
@@ -1128,32 +1110,37 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
             const cleanText = text.replace(/<br\\s*\\/?>/gi, ' ');
             currentUtterance = new SpeechSynthesisUtterance(cleanText);
             
-            // 🔧 2025-12-23: 사용자 appLanguage 우선 (window.__ttsTargetLang)
-            const activeLang = window.__ttsTargetLang || 'ko-KR';
+            // 저장된 음성 이름으로 찾기
             const allVoices = synth.getVoices();
             let targetVoice = null;
             
-            // ⭐ 한국어 하드코딩 (Yuna → Sora → 유나 → 소라 → Heami)
-            if (activeLang === 'ko-KR' || activeLang.startsWith('ko')) {
-                const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
-                targetVoice = koVoices.find(v => v.name.includes('Yuna'))
-                           || koVoices.find(v => v.name.includes('Sora'))
-                           || koVoices.find(v => v.name.includes('유나'))
-                           || koVoices.find(v => v.name.includes('소라'))
-                           || koVoices.find(v => v.name.includes('Heami'))
-                           || koVoices[0];
-                console.log('[SingleGuide TTS] 한국어 음성:', targetVoice?.name || 'default');
-            } else {
-                // 다른 언어: 언어 코드로 찾기
-                targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(activeLang.substring(0, 2)));
-                console.log('[SingleGuide TTS] ' + activeLang + ' 음성:', targetVoice?.name || 'default');
+            if (savedVoiceName) {
+                targetVoice = allVoices.find(v => v.name === savedVoiceName);
+            }
+            
+            // 없으면 언어별 로직
+            if (!targetVoice) {
+                // ⭐ 한국어 하드코딩 (Yuna → Sora → 유나 → 소라 → Heami)
+                if (voiceLang === 'ko-KR' || voiceLang.startsWith('ko')) {
+                    const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
+                    targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                               || koVoices.find(v => v.name.includes('Sora'))
+                               || koVoices.find(v => v.name.includes('유나'))
+                               || koVoices.find(v => v.name.includes('소라'))
+                               || koVoices.find(v => v.name.includes('Heami'))
+                               || koVoices[0];
+                    console.log('[Single TTS] 한국어 음성:', targetVoice?.name || 'default');
+                } else {
+                    // 다른 언어: 언어 코드로 찾기
+                    targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(voiceLang.substring(0, 2)));
+                }
             }
             
             currentUtterance.voice = targetVoice || null;
-            currentUtterance.lang = activeLang;
+            currentUtterance.lang = voiceLang;
             currentUtterance.rate = 1.0;
             
-            console.log('[SingleGuide TTS] 최종 언어:', activeLang, '음성:', targetVoice ? targetVoice.name : 'default');
+            console.log('[SingleGuide TTS] 언어:', voiceLang, '음성:', targetVoice ? targetVoice.name : 'default');
             
             currentUtterance.onstart = () => {
                 document.getElementById('play-icon').style.display = 'none';

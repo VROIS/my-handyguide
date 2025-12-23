@@ -462,11 +462,7 @@
         }
 
     </style>
-  <script src="/utils/tts-helper.js"></script>
-  <script src="/prompts/language-prompts.js"></script>
-  <script src="/geminiService.js"></script>
-  <script src="/imageOptimizer.js"></script>
-  <script src="/index.js"></script>
+  <script type="module" src="/index.js"></script>
 </head>
 <body style="background-color: #FFFEFA;">
     <!-- 🆕 New Landing Page (2025-12-07) - 모바일 최적화 -->
@@ -534,7 +530,7 @@
                     </script>
                     <!-- 고정 리스트 + 스크롤 (2025-12-08) -->
                     <div class="language-scroll-list notranslate" id="languageScrollList">
-                        <div class="language-item" data-value="ko" data-testid="lang-ko" onclick="window.selectLanguage('ko')">🇰🇷 한국어</div>
+                        <div class="language-item selected" data-value="ko" data-testid="lang-ko" onclick="window.selectLanguage('ko')">🇰🇷 한국어</div>
                         <div class="language-item" data-value="en" data-testid="lang-en" onclick="window.selectLanguage('en')">🇺🇸 English</div>
                         <div class="language-item" data-value="fr" data-testid="lang-fr" onclick="window.selectLanguage('fr')">🇫🇷 Français</div>
                         <div class="language-item" data-value="zh-CN" data-testid="lang-zh" onclick="window.selectLanguage('zh-CN')">🇨🇳 中文 (简体)</div>
@@ -542,19 +538,6 @@
                         <div class="language-item" data-value="es" data-testid="lang-es" onclick="window.selectLanguage('es')">🇪🇸 Español</div>
                         <div class="language-item" data-value="de" data-testid="lang-de" onclick="window.selectLanguage('de')">🇩🇪 Deutsch</div>
                     </div>
-                    <!-- 🔧 2025-12-21: 페이지 로드 즉시 저장된 언어 하이라이트 (DOMContentLoaded 전에 실행) -->
-                    <script>
-                    (function() {
-                        var saved = localStorage.getItem('appLanguage') || 'ko';
-                        var items = document.querySelectorAll('.language-item');
-                        items.forEach(function(item) {
-                            if (item.getAttribute('data-value') === saved) {
-                                item.classList.add('selected');
-                            }
-                        });
-                        console.log('🌐 즉시 언어 하이라이트:', saved);
-                    })();
-                    </script>
                 </div>
             </div>
         </div>
@@ -689,7 +672,7 @@
     <div id="infographicModal" class="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center hidden" data-testid="modal-infographic">
         <div class="relative w-full h-full flex items-center justify-center p-4">
             <!-- 닫기 버튼 -->
-            <button id="closeInfographicModalBtn" data-testid="button-close-infographic-modal" class="absolute top-4 right-4 z-10 p-3 bg-white/20 hover:bg-white/40 rounded-full text-white transition duration-300" onclick="var m=document.getElementById('infographicModal'); if(m) m.classList.add('hidden')">
+            <button id="closeInfographicModalBtn" data-testid="button-close-infographic-modal" class="absolute top-4 right-4 z-10 p-3 bg-white/20 hover:bg-white/40 rounded-full text-white transition duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -703,7 +686,7 @@
     <div id="videoModal" class="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-sm flex items-center justify-center hidden" data-testid="modal-video">
         <div class="relative w-full h-full flex items-center justify-center p-4">
             <!-- 닫기 버튼 -->
-            <button id="closeVideoModalBtn" data-testid="button-close-video-modal" class="absolute top-4 right-4 z-10 p-3 bg-white/20 hover:bg-white/40 rounded-full text-white transition duration-300" onclick="var m=document.getElementById('videoModal'); var v=document.getElementById('featureVideo'); if(m) m.classList.add('hidden'); if(v) v.pause()">
+            <button id="closeVideoModalBtn" data-testid="button-close-video-modal" class="absolute top-4 right-4 z-10 p-3 bg-white/20 hover:bg-white/40 rounded-full text-white transition duration-300">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
@@ -724,7 +707,7 @@
                 <div class="container mx-auto px-6 text-center">
                     <div class="grid md:grid-cols-3 gap-6">
                         <!-- Feature 1: Guidebook (기존 3번 → 1번) - 클릭 시 인포그래픽 모달 -->
-                        <div id="featureCard1" data-testid="card-feature-1" class="bg-gray-50 p-6 rounded-xl shadow-lg transform hover:-translate-y-2 transition duration-300 cursor-pointer" onclick="window.openInfoModal && window.openInfoModal()">
+                        <div id="featureCard1" data-testid="card-feature-1" class="bg-gray-50 p-6 rounded-xl shadow-lg transform hover:-translate-y-2 transition duration-300 cursor-pointer">
                             <div class="bg-blue-100 text-blue-600 rounded-full w-14 h-14 flex items-center justify-center mx-auto mb-4">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
@@ -735,7 +718,7 @@
                             <p class="text-blue-500 text-xs mt-2 flex items-center justify-center gap-1"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>자세히 보기</p>
                         </div>
                         <!-- Feature 2: Image Recognition (메인 - 중앙) - 클릭 시 동영상 모달 -->
-                        <div id="featureCard2" data-testid="card-feature-2" class="bg-gray-50 p-6 rounded-xl shadow-lg transform hover:-translate-y-2 transition duration-300 cursor-pointer" onclick="window.openVideoModal && window.openVideoModal()">
+                        <div id="featureCard2" data-testid="card-feature-2" class="bg-gray-50 p-6 rounded-xl shadow-lg transform hover:-translate-y-2 transition duration-300 cursor-pointer">
                             <div class="bg-blue-100 text-blue-600 rounded-full w-14 h-14 flex items-center justify-center mx-auto mb-4">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                             </div>
@@ -791,66 +774,24 @@
         <footer class="footer-safe-area bg-white/95 backdrop-blur-sm border-t border-gray-200/80" style="height: auto;">
             <div class="text-center w-full px-6 py-4">
                  <p class="text-sm text-gray-700 max-w-3xl mx-auto mb-3">여러분의 눈과 귀가 되어줄 <strong>'손안에 가이드'</strong>가 지금 바로 당신을 기다립니다.</p>
-                 <button id="startCameraFromFeaturesBtn" class="cta-button text-white font-bold py-3 px-10 rounded-full transition duration-300 inline-block text-lg shadow-lg transform hover:scale-105" onclick="window.handleStartFromFeatures ? window.handleStartFromFeatures() : window.fallbackStart()">
+                 <button id="startCameraFromFeaturesBtn" class="cta-button text-white font-bold py-3 px-10 rounded-full transition duration-300 inline-block text-lg shadow-lg transform hover:scale-105">
                     바로 시작하기
                 </button>
-                 <script>
-                 // 🔧 2025-12-21: iOS PWA 폴백 (index.js 로드 전에도 작동)
-                 window.fallbackStart = function() {
-                     console.log('🚨 fallbackStart 실행 (index.js 아직 로드 안됨)');
-                     var landing = document.getElementById('landingPage');
-                     var features = document.getElementById('featuresPage');
-                     var main = document.getElementById('mainPage');
-                     if (landing) {
-                         landing.classList.add('hidden');
-                         landing.classList.remove('visible');
-                     }
-                     if (features) {
-                         features.classList.add('hidden');
-                         features.classList.remove('visible');
-                     }
-                     if (main) {
-                         main.classList.remove('hidden');
-                         main.classList.add('visible');
-                     }
-                 };
-                 
-                 // 🔧 2025-12-21: 모달 폴백 함수 (index.js 로드 전 작동)
-                 if (!window.openInfoModal) {
-                     window.openInfoModal = function() {
-                         console.log('📋 openInfoModal 폴백');
-                         var modal = document.getElementById('infographicModal');
-                         var img = document.getElementById('infographicImage');
-                         if (modal && img) {
-                             img.src = '/images/infographic-feature1.png';
-                             modal.classList.remove('hidden');
-                             document.body.style.overflow = 'hidden';
-                         }
-                     };
-                 }
-                 if (!window.openVideoModal) {
-                     window.openVideoModal = function() {
-                         console.log('🎬 openVideoModal 폴백');
-                         var modal = document.getElementById('videoModal');
-                         var video = document.getElementById('featureVideo');
-                         if (modal && video) {
-                             modal.classList.remove('hidden');
-                             document.body.style.overflow = 'hidden';
-                             video.play().catch(function(e) { console.log('Video error:', e); });
-                         }
-                     };
-                 }
-                 </script>
             </div>
         </footer>
     </div>
 
     <!-- Main Page -->
     <div id="mainPage" class="ui-layer">
+        <div id="cameraStartOverlay" class="absolute inset-0 z-50 flex flex-col items-center justify-center text-center p-4 cursor-pointer">
+            <h1 class="text-6xl font-bold readable-on-image gemini-blue mb-8">손안에 가이드</h1>
+            <p class="readable-on-image gemini-blue text-xl font-medium">사진을 찍거나 음성으로 질문하면<br>무엇이든 친절하게 설명해드려요.</p>
+        </div>
         <div id="mainLoader" class="absolute inset-0 z-40 flex items-center justify-center hidden">
             <div class="w-8 h-8 rounded-full animate-spin loader-blue"></div>
         </div>
         <header class="header-safe-area">
+             <!-- The title is now part of the cameraStartOverlay for a better intro experience -->
         </header>
         <div class="flex-1"></div>
         <footer class="footer-safe-area">
@@ -870,7 +811,7 @@
                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
                 </svg>
             </button>
-            <button id="archiveBtn" aria-label="보관함" class="w-16 h-16 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl" onclick="if(window.showArchivePage) window.showArchivePage(); else { document.getElementById('mainPage').classList.remove('visible'); document.getElementById('archivePage').classList.add('visible'); }">
+            <button id="archiveBtn" aria-label="보관함" class="w-16 h-16 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" >
                     <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
                 </svg>
@@ -1598,27 +1539,8 @@
                    document.referrer.includes('android-app://');
         }
         
-        // 🔧 2025-12-21: 화면 디버그 로그 (iOS PWA 터치 이벤트 확인용)
-        // ⚠️ 디버그 모드: URL에 ?debug=1 추가 시에만 표시
-        const isDebugMode = new URLSearchParams(window.location.search).get('debug') === '1';
-        
-        function showDebugLog(msg) {
-            if (!isDebugMode) return; // 디버그 모드가 아니면 무시
-            
-            let debugEl = document.getElementById('pwa-debug-log');
-            if (!debugEl) {
-                debugEl = document.createElement('div');
-                debugEl.id = 'pwa-debug-log';
-                debugEl.style.cssText = 'position:fixed;top:0;left:0;right:0;background:rgba(0,0,0,0.9);color:#0f0;font-size:10px;padding:4px;max-height:80px;overflow-y:auto;z-index:99999;font-family:monospace;pointer-events:none;';
-                document.body.appendChild(debugEl);
-            }
-            const time = new Date().toLocaleTimeString();
-            debugEl.innerHTML = `[${time}] ${msg}<br>` + debugEl.innerHTML;
-        }
-        
         // 🔧 2025-12-18: 전역 언어 선택 함수 (onclick 속성용 - iOS PWA 최종 폴백)
         window.selectLanguage = function(lang) {
-            showDebugLog(`🌍 selectLanguage(${lang}) PWA:${isPWAMode()}`);
             console.log('🌍 window.selectLanguage 호출:', lang, 'PWA:', isPWAMode());
             
             // 선택된 항목 하이라이트
@@ -1629,51 +1551,26 @@
                 }
             });
             
-            // 언어 저장 (try-catch로 에러 감지)
-            try {
-                showDebugLog(`🔍 LanguageHelper 존재: ${typeof LanguageHelper}`);
-                if (typeof LanguageHelper !== 'undefined' && LanguageHelper.setLanguage) {
-                    LanguageHelper.setLanguage(lang);
-                    showDebugLog(`✅ 언어 저장 완료: ${lang}`);
-                } else {
-                    // LanguageHelper 없으면 직접 저장
-                    showDebugLog(`⚠️ LanguageHelper 없음 → 직접 저장`);
-                    localStorage.setItem('appLanguage', lang);
+            // 언어 저장
+            LanguageHelper.setLanguage(lang);
+            
+            // PWA 모드: 직접 페이지 전환
+            if (isPWAMode()) {
+                console.log('📱 PWA 모드 → 직접 페이지 전환');
+                if (landingPage && featuresPage) {
+                    landingPage.classList.add('hidden');
+                    featuresPage.classList.add('visible');
                 }
-            } catch (err) {
-                showDebugLog(`❌ LanguageHelper 에러: ${err.message}`);
-                // 에러나도 직접 저장 시도
-                try {
-                    localStorage.setItem('appLanguage', lang);
-                    showDebugLog(`✅ 직접 localStorage 저장 성공`);
-                } catch (e2) {
-                    showDebugLog(`❌ 직접 저장도 실패: ${e2.message}`);
-                }
+                return;
             }
             
-            // 🔧 2025-12-21: PWA 모드에서도 reload() 허용 (Google Translate 적용 위해)
-            try {
-                localStorage.setItem('landingVisited', 'true');
-                showDebugLog(`✅ localStorage 저장 완료`);
-            } catch (err) {
-                showDebugLog(`❌ localStorage 에러: ${err.message}`);
-            }
-            
+            // 일반 브라우저: 기존 동작
+            localStorage.setItem('landingVisited', 'true');
             if (lang !== 'ko') {
                 document.cookie = `googtrans=/ko/${lang}; path=/`;
                 document.cookie = `googtrans=/ko/${lang}; path=/; domain=${window.location.hostname}`;
-                showDebugLog(`🍪 쿠키 설정: googtrans=/ko/${lang}`);
             }
-            
-            showDebugLog(`🔄 reload() 호출 예정...`);
-            try {
-                setTimeout(() => {
-                    showDebugLog(`🔄 reload() 실행!`);
-                    window.location.reload();
-                }, 500);
-            } catch (err) {
-                showDebugLog(`❌ reload 에러: ${err.message}`);
-            }
+            window.location.reload();
         };
         
         // 언어 선택 시 → googtrans 쿠키 설정 → 페이지 새로고침 (2025-12-08 스크롤 리스트)
@@ -1745,22 +1642,17 @@
                 
                 // 🔧 Pointer Events 사용 (iOS PWA에서 가장 안정적)
                 item.onpointerdown = function(e) {
-                    showDebugLog(`👇 pointerdown: ${item.getAttribute('data-value')}`);
                     console.log('👇 pointerdown:', item.getAttribute('data-value'));
                     item.style.opacity = '0.7';
                     item.style.transform = 'scale(0.98)';
                 };
                 
                 item.onpointerup = function(e) {
-                    showDebugLog(`👆 pointerup: ${item.getAttribute('data-value')}`);
                     console.log('👆 pointerup:', item.getAttribute('data-value'));
                     item.style.opacity = '1';
                     item.style.transform = 'scale(1)';
                     
-                    if (isProcessing) {
-                        showDebugLog(`⚠️ isProcessing=true, 무시됨`);
-                        return;
-                    }
+                    if (isProcessing) return;
                     isProcessing = true;
                     
                     e.preventDefault();
@@ -1775,20 +1667,15 @@
                 
                 // 터치 이벤트 폴백 (pointer 미지원 시)
                 item.ontouchstart = function(e) {
-                    showDebugLog(`📱 touchstart: ${item.getAttribute('data-value')}`);
                     console.log('📱 touchstart:', item.getAttribute('data-value'));
                     item.style.opacity = '0.7';
                 };
                 
                 item.ontouchend = function(e) {
-                    showDebugLog(`📱 touchend: ${item.getAttribute('data-value')}`);
                     console.log('📱 touchend:', item.getAttribute('data-value'));
                     item.style.opacity = '1';
                     
-                    if (isProcessing) {
-                        showDebugLog(`⚠️ isProcessing=true, 무시됨`);
-                        return;
-                    }
+                    if (isProcessing) return;
                     isProcessing = true;
                     
                     e.preventDefault();
@@ -1801,13 +1688,9 @@
                 
                 // 클릭 이벤트 폴백 (데스크톱)
                 item.onclick = function(e) {
-                    showDebugLog(`🖱️ click: ${item.getAttribute('data-value')}`);
                     console.log('🖱️ click:', item.getAttribute('data-value'));
                     
-                    if (isProcessing) {
-                        showDebugLog(`⚠️ isProcessing=true, 무시됨`);
-                        return;
-                    }
+                    if (isProcessing) return;
                     isProcessing = true;
                     
                     e.preventDefault();
@@ -1888,61 +1771,5 @@
 </style>
 
 <!-- 커튼 효과 제거됨 (2025-12-07) -->
-
-<!-- 🔧 2025-12-21: iOS PWA 폴백 - 즉시 실행 -->
-<script>
-(function() {
-    // 🔧 즉시 폴백 함수 정의 (index.js 로드 전에도 작동)
-    if (!window.handleStartFromFeatures) {
-        window.handleStartFromFeatures = function() {
-            console.log('🚨 폴백 handleStartFromFeatures 실행');
-            var landing = document.getElementById('landingPage');
-            var features = document.getElementById('featuresPage');
-            var main = document.getElementById('mainPage');
-            if (landing) {
-                landing.classList.add('hidden');
-                landing.classList.remove('visible');
-            }
-            if (features) {
-                features.classList.add('hidden');
-                features.classList.remove('visible');
-            }
-            if (main) {
-                main.classList.remove('hidden');
-                main.classList.add('visible');
-            }
-        };
-    }
-    
-    if (!window.showArchivePage) {
-        window.showArchivePage = function() {
-            console.log('🚨 폴백 showArchivePage 실행');
-            var main = document.getElementById('mainPage');
-            var archive = document.getElementById('archivePage');
-            if (main) main.classList.remove('visible');
-            if (archive) archive.classList.add('visible');
-        };
-    }
-    
-    if (!window.showMainPage) {
-        window.showMainPage = function() {
-            console.log('🚨 폴백 showMainPage 실행');
-            var archive = document.getElementById('archivePage');
-            var main = document.getElementById('mainPage');
-            if (archive) archive.classList.remove('visible');
-            if (main) main.classList.add('visible');
-        };
-    }
-    
-    // 진단 로그 (3초 후)
-    setTimeout(function() {
-        var jsLoaded = typeof window.__indexJsLoaded !== 'undefined';
-        console.log('📱 PWA 진단:', {
-            isPWA: window.isPWAMode ? window.isPWAMode() : 'unknown',
-            indexJsLoaded: jsLoaded
-        });
-    }, 3000);
-})();
-</script>
 </body>
 </html>

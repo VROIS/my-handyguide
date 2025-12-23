@@ -1,7 +1,7 @@
 // service-worker.js
 
-const CACHE_NAME = 'travel-assistant-cache-v18';
-const API_CACHE_NAME = 'travel-assistant-api-cache-v18';
+const CACHE_NAME = 'travel-assistant-cache-v11';
+const API_CACHE_NAME = 'travel-assistant-api-cache-v11';
 const urlsToCache = [
   // 🔧 2025-12-17: HTML 캐싱 제거 (수정사항 즉시 반영)
   // '/',
@@ -102,27 +102,6 @@ self.addEventListener('fetch', event => {
   // /shared/*.html은 캐시하지 않음 (구 시스템)
   if (url.pathname.startsWith('/shared/')) {
     event.respondWith(fetch(event.request));
-    return;
-  }
-  
-  // 🔧 2025-12-21: JS 파일은 항상 네트워크에서 가져옴 (PWA 모드 캐시 문제 해결)
-  if (url.pathname.endsWith('.js') && !url.pathname.includes('service-worker')) {
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        // 오프라인 시 캐시 폴백
-        return caches.match(event.request);
-      })
-    );
-    return;
-  }
-  
-  // 🔧 2025-12-21: HTML 파일도 항상 네트워크 우선 (PWA 모드에서 최신 버전 로드)
-  if (url.pathname === '/' || url.pathname.endsWith('.html')) {
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        return caches.match(event.request);
-      })
-    );
     return;
   }
   

@@ -111,7 +111,7 @@ export interface IStorage {
   regenerateFeaturedHtml(id: string, metadata: { title: string; sender: string; location: string; date: string; guideIds?: string[] }): Promise<void>;
   migrateAllToV2(): Promise<number>;
   permanentDeleteSharedHtmlPage(id: string): Promise<void>;
-  buildSharePageFromGuides(guideIds: string[], metadata: { title: string; sender: string; location: string; date: string; appOrigin: string; creatorLang?: string }): Promise<string>;
+  buildSharePageFromGuides(guideIds: string[], metadata: { title: string; sender: string; location: string; date: string; appOrigin: string }): Promise<string>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1361,7 +1361,7 @@ export class DatabaseStorage implements IStorage {
    */
   async buildSharePageFromGuides(
     guideIds: string[], 
-    metadata: { title: string; sender: string; location: string; date: string; appOrigin: string; creatorLang?: string }
+    metadata: { title: string; sender: string; location: string; date: string; appOrigin: string }
   ): Promise<string> {
     console.log(`📦 guides DB에서 ${guideIds.length}개 조회 중... guideIds:`, guideIds);
     
@@ -1441,8 +1441,7 @@ export class DatabaseStorage implements IStorage {
       location: metadata.location,
       date: metadata.date,
       guideItems: orderedGuideItems,
-      appOrigin: metadata.appOrigin,
-      creatorLang: metadata.creatorLang || 'ko' // 🌐 2025-12-23: 생성자 언어 전달
+      appOrigin: metadata.appOrigin
     };
     
     // 5. 표준 템플릿 HTML 생성

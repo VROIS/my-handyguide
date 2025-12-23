@@ -2,30 +2,6 @@ import { GoogleGenAI } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
-// 🔄 Gemini 모델 우선순위 (Preview 실패 시 Fallback)
-const GEMINI_MODELS = [
-  'gemini-3-flash-preview',  // 1순위: Gemini 3 Flash Preview (Dec 17, 2025)
-  'gemini-2.5-flash'         // 2순위: Fallback - 안정 버전
-];
-
-// 🔄 Fallback 헬퍼 함수
-async function generateContentWithFallback(config: any, contents: any): Promise<any> {
-  for (const model of GEMINI_MODELS) {
-    try {
-      console.log(`🤖 Gemini 시도: ${model}`);
-      const response = await ai.models.generateContent({ model, config, contents });
-      console.log(`✅ Gemini 성공: ${model}`);
-      return response;
-    } catch (error: any) {
-      console.warn(`⚠️ ${model} 실패:`, error?.message || error);
-      if (model === GEMINI_MODELS[GEMINI_MODELS.length - 1]) {
-        throw error; // 마지막 모델도 실패
-      }
-    }
-  }
-  throw new Error('모든 Gemini 모델 호출 실패');
-}
-
 // 🎬 드림샷 스튜디오 전용 프롬프트 엔진
 export interface DreamShotPrompt {
   imagePrompt: string;
@@ -92,25 +68,29 @@ ${locationInfo.locationName ? `Location name: ${locationInfo.locationName}` : ''
 Please provide accurate, helpful information that would be valuable for travelers visiting this place.`,
     ];
 
-    const response = await generateContentWithFallback({
-      systemInstruction: systemPrompt,
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: "object",
-        properties: {
-          title: { type: "string" },
-          description: { type: "string" },
-          tips: { 
-            type: "array",
-            items: { type: "string" }
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            description: { type: "string" },
+            tips: { 
+              type: "array",
+              items: { type: "string" }
+            },
+            culturalNotes: { type: "string" },
+            bestTimeToVisit: { type: "string" },
+            accessibility: { type: "string" }
           },
-          culturalNotes: { type: "string" },
-          bestTimeToVisit: { type: "string" },
-          accessibility: { type: "string" }
-        },
-        required: ["title", "description", "tips"]
-      }
-    }, contents);
+          required: ["title", "description", "tips"]
+        }
+      },
+      contents: contents,
+    });
 
     const rawJson = response.text;
     
@@ -173,7 +153,10 @@ ${guideDescriptions}
 
 Create a compelling description that would entice people to explore these locations.`;
 
-    const response = await generateContentWithFallback({}, prompt);
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt,
+    });
 
     return response.text || "공유된 가이드 모음입니다.";
   } catch (error) {
@@ -221,20 +204,24 @@ export async function generateCinematicPrompt(
 `;
 
   try {
-    const response = await generateContentWithFallback({
-      responseMimeType: "application/json",
-      responseSchema: {
-        type: "object",
-        properties: {
-          imagePrompt: { type: "string" },
-          audioScript: { type: "string" },
-          mood: { type: "string", enum: ["cinematic", "commercial", "documentary", "artistic"] },
-          lighting: { type: "string", enum: ["golden-hour", "natural", "studio", "dramatic"] },
-          angle: { type: "string", enum: ["close-up", "medium-shot", "wide-shot", "aerial"] }
-        },
-        required: ["imagePrompt", "audioScript", "mood", "lighting", "angle"]
-      }
-    }, prompt);
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object",
+          properties: {
+            imagePrompt: { type: "string" },
+            audioScript: { type: "string" },
+            mood: { type: "string", enum: ["cinematic", "commercial", "documentary", "artistic"] },
+            lighting: { type: "string", enum: ["golden-hour", "natural", "studio", "dramatic"] },
+            angle: { type: "string", enum: ["close-up", "medium-shot", "wide-shot", "aerial"] }
+          },
+          required: ["imagePrompt", "audioScript", "mood", "lighting", "angle"]
+        }
+      },
+      contents: prompt
+    });
 
     try {
       const result = JSON.parse(response.text || '{}');
@@ -282,7 +269,10 @@ export async function optimizeAudioScript(
 `;
 
   try {
-    const response = await generateContentWithFallback({}, prompt);
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: prompt
+    });
     
     return response.text?.trim() || originalScript;
   } catch (error) {

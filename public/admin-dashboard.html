@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>관리자 대시보드</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="/utils/tts-helper.js"></script>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>
         body {
@@ -1538,13 +1537,8 @@
                 let targetVoice = null;
                 const shortLang = fullLang.substring(0, 2);
                 
-                // 🔧 2025-12-23: TTSHelper 사용으로 일관된 음성 선택
-                if (window.TTSHelper) {
-                    const settings = window.TTSHelper.getVoiceSettings();
-                    targetVoice = settings.voice;
-                    console.log('[AdminDetailPage TTS] TTSHelper 사용:', settings.lang, '→', targetVoice?.name);
-                } else if (shortLang === 'ko') {
-                    // ⭐ Fallback 한국어 하드코딩
+                if (shortLang === 'ko') {
+                    // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
                     const koVoices = voices.filter(v => v.lang.startsWith('ko'));
                     targetVoice = koVoices.find(v => v.name.includes('Yuna'))
                                || koVoices.find(v => v.name.includes('Sora'))
@@ -1552,7 +1546,7 @@
                                || koVoices.find(v => v.name.includes('소라'))
                                || koVoices.find(v => v.name.includes('Heami'))
                                || koVoices[0];
-                    console.log('[AdminDetailPage TTS] Fallback 한국어 음성:', targetVoice?.name);
+                    console.log('[AdminDetailPage TTS] 한국어 음성:', targetVoice?.name);
                 } else {
                     targetVoice = this._getVoiceForLanguage(shortLang === 'zh' ? 'zh-CN' : shortLang);
                 }

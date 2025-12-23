@@ -1,5 +1,4 @@
 // geminiservice.js
-// 🔧 2025-12-21: iOS PWA 호환성을 위해 ES module → 전역 객체 변경
 
 /**
  * ⚡ 프롬프트 최종 결론 - AI Agent (2025-10-07)
@@ -26,10 +25,7 @@
  * - Flash-Lite vs Pro 프롬프트 준수도 차이 있음
  * - 순서 강제 문구 필수!
  */
-
-window.gemini = window.gemini || {};
-
-window.gemini.DEFAULT_IMAGE_PROMPT = `당신은 세계 최고의 여행 예능 방송 진행자이자, 역사와 문화 해설 전문가입니다. 제공된 이미지(미술 작품, 건축/풍경, 음식 중 택일)를 분석하여, 다음 지침에 따라 한국어 나레이션 스크립트를 작성해야 합니다.
+export const DEFAULT_IMAGE_PROMPT = `당신은 세계 최고의 여행 예능 방송 진행자이자, 역사와 문화 해설 전문가입니다. 제공된 이미지(미술 작품, 건축/풍경, 음식 중 택일)를 분석하여, 다음 지침에 따라 한국어 나레이션 스크립트를 작성해야 합니다.
 
 [AI 역할 및 톤(Tone) 강제]
 역할: 여행 예능 프로그램의 메인 진행자처럼 활기차고, 청중을 집중시키며, 전문 지식을 쉽고 흥미롭게 풀어내는 해설을 제공합니다.
@@ -50,7 +46,7 @@ window.gemini.DEFAULT_IMAGE_PROMPT = `당신은 세계 최고의 여행 예능 �
 건축/풍경: 명칭, 역사적 의의, 건축 양식을 명시한 후, 핵심 특징, 방문자에게 유용한 사진 촬영 팁을 재미있게 전달합니다.
 음식: 음식명, 유래, 맛의 특징을 명시한 후, 식재료 특징, 추천하는 섭취 방법/음료, 술을 제안합니다.`;
 
-window.gemini.DEFAULT_TEXT_PROMPT = `당신은 세계 최고의 여행 가이드 도슨트입니다. 사용자의 질문에 한국어로 전문적으로 답변해주세요.
+export const DEFAULT_TEXT_PROMPT = `당신은 세계 최고의 여행 가이드 도슨트입니다. 사용자의 질문에 한국어로 전문적으로 답변해주세요.
 
 **[중요] 답변 구조:**
 1. **비화/가격 정보로 시작** - 흥미로운 뒷이야기나 실용 정보로 시작
@@ -110,36 +106,49 @@ async function* streamResponseFromServer(body) {
 
 
 
+/**
+ * 사용자 선택 언어에 따른 언어 지시어 생성
+ * @returns {string} - 언어 지시어 (한국어면 빈 문자열)
+ */
+function getLanguageInstruction() {
+    const userLang = localStorage.getItem('appLanguage') || 'ko';
+    
+    if (userLang === 'ko') return '';
+    
+    const langNames = {
+        'en': 'English',
+        'ja': '日本語 (Japanese)',
+        'zh-CN': '中文 (Chinese)',
+        'fr': 'Français (French)',
+        'de': 'Deutsch (German)',
+        'es': 'Español (Spanish)'
+    };
+    
+    const langName = langNames[userLang] || 'English';
+    console.log('🌐 [언어설정] 선택된 언어:', langName);
+    
+    return `\n\n[중요: 반드시 ${langName} 언어로만 응답하세요. 한국어를 사용하지 마세요.]`;
+}
 
 /**
  * 이미지를 분석하고 설명을 생성하기 위해 Netlify 함수를 호출합니다.
- * 🔧 2025-12-23: 언어별 전용 프롬프트 사용 (language-prompts.js)
  * @param {string} base64Image - Base64로 인코딩된 이미지 데이터
- * @returns {AsyncGenerator<object, void, unknown>} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
+ * @returns {AsyncGenerator&lt;object, void, unknown&gt;} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
  */
-window.gemini.generateDescriptionStream = function(base64Image) {
+export function generateDescriptionStream(base64Image) {
+    const baseInstruction = localStorage.getItem('customImagePrompt') || DEFAULT_IMAGE_PROMPT;
+    const langInstruction = getLanguageInstruction();
+    const systemInstruction = baseInstruction + langInstruction;
+    
     const userLang = localStorage.getItem('appLanguage') || 'ko';
-    
-    // 🔧 언어별 전용 프롬프트 사용 (사용자 커스텀 > 언어별 프롬프트 > 기본 프롬프트)
-    const customPrompt = localStorage.getItem('customImagePrompt');
-    let systemInstruction;
-    
-    if (customPrompt) {
-        systemInstruction = customPrompt;
-        console.log('🔍 [이미지분석] 사용자 커스텀 프롬프트 사용');
-    } else if (window.getLanguagePrompt) {
-        systemInstruction = window.getLanguagePrompt(userLang);
-        console.log('🔍 [이미지분석] 언어별 전용 프롬프트:', userLang);
-    } else {
-        systemInstruction = window.gemini.DEFAULT_IMAGE_PROMPT;
-        console.log('🔍 [이미지분석] 기본 프롬프트 사용');
-    }
-    
-    console.log('📝 [프롬프트] 처음 50자:', systemInstruction.substring(0, 50) + '...');
+    console.log('🔍 [프롬프트확인] 사용중인 이미지 프롬프트:', baseInstruction.substring(0, 50) + '...');
+    console.log('🌐 [언어지시] 추가됨:', langInstruction ? '예' : '아니오 (한국어)');
     
     const requestBody = {
         base64Image,
-        prompt: "이 이미지를 분석해주세요.",
+        prompt: userLang === 'ko' 
+            ? "이 이미지를 분석하고 한국어로 생생하게 설명해주세요."
+            : "Analyze this image and describe it vividly.",
         systemInstruction
     };
     
@@ -148,15 +157,16 @@ window.gemini.generateDescriptionStream = function(base64Image) {
 
 /**
  * 텍스트 프롬프트를 처리하고 답변을 생성하기 위해 Netlify 함수를 호출합니다.
- * 🔧 2025-12-23: 텍스트는 기본 프롬프트 유지 (이미지만 언어별 프롬프트)
  * @param {string} prompt - 사용자의 텍스트 질문
- * @returns {AsyncGenerator<object, void, unknown>} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
+ * @returns {AsyncGenerator&lt;object, void, unknown&gt;} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
  */
-window.gemini.generateTextStream = function(prompt) {
-    const systemInstruction = localStorage.getItem('customTextPrompt') || window.gemini.DEFAULT_TEXT_PROMPT;
+export function generateTextStream(prompt) {
+    const baseInstruction = localStorage.getItem('customTextPrompt') || DEFAULT_TEXT_PROMPT;
+    const langInstruction = getLanguageInstruction();
+    const systemInstruction = baseInstruction + langInstruction;
     
-    console.log('🔍 [텍스트응답] 기본 프롬프트 사용');
-    console.log('📝 [프롬프트] 처음 50자:', systemInstruction.substring(0, 50) + '...');
+    console.log('🔍 [프롬프트확인] 사용중인 텍스트 프롬프트:', baseInstruction.substring(0, 50) + '...');
+    console.log('🌐 [언어지시] 추가됨:', langInstruction ? '예' : '아니오 (한국어)');
     
     const requestBody = {
         prompt,

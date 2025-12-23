@@ -1,11 +1,6 @@
-// 🔧 2025-12-21: iOS PWA 호환성을 위해 ES module imports 제거
-// gemini와 optimizeImage는 전역 객체로 사용 (window.gemini, window.optimizeImage)
-const gemini = window.gemini;
-const optimizeImage = window.optimizeImage;
-
-// 🔧 index.js 로드 확인용 플래그
-window.__indexJsLoaded = true;
-console.log('✅ index.js 로드 완료');
+// Import services and utils from the root directory
+import * as gemini from './geminiService.js';
+import { optimizeImage } from './imageOptimizer.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     // 🌐 언어 선택 바인딩 (admin-settings.html과 동일)
@@ -39,6 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const startCameraFromFeaturesBtn = document.getElementById('startCameraFromFeaturesBtn');
 
     // Main Page Elements
+    const cameraStartOverlay = document.getElementById('cameraStartOverlay');
     const mainLoader = document.getElementById('mainLoader');
     const mainFooter = mainPage.querySelector('.footer-safe-area');
     const shootBtn = document.getElementById('shootBtn');
@@ -1516,6 +1512,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showPage(mainPage);
 
         detailPage.classList.remove('bg-friendly');
+        cameraStartOverlay.classList.add('hidden');
         mainFooter.classList.remove('hidden');
 
         // 카메라 상태 복원 (Featured 페이지에서 돌아온 경우)
@@ -1888,14 +1885,6 @@ document.addEventListener('DOMContentLoaded', () => {
         openVideoModal();
     });
     
-    // 🔧 2025-12-21: iOS PWA용 전역 모달 함수 (onclick 핸들러에서 호출)
-    window.openInfoModal = function() {
-        openInfographicModal('/images/infographic-feature1.png');
-    };
-    window.openVideoModal = openVideoModal;
-    window.closeInfoModal = closeInfographicModal;
-    window.closeVideoModal = closeVideoModal;
-    
     // 프로필 버튼 클릭 → 읽지 않은 알림이 있으면 모달 먼저, 없으면 바로 프로필 페이지
     profileBtn?.addEventListener('click', async () => {
         const user = await checkUserAuth();
@@ -2105,8 +2094,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function handleStartFeaturesClick() {
-        console.log('🚀 handleStartFeaturesClick 호출됨');
         showPage(mainPage);
+        cameraStartOverlay.classList.add('hidden');
     
         if (synth && !synth.speaking) {
             const unlockUtterance = new SpeechSynthesisUtterance('');
@@ -2116,11 +2105,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
         mainLoader.classList.remove('hidden');
     
-        // 🔧 2025-12-21: iOS PWA에서도 버튼 먼저 활성화
-        [uploadBtn, archiveBtn].forEach(btn => {
-            if (btn) btn.disabled = false;
-        });
-        
         try {
             if (!stream) {
                 await startCamera();
@@ -2132,15 +2116,13 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
             console.error(`Initialization error: ${error.message}`);
             console.log('⚠️ 카메라 초기화 실패, 업로드 기능은 사용 가능합니다.');
-            // 🔧 iOS PWA: 카메라 실패해도 업로드/보관함 버튼은 이미 활성화됨
-            showToast("카메라를 시작할 수 없습니다. 갤러리 업로드를 사용해주세요.");
+            showToast("카메라를 시작할 수 없습니다. 업로드 기능을 사용해주세요.");
+            // ✅ 수정: 카메라 실패해도 메인 페이지 유지 (업로드 기능은 사용 가능)
+            // showPage(featuresPage); ← 제거됨
         } finally {
             mainLoader.classList.add('hidden');
         }
     }
-    
-    // 🔧 2025-12-21: iOS PWA용 전역 함수 (onclick 핸들러에서 호출)
-    window.handleStartFromFeatures = handleStartFeaturesClick;
 
     function startCamera() {
         return new Promise(async (resolve, reject) => {
@@ -3113,17 +3095,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn(`⚠️ 일부 아이템에 serverId 없음: ${currentShareItems.length - guideIds.length}개 누락`);
             }
             
-            // 🌐 2025-12-23: 생성자 언어 (공유페이지 TTS 음성 선택용)
-            const creatorLang = localStorage.getItem('appLanguage') || 'ko';
-            
             const requestData = {
                 name: linkName,
                 guideIds: guideIds,
                 thumbnail: currentShareItems[0]?.imageDataUrl || null,
                 sender: senderName,
                 location: locationName,
-                featured: false,
-                creatorLang: creatorLang // 🌐 생성자 언어 전달
+                featured: false
             };
 
             // 🚀 서버 API 호출 (공유 페이지 생성)
@@ -3232,17 +3210,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // 위치 정보 가져오기 (첫 번째 가이드에서)
             const locationName = selectedItems[0]?.locationName || '파리, 프랑스';
             
-            // 🌐 2025-12-23: 생성자 언어 (공유페이지 TTS 음성 선택용)
-            const creatorLang = localStorage.getItem('appLanguage') || 'ko';
-            
             const requestData = {
                 name: linkName,
                 guideIds: guideIds,
                 thumbnail: selectedItems[0]?.imageDataUrl || null,
                 sender: '여행자',
                 location: locationName,
-                featured: false,
-                creatorLang: creatorLang // 🌐 생성자 언어 전달
+                featured: false
             };
 
             // 서버 API 호출 (공유 페이지 생성)
@@ -3706,40 +3680,67 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const utterance = new SpeechSynthesisUtterance(text);
         
-        // 🔧 2025-12-23: TTSHelper만 사용 (중복 로직 제거)
+        // 🎤 저장된 음성 정보 사용 (없으면 현재 앱 언어)
+        const savedVoiceLang = currentContent.voiceLang;
+        const savedVoiceName = currentContent.voiceName;
         const userLang = localStorage.getItem('appLanguage') || 'ko';
         const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
-        const langCode = langCodeMap[userLang] || 'ko-KR';
+        const langCode = savedVoiceLang || langCodeMap[userLang] || 'ko-KR';
         
-        let targetVoice = null;
+        console.log('[TTS] 저장된 음성:', savedVoiceLang, savedVoiceName, '→ 사용:', langCode);
         
-        if (window.TTSHelper) {
-            const settings = window.TTSHelper.getVoiceSettings();
-            targetVoice = settings.voice;
-            console.log('🎤 [TTS] 음성:', settings.lang, '→', targetVoice?.name || 'default');
-        } else {
-            // TTSHelper 없을 때 fallback
+        // 저장된 voiceName이 있으면 해당 음성 사용
+        if (savedVoiceName) {
             const allVoices = synth.getVoices();
+            const targetVoice = allVoices.find(v => v.name === savedVoiceName || v.name.includes(savedVoiceName));
+            if (targetVoice) {
+                utterance.voice = targetVoice;
+                utterance.lang = langCode;
+                utterance.rate = 0.9;
+                utterance.pitch = 1.0;
+                console.log('[TTS] 저장된 음성 사용:', targetVoice.name);
+            }
+        } else {
+            // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
+            const allVoices = synth.getVoices();
+            let targetVoice = null;
+            
             if (langCode === 'ko-KR') {
                 const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
+                // Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
                 targetVoice = koVoices.find(v => v.name.includes('Yuna'))
                            || koVoices.find(v => v.name.includes('Sora'))
+                           || koVoices.find(v => v.name.includes('유나'))
+                           || koVoices.find(v => v.name.includes('소라'))
                            || koVoices.find(v => v.name.includes('Heami'))
                            || koVoices[0];
+                console.log('🎤 [한국어] 음성:', targetVoice?.name || 'default');
             } else {
-                targetVoice = allVoices.find(v => v.lang === langCode);
-                if (!targetVoice) {
-                    const prefix = langCode.split('-')[0];
-                    targetVoice = allVoices.find(v => v.lang.startsWith(prefix));
+                // 다른 6개 언어는 DB 기반 유지
+                const voiceConfig = getVoicePriorityFromDB(langCode);
+                const priorities = voiceConfig.priorities;
+                const excludeVoices = voiceConfig.excludeVoices;
+                
+                // 우선순위대로 음성 찾기 (제외 목록 적용)
+                for (const voiceName of priorities) {
+                    targetVoice = allVoices.find(v => 
+                        v.name.includes(voiceName) && !excludeVoices.some(ex => v.name.includes(ex))
+                    );
+                    if (targetVoice) break;
                 }
+                
+                // 우선순위에 없으면 언어 코드로 찾기
+                if (!targetVoice) {
+                    targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
+                }
+                console.log('[TTS] 언어:', langCode, '음성:', targetVoice?.name || 'default');
             }
-            console.log('🎤 [TTS Fallback] 음성:', langCode, '→', targetVoice?.name || 'default');
+            
+            utterance.voice = targetVoice || null;
+            utterance.lang = langCode;
+            utterance.rate = 0.9;
+            utterance.pitch = 1.0;
         }
-        
-        utterance.voice = targetVoice || null;
-        utterance.lang = langCode;
-        utterance.rate = 0.9;
-        utterance.pitch = 1.0;
         
         utterance.onend = () => {
             element.classList.remove('speaking');
