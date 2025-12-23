@@ -3698,70 +3698,40 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const utterance = new SpeechSynthesisUtterance(text);
         
-        // 🎤 저장된 음성 정보 사용 (없으면 현재 앱 언어)
-        const savedVoiceLang = currentContent.voiceLang;
-        const savedVoiceName = currentContent.voiceName;
+        // 🔧 2025-12-23: TTSHelper만 사용 (중복 로직 제거)
         const userLang = localStorage.getItem('appLanguage') || 'ko';
         const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
-        const langCode = savedVoiceLang || langCodeMap[userLang] || 'ko-KR';
+        const langCode = langCodeMap[userLang] || 'ko-KR';
         
-        console.log('[TTS] 저장된 음성:', savedVoiceLang, savedVoiceName, '→ 사용:', langCode);
+        let targetVoice = null;
         
-        // 저장된 voiceName이 있으면 해당 음성 사용
-        if (savedVoiceName) {
-            const allVoices = synth.getVoices();
-            const targetVoice = allVoices.find(v => v.name === savedVoiceName || v.name.includes(savedVoiceName));
-            if (targetVoice) {
-                utterance.voice = targetVoice;
-                utterance.lang = langCode;
-                utterance.rate = 0.9;
-                utterance.pitch = 1.0;
-                console.log('[TTS] 저장된 음성 사용:', targetVoice.name);
-            }
+        if (window.TTSHelper) {
+            const settings = window.TTSHelper.getVoiceSettings();
+            targetVoice = settings.voice;
+            console.log('🎤 [TTS] 음성:', settings.lang, '→', targetVoice?.name || 'default');
         } else {
-            // 🔧 2025-12-23: TTSHelper 사용으로 일관된 음성 선택
-            let targetVoice = null;
-            
-            if (window.TTSHelper) {
-                const settings = window.TTSHelper.getVoiceSettings();
-                targetVoice = settings.voice;
-                console.log('[TTS] TTSHelper 사용:', settings.lang, '→', targetVoice?.name);
-            } else if (langCode === 'ko-KR') {
-                // ⭐ Fallback 한국어 하드코딩
-                const allVoices = synth.getVoices();
+            // TTSHelper 없을 때 fallback
+            const allVoices = synth.getVoices();
+            if (langCode === 'ko-KR') {
                 const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
                 targetVoice = koVoices.find(v => v.name.includes('Yuna'))
                            || koVoices.find(v => v.name.includes('Sora'))
-                           || koVoices.find(v => v.name.includes('유나'))
-                           || koVoices.find(v => v.name.includes('소라'))
                            || koVoices.find(v => v.name.includes('Heami'))
                            || koVoices[0];
-                console.log('🎤 [Fallback 한국어] 음성:', targetVoice?.name || 'default');
             } else {
-                // Fallback: DB 기반 유지
-                const allVoices = synth.getVoices();
-                const voiceConfig = getVoicePriorityFromDB(langCode);
-                const priorities = voiceConfig.priorities;
-                const excludeVoices = voiceConfig.excludeVoices;
-                
-                for (const voiceName of priorities) {
-                    targetVoice = allVoices.find(v => 
-                        v.name.includes(voiceName) && !excludeVoices.some(ex => v.name.includes(ex))
-                    );
-                    if (targetVoice) break;
-                }
-                
+                targetVoice = allVoices.find(v => v.lang === langCode);
                 if (!targetVoice) {
-                    targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
+                    const prefix = langCode.split('-')[0];
+                    targetVoice = allVoices.find(v => v.lang.startsWith(prefix));
                 }
-                console.log('[TTS] Fallback 언어:', langCode, '음성:', targetVoice?.name || 'default');
             }
-            
-            utterance.voice = targetVoice || null;
-            utterance.lang = langCode;
-            utterance.rate = 0.9;
-            utterance.pitch = 1.0;
+            console.log('🎤 [TTS Fallback] 음성:', langCode, '→', targetVoice?.name || 'default');
         }
+        
+        utterance.voice = targetVoice || null;
+        utterance.lang = langCode;
+        utterance.rate = 0.9;
+        utterance.pitch = 1.0;
         
         utterance.onend = () => {
             element.classList.remove('speaking');

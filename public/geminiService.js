@@ -111,16 +111,30 @@ async function* streamResponseFromServer(body) {
 
 
 
+// 🔧 2025-12-23: 언어별 프롬프트 강화 (기존 프롬프트에 추가, 덮어쓰기 아님)
+window.gemini.LANGUAGE_ENHANCEMENTS = {
+    'ko': '', // 기본 한국어는 추가 없음
+    'en': '\n\n[추가 지침: 영어권 청중 최적화]\n- 한국과의 비교 설명 시 더 상세히 설명 (외국인 이해도 고려)\n- 서양 문화와 연결점 강조\n- 실용적인 여행 팁 포함',
+    'ja': '\n\n[追加指針: 日本語圏向け最適化]\n- 韓国との比較説明をより詳しく\n- 日本文化との類似点/相違点を強調\n- 歴史的な背景を丁寧に説明',
+    'zh-CN': '\n\n[附加指南: 中文读者优化]\n- 与韩国的比较说明更详细\n- 强调与中国文化的联系\n- 包含实用旅行建议',
+    'fr': '\n\n[Instructions supplémentaires: Optimisation pour le public français]\n- Comparaisons détaillées avec la Corée\n- Liens avec la culture européenne\n- Conseils pratiques de voyage',
+    'de': '\n\n[Zusätzliche Anweisungen: Optimierung für deutschsprachiges Publikum]\n- Detaillierte Vergleiche mit Korea\n- Verbindungen zur europäischen Kultur\n- Praktische Reisetipps',
+    'es': '\n\n[Instrucciones adicionales: Optimización para público hispanohablante]\n- Comparaciones detalladas con Corea\n- Conexiones con la cultura latina\n- Consejos prácticos de viaje'
+};
+
 /**
  * 이미지를 분석하고 설명을 생성하기 위해 Netlify 함수를 호출합니다.
- * 🔧 2025-12-23: 기존 로직 복원 - 항상 한국어 응답 → Google Translate로 번역
+ * 🔧 2025-12-23: 언어별 프롬프트 강화 추가 (기존 프롬프트 유지 + 언어별 지침 추가)
  * @param {string} base64Image - Base64로 인코딩된 이미지 데이터
  * @returns {AsyncGenerator<object, void, unknown>} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
  */
 window.gemini.generateDescriptionStream = function(base64Image) {
-    const systemInstruction = localStorage.getItem('customImagePrompt') || window.gemini.DEFAULT_IMAGE_PROMPT;
+    const baseInstruction = localStorage.getItem('customImagePrompt') || window.gemini.DEFAULT_IMAGE_PROMPT;
+    const userLang = localStorage.getItem('appLanguage') || 'ko';
+    const enhancement = window.gemini.LANGUAGE_ENHANCEMENTS[userLang] || '';
+    const systemInstruction = baseInstruction + enhancement;
     
-    console.log('🔍 [이미지분석] 한국어 프롬프트 사용 (번역은 Google Translate에서 처리)');
+    console.log('🔍 [이미지분석] 언어:', userLang, enhancement ? '(강화 적용)' : '(기본)');
     console.log('📝 [프롬프트] 처음 50자:', systemInstruction.substring(0, 50) + '...');
     
     const requestBody = {
@@ -134,14 +148,17 @@ window.gemini.generateDescriptionStream = function(base64Image) {
 
 /**
  * 텍스트 프롬프트를 처리하고 답변을 생성하기 위해 Netlify 함수를 호출합니다.
- * 🔧 2025-12-23: 기존 로직 복원 - 항상 한국어 응답 → Google Translate로 번역
+ * 🔧 2025-12-23: 언어별 프롬프트 강화 추가 (기존 프롬프트 유지 + 언어별 지침 추가)
  * @param {string} prompt - 사용자의 텍스트 질문
  * @returns {AsyncGenerator<object, void, unknown>} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
  */
 window.gemini.generateTextStream = function(prompt) {
-    const systemInstruction = localStorage.getItem('customTextPrompt') || window.gemini.DEFAULT_TEXT_PROMPT;
+    const baseInstruction = localStorage.getItem('customTextPrompt') || window.gemini.DEFAULT_TEXT_PROMPT;
+    const userLang = localStorage.getItem('appLanguage') || 'ko';
+    const enhancement = window.gemini.LANGUAGE_ENHANCEMENTS[userLang] || '';
+    const systemInstruction = baseInstruction + enhancement;
     
-    console.log('🔍 [텍스트응답] 한국어 프롬프트 사용 (번역은 Google Translate에서 처리)');
+    console.log('🔍 [텍스트응답] 언어:', userLang, enhancement ? '(강화 적용)' : '(기본)');
     console.log('📝 [프롬프트] 처음 50자:', systemInstruction.substring(0, 50) + '...');
     
     const requestBody = {
