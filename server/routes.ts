@@ -1667,6 +1667,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // appOrigin 생성
         const appOrigin = `${req.protocol}://${req.get('host')}`;
         
+        // 🌐 2025-12-23: 생성자 언어 (req.body.creatorLang 또는 'ko')
+        const creatorLang = req.body.creatorLang || 'ko';
+        
         // 표준 템플릿 HTML 생성
         const standardHtml = await storage.buildSharePageFromGuides(
           pageData.guideIds,
@@ -1675,7 +1678,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             sender: pageData.sender || '여행자',
             location: pageData.location || '미지정',
             date: pageData.date || new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' }),
-            appOrigin
+            appOrigin,
+            creatorLang // 🌐 생성자 언어 전달
           }
         );
         

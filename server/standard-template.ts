@@ -19,6 +19,7 @@ export interface StandardTemplateData {
   appOrigin: string;
   isFeatured?: boolean;
   creatorReferralCode?: string;
+  creatorLang?: string; // 🌐 2025-12-23: 생성자 언어 (공유페이지 TTS용)
 }
 
 export interface GuideItem {
@@ -33,7 +34,7 @@ export interface GuideItem {
 }
 
 export function generateStandardShareHTML(data: StandardTemplateData): string {
-  const { title, sender, location, date, guideItems, isFeatured = false, creatorReferralCode = '' } = data;
+  const { title, sender, location, date, guideItems, isFeatured = false, creatorReferralCode = '', creatorLang = 'ko' } = data;
   
   // ⚠️ 2025-11-23: appOrigin 하드코딩 (개발본/배포본 동일 작동 보장)
   // 홈 버튼 2개 (메인 하단 "손안에 가이드 시작하기", 가이드 페이지 하단)에서 사용
@@ -114,20 +115,24 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
         (function() {
             'use strict';
             
+            // 🌐 2025-12-23: 생성자 언어 저장 (공유페이지 생성 시점의 언어)
+            window.__pageLanguage = '${creatorLang}';
+            
             // 언어코드 매핑
             var LANG_MAP = {
                 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP',
                 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES'
             };
             
-            // 🌐 2025.12.05: URL 파라미터 + localStorage 모두 체크
+            // 🌐 2025.12.23: URL 파라미터 > 페이지 저장 언어 > localStorage 순서
             var params = new URLSearchParams(window.location.search);
             var urlLang = params.get('lang');
+            var pageLang = window.__pageLanguage;
             var storedLang = null;
             try { storedLang = localStorage.getItem('appLanguage'); } catch(e) {}
             
-            // URL 파라미터 우선, 없으면 localStorage
-            var activeLang = urlLang || storedLang || 'ko';
+            // URL 파라미터 우선, 없으면 페이지 저장 언어, 그 다음 localStorage
+            var activeLang = urlLang || pageLang || storedLang || 'ko';
             var targetLang = LANG_MAP[activeLang] || LANG_MAP[activeLang.split('-')[0]] || null;
             
             // 한국어가 아니면 → 번역 필요, TTS 대기
