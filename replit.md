@@ -19,7 +19,7 @@ An Express.js server in TypeScript uses Drizzle ORM for PostgreSQL interactions 
 ### Database
 PostgreSQL is the primary database, managed by Drizzle ORM, storing users, travel guides (content, images, location), share links, and authentication sessions. Guide data is backed up in the database and embedded in HTML for offline access.
 ### AI Integration
-Google Gemini AI (Gemini 2.5 Flash) generates multi-language descriptions and tips from images and location data. Image compression (0.9 quality) optimizes AI processing. It uses language-specific prompts to tailor content (e.g., K-Content trends for Korean, cinematic narratives for English).
+Google Gemini AI (Gemini 2.5 Flash) generates descriptions in Korean, which are then translated via Google Translate to the user's selected language. Image compression (0.9 quality) optimizes AI processing. **2025-12-23 Update**: Language-specific prompts removed; Gemini always responds in Korean for consistency, with Google Translate handling localization.
 ### Authentication
 Replit Auth and Google OAuth 2.0 (via Passport.js) are used, with sessions stored in PostgreSQL.
 ### File Upload & Storage
@@ -39,7 +39,10 @@ Provides search for shared pages, automatic featured ordering, and a real-time s
 ### HTML Parser
 Parses guide data from HTML to preserve AI-generated content in the database.
 ### TTS Logic
-For Korean, specific voice names (Yuna, Sora, Heami) are hardcoded. For other languages, `voice_configs` in PostgreSQL manage preferences. TTS playback awaits Google Translate completion with a 3-second timeout fallback.
+**2025-12-23 Update**: Unified TTS via `TTSHelper` utility (`public/utils/tts-helper.js`):
+- **Korean**: Immediate playback with hardcoded voices (Yuna → Sora → Heami priority for iOS compatibility)
+- **Other languages**: Wait for Google Translate completion (MutationObserver + 2s timeout), then play with native language voice based on `appLanguage`
+- Applied consistently across: index.js, guideDetailPage.js, share-page.js, profile.html, admin-dashboard.html, v2.js (standalone share pages)
 ### Service Worker Strategy
 The main app uses a Cache First strategy, while shared pages (`/s/:id`) employ a Network First strategy (via `sw-share.js`) to ensure fresh content and offline availability.
 ### Dream Video (Planned)
