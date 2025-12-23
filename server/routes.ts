@@ -1883,6 +1883,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ═══════════════════════════════════════════════════════════════
+  // 🎯 AI 프롬프트 관리 API (2025-12-18)
+  // ═══════════════════════════════════════════════════════════════
+  
+  // GET /api/prompts/:language/:type - 특정 언어/타입 프롬프트 조회 (공개)
+  app.get('/api/prompts/:language/:type', async (req: any, res) => {
+    try {
+      const { language, type } = req.params;
+      
+      if (!['image', 'text'].includes(type)) {
+        return res.status(400).json({ error: '유효하지 않은 타입입니다.' });
+      }
+      
+      const prompt = await storage.getPrompt(language, type as 'image' | 'text');
+      
+      if (!prompt) {
+        return res.status(404).json({ error: '프롬프트를 찾을 수 없습니다.' });
+      }
+      
+      res.json({ prompt });
+    } catch (error) {
+      console.error('프롬프트 조회 오류:', error);
+      res.status(500).json({ error: '프롬프트 조회에 실패했습니다.' });
+    }
+  });
+  
+  // GET /api/admin/prompts - 모든 프롬프트 목록 (관리자)
+  app.get('/api/admin/prompts', requireAdmin, async (req: any, res) => {
+    try {
+      const allPrompts = await storage.getAllPrompts();
+      res.json({ prompts: allPrompts });
+    } catch (error) {
+      console.error('프롬프트 목록 조회 오류:', error);
+      res.status(500).json({ error: '프롬프트 목록 조회에 실패했습니다.' });
+    }
+  });
+  
+  // POST /api/admin/prompts - 프롬프트 생성/수정 (관리자)
+  app.post('/api/admin/prompts', requireAdmin, async (req: any, res) => {
+    try {
+      const { language, type, content } = req.body;
+      
+      if (!language || !type || !content) {
+        return res.status(400).json({ error: '언어, 타입, 내용은 필수입니다.' });
+      }
+      
+      if (!['image', 'text'].includes(type)) {
+        return res.status(400).json({ error: '타입은 image 또는 text여야 합니다.' });
+      }
+      
+      const prompt = await storage.upsertPrompt({
+        language,
+        type,
+        content,
+        createdBy: req.user?.id || null
+      });
+      
+      res.json({ success: true, prompt });
+    } catch (error) {
+      console.error('프롬프트 저장 오류:', error);
+      res.status(500).json({ error: '프롬프트 저장에 실패했습니다.' });
+    }
+  });
+  
+  // POST /api/admin/prompts/seed - 기본 프롬프트 시딩 (관리자)
+  app.post('/api/admin/prompts/seed', requireAdmin, async (req: any, res) => {
+    try {
+      const count = await storage.seedDefaultPrompts();
+      res.json({ 
+        success: true, 
+        message: count > 0 ? `${count}개 기본 프롬프트가 생성되었습니다.` : '프롬프트가 이미 존재합니다.',
+        count 
+      });
+    } catch (error) {
+      console.error('프롬프트 시딩 오류:', error);
+      res.status(500).json({ error: '프롬프트 시딩에 실패했습니다.' });
+    }
+  });
+
   // GET /api/admin/featured/:id/data - Featured 편집용 데이터 조회
   app.get('/api/admin/featured/:id/data', requireAdmin, async (req: any, res) => {
     try {
