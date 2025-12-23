@@ -1085,8 +1085,6 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
         const synth = window.speechSynthesis;
         let voices = [];
         let currentUtterance = null;
-        const voiceLang = '${voiceLang || 'ko-KR'}';
-        const savedVoiceName = '${voiceName || ''}';
         
         function populateVoiceList() {
             voices = synth.getVoices();
@@ -1110,37 +1108,32 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
             const cleanText = text.replace(/<br\\s*\\/?>/gi, ' ');
             currentUtterance = new SpeechSynthesisUtterance(cleanText);
             
-            // 저장된 음성 이름으로 찾기
+            // 🔧 2025-12-23: 사용자 appLanguage 우선 (window.__ttsTargetLang)
+            const activeLang = window.__ttsTargetLang || 'ko-KR';
             const allVoices = synth.getVoices();
             let targetVoice = null;
             
-            if (savedVoiceName) {
-                targetVoice = allVoices.find(v => v.name === savedVoiceName);
-            }
-            
-            // 없으면 언어별 로직
-            if (!targetVoice) {
-                // ⭐ 한국어 하드코딩 (Yuna → Sora → 유나 → 소라 → Heami)
-                if (voiceLang === 'ko-KR' || voiceLang.startsWith('ko')) {
-                    const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
-                    targetVoice = koVoices.find(v => v.name.includes('Yuna'))
-                               || koVoices.find(v => v.name.includes('Sora'))
-                               || koVoices.find(v => v.name.includes('유나'))
-                               || koVoices.find(v => v.name.includes('소라'))
-                               || koVoices.find(v => v.name.includes('Heami'))
-                               || koVoices[0];
-                    console.log('[Single TTS] 한국어 음성:', targetVoice?.name || 'default');
-                } else {
-                    // 다른 언어: 언어 코드로 찾기
-                    targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(voiceLang.substring(0, 2)));
-                }
+            // ⭐ 한국어 하드코딩 (Yuna → Sora → 유나 → 소라 → Heami)
+            if (activeLang === 'ko-KR' || activeLang.startsWith('ko')) {
+                const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
+                targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                           || koVoices.find(v => v.name.includes('Sora'))
+                           || koVoices.find(v => v.name.includes('유나'))
+                           || koVoices.find(v => v.name.includes('소라'))
+                           || koVoices.find(v => v.name.includes('Heami'))
+                           || koVoices[0];
+                console.log('[SingleGuide TTS] 한국어 음성:', targetVoice?.name || 'default');
+            } else {
+                // 다른 언어: 언어 코드로 찾기
+                targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(activeLang.substring(0, 2)));
+                console.log('[SingleGuide TTS] ' + activeLang + ' 음성:', targetVoice?.name || 'default');
             }
             
             currentUtterance.voice = targetVoice || null;
-            currentUtterance.lang = voiceLang;
+            currentUtterance.lang = activeLang;
             currentUtterance.rate = 1.0;
             
-            console.log('[SingleGuide TTS] 언어:', voiceLang, '음성:', targetVoice ? targetVoice.name : 'default');
+            console.log('[SingleGuide TTS] 최종 언어:', activeLang, '음성:', targetVoice ? targetVoice.name : 'default');
             
             currentUtterance.onstart = () => {
                 document.getElementById('play-icon').style.display = 'none';
