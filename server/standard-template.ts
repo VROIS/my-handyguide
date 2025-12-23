@@ -601,8 +601,8 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             if (pauseIcon) pauseIcon.style.display = 'none';
         }
         
-        // 🎤 2025-12-03: voiceLang 파라미터 추가 (저장된 언어로 TTS 재생)
-        function playAudio(text, voiceLang) {
+        // 🔧 2025-12-23: 사용자 appLanguage 우선 (window.__ttsTargetLang)
+        function playAudio(text) {
             stopAudio();
             
             // ⚠️ **핵심 로직 - 절대 수정 금지!** (2025-10-03 치명적 버그 해결)
@@ -617,18 +617,14 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             
             currentUtterance = new SpeechSynthesisUtterance(cleanText);
             
-            // 🎤 저장된 voiceLang 사용 (각 가이드별 원본 언어, 없으면 TTS 스킵)
-            if (!voiceLang) {
-                console.warn('[Share TTS] voiceLang 없음 - TTS 스킵');
-                return;
-            }
-            const langCode = voiceLang;
+            // 🔧 2025-12-23: 사용자 appLanguage 우선 (window.__ttsTargetLang)
+            const activeLang = window.__ttsTargetLang || 'ko-KR';
             
             const allVoices = synth.getVoices();
             let targetVoice = null;
             
             // ⭐ 한국어 하드코딩 (Yuna → Sora → 유나 → 소라 → Heami)
-            if (langCode === 'ko-KR' || langCode.startsWith('ko')) {
+            if (activeLang === 'ko-KR' || activeLang.startsWith('ko')) {
                 const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
                 targetVoice = koVoices.find(v => v.name.includes('Yuna'))
                            || koVoices.find(v => v.name.includes('Sora'))
@@ -638,27 +634,16 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                            || koVoices[0];
                 console.log('[Share TTS] 한국어 음성:', targetVoice?.name || 'default');
             } else {
-                // 다른 언어: 저장된 voiceName 사용 (각 가이드별 원본 음성)
-                // voiceName이 appData에 있으면 그 음성 사용
-                const currentItem = appData.find(item => item.voiceLang === langCode);
-                const savedVoiceName = currentItem?.voiceName;
-                
-                if (savedVoiceName) {
-                    targetVoice = allVoices.find(v => v.name.includes(savedVoiceName));
-                    console.log('[Share TTS] 저장된 음성:', savedVoiceName, '→', targetVoice?.name);
-                }
-                
-                // 저장된 음성 없으면 언어 코드로 찾기
-                if (!targetVoice) {
-                    targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
-                }
+                // 다른 언어: 언어 코드로 찾기
+                targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(activeLang.substring(0, 2)));
+                console.log('[Share TTS] ' + activeLang + ' 음성:', targetVoice?.name || 'default');
             }
             
             currentUtterance.voice = targetVoice || null;
-            currentUtterance.lang = langCode;
+            currentUtterance.lang = activeLang;
             currentUtterance.rate = 1.0;
             
-            console.log('[Share TTS] 언어:', langCode, '음성:', targetVoice ? targetVoice.name : 'default');
+            console.log('[Share TTS] 최종 언어:', activeLang, '음성:', targetVoice ? targetVoice.name : 'default');
             
             const playIcon = document.getElementById('play-icon');
             const pauseIcon = document.getElementById('pause-icon');
@@ -701,16 +686,10 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             synth.onvoiceschanged = populateVoiceList;
         }
         
-        // 🎤 현재 보고 있는 아이템의 voiceLang 저장
-        let currentVoiceLang = null;
-        
         // 갤러리 아이템 클릭 (앱과 100% 동일한 로직)
         document.querySelectorAll('.gallery-item').forEach(item => {
             item.addEventListener('click', () => {
                 const itemData = appData[parseInt(item.dataset.id)];
-                
-                // 🎤 현재 아이템의 voiceLang 저장 (DB에서 가져온 값 그대로)
-                currentVoiceLang = itemData.voiceLang;
                 
                 // 🎤 음성 모드 판별: 이미지 없고 voiceQuery 있으면 음성 모드
                 const hasImage = itemData.imageDataUrl && !itemData.imageDataUrl.includes('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAY');
@@ -767,8 +746,8 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                 // 텍스트는 표시 상태로 시작 (음성과 동시에 보임)
                 document.getElementById('detail-text').classList.remove('hidden');
                 
-                // 🎤 음성 자동 재생 (저장된 언어 사용)
-                playAudio(itemData.description, currentVoiceLang);
+                // 🎤 음성 자동 재생 (사용자 appLanguage 우선)
+                playAudio(itemData.description);
             });
         });
         
@@ -801,8 +780,8 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                 stopAudio();
             } else {
                 const text = document.getElementById('detail-description').textContent;
-                // 🎤 저장된 언어 사용
-                playAudio(text, currentVoiceLang);
+                // 🎤 사용자 appLanguage 우선
+                playAudio(text);
             }
         });
         
