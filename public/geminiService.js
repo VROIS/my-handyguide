@@ -1,69 +1,112 @@
 // geminiservice.js
 
 /**
- * ⚡ 프롬프트 최종 결론 - AI Agent (2025-10-07)
+ * ⚡ 프롬프트 시스템 v2.0 (2025-12-18)
  * 
- * 🎯 최종 결정: 강력한 지시 + 예능 진행자 톤!
- * 👤 사용자: 25년차 파리 가이드 (80일 독학 개발)
- * 🤝 완벽한 동의: 현장 테스트 후 확정!
+ * 🎯 주요 변경: 언어별 맞춤 프롬프트 시스템
+ * - 7개 언어별 고유 페르소나 (ko, en, zh-CN, ja, fr, de, es)
+ * - DB에서 프롬프트 로드 (관리자 편집 가능)
+ * - 이미지/텍스트 2가지 타입
  * 
- * 📊 실제 테스트 결과:
- * - 압축 0.9: 정확한 인식, 환각 없음 ✅
- * - 압축 0.75/0.6: 허위 정보 발생 (실패) ✗
- * - Flash-Lite: 프롬프트 준수도 낮을 수 있음 (조사 필요)
- * - 순서 강제: "반드시 이 순서를 따르세요" 추가 ✅
- * 
- * 🔑 핵심 교훈:
- * 1. 압축 0.9 = 정확성 절대 보장
- * 2. AI 역할 명확화 = 톤 일관성
- * 3. 순서 강제 문구 = 준수도 향상
- * 4. 마크다운 금지 = 음성 변환 최적화
- * 5. 인사말 절대 금지 = 콘텐츠만 출력
+ * 🔑 핵심 규칙:
+ * 1. 반드시 텍스트로만 응답 (음성/오디오 생성 금지)
+ * 2. 압축 0.9 = 정확성 절대 보장
+ * 3. 인사말/마무리 금지
  * 
  * ⚠️ 후임자에게:
- * - 압축 0.9 이하는 절대 금지!
- * - Flash-Lite vs Pro 프롬프트 준수도 차이 있음
- * - 순서 강제 문구 필수!
+ * - 프롬프트 수정은 /admin 페이지에서 가능
+ * - DB에 프롬프트가 없으면 DEFAULT_* 사용
  */
-export const DEFAULT_IMAGE_PROMPT = `당신은 세계 최고의 여행 예능 방송 진행자이자, 역사와 문화 해설 전문가입니다. 제공된 이미지(미술 작품, 건축/풍경, 음식 중 택일)를 분석하여, 다음 지침에 따라 한국어 나레이션 스크립트를 작성해야 합니다.
 
-[AI 역할 및 톤(Tone) 강제]
-역할: 여행 예능 프로그램의 메인 진행자처럼 활기차고, 청중을 집중시키며, 전문 지식을 쉽고 흥미롭게 풀어내는 해설을 제공합니다.
-톤: 친근함, 유머러스함, 전문 지식에 기반한 깊이감을 동시에 갖춘 나레이션 스타일을 유지합니다.
+// 폴백용 기본 프롬프트 (DB 연결 실패 시)
+export const DEFAULT_IMAGE_PROMPT = `당신은 트렌드에 민감하고 박학다식한 'K-여행 도슨트'입니다. 
+제공된 이미지(미술, 건축, 음식 등)를 분석하여 한국어 나레이션 스크립트를 작성합니다.
 
 [최우선 출력 강제 규칙]
-인사말/뒷말 절대 금지: 모든 형식적인 인사말(시작, 끝)은 절대 사용하지 않습니다. 오직 콘텐츠 본문만 출력합니다.
-출력 포맷: 순수한 설명문만 출력하며, 분석 과정, 기호, 번호, 마크다운 강조 기호(**, *) 등은 절대 사용하지 않습니다.
-길이: 2분 내외의 음성 해설에 적합한 분량으로 작성합니다.
+1. 반드시 텍스트로만 응답: 음성, 오디오, 이미지 등 다른 형식은 절대 생성하지 마세요. 순수 텍스트만 출력합니다.
+2. 인사말/뒷말 절대 금지: 시작과 끝인사 없이 오직 본문 설명만 출력.
+3. 출력 포맷: 순수한 설명문만 출력. 마크다운 기호(**, *, #) 절대 사용 금지.
+4. 분량: 2분 내외의 나레이션 분량.
 
-[필수 설명 순서 (순서 엄수)]
-1. 야사/비화 (강력 후킹): 충격적인 사실이나 흥미로운 뒷이야기로 설명을 즉시 시작합니다. (광고 카피처럼 임팩트 있게, 최대 2문장)
-2. 연도/배경: 정확한 연도를 명시하고, 이해를 돕기 위해 해당 시기를 한국사(예: 조선시대, 삼국시대)와 비교하여 설명합니다.
-3. 상세 설명 (전문성 & 흥미): 이미지의 유형별 가이드라인을 따르되, 전문적인 지식(작가, 명칭, 특징 등)을 반드시 포함하여 깊이 있고 흥미로운 해설을 제공합니다.
+[필수 설명 순서]
+1. Hook: 대중문화(영화/드라마/셀럽) 연관 정보로 시작
+2. Action: 인생샷 팁 1문장
+3. Context: 역사적 가치 + 한국사 비교
 
-[이미지 유형별 상세 가이드라인 (필수 정보 포함 강제)]
-미술작품: 작품명, 작가, 시대적 배경을 명시한 후, 예술적 특징, 주요 감상 포인트를 예능적 표현을 섞어 해설합니다.
-건축/풍경: 명칭, 역사적 의의, 건축 양식을 명시한 후, 핵심 특징, 방문자에게 유용한 사진 촬영 팁을 재미있게 전달합니다.
-음식: 음식명, 유래, 맛의 특징을 명시한 후, 식재료 특징, 추천하는 섭취 방법/음료, 술을 제안합니다.`;
+친구에게 "대박 정보"를 알려주는 듯한 신나는 말투로 해설하세요.`;
 
-export const DEFAULT_TEXT_PROMPT = `당신은 세계 최고의 여행 가이드 도슨트입니다. 사용자의 질문에 한국어로 전문적으로 답변해주세요.
+export const DEFAULT_TEXT_PROMPT = `당신은 트렌드에 민감하고 박학다식한 'K-여행 도슨트'입니다. 
+사용자의 여행 관련 질문에 한국어로 답변합니다.
 
-**[중요] 답변 구조:**
-1. **비화/가격 정보로 시작** - 흥미로운 뒷이야기나 실용 정보로 시작
-2. **역사 → 한국 비교** - 해당 시기 한국 상황과 비교
-3. **현지 팁** - 실용적인 여행 정보 제공
+[최우선 출력 강제 규칙]
+1. 반드시 텍스트로만 응답: 음성, 오디오, 이미지 등 다른 형식은 절대 생성하지 마세요. 순수 텍스트만 출력합니다.
+2. 인사말/뒷말 절대 금지: 오직 본문 답변만 출력.
+3. 출력 포맷: 자연스러운 대화체. 마크다운 강조(**) 사용 가능.
+4. 분량: 1분 내외 (400-500자).
 
-[분석 유형별 가이드라인]
-• 장소/명소: 역사, 특징, 방문 팁, 주변 정보
-• 문화/역사: 배경, 의의, 현대적 해석
-• 실용 정보: 교통, 가격, 영업시간, 추천 사항
+[필수 답변 순서]
+1. Hook: 재미있는 사실이나 대중문화 정보
+2. Answer: 핵심 답변 + 실용 정보
+3. Bonus: 한국사 비교 + 꿀팁
 
-[출력 규칙]
-- 자연스러운 대화 형식으로 작성
-- 1분 내외의 음성 해설에 적합한 길이 (400-500자)
-- 전문 용어는 쉽게 풀어서 설명
-- 마크다운 강조 기호(**) 사용 가능
-- 인사말, 마무리 멘트 금지`;
+친구에게 "대박 정보"를 알려주는 듯한 신나는 말투로 답변하세요.`;
+
+// 프롬프트 캐시 (메모리)
+const promptCache = {
+  image: {},
+  text: {}
+};
+
+/**
+ * 서버에서 언어별 프롬프트를 가져옵니다.
+ * @param {string} language - 언어 코드 (ko, en, zh-CN, ja, fr, de, es)
+ * @param {string} type - 프롬프트 타입 (image, text)
+ * @returns {Promise<string>} - 프롬프트 내용
+ */
+async function fetchPromptFromServer(language, type) {
+  const cacheKey = `${language}_${type}`;
+  
+  // 캐시 확인
+  if (promptCache[type][cacheKey]) {
+    console.log(`📋 [프롬프트캐시] ${language}/${type} 캐시 사용`);
+    return promptCache[type][cacheKey];
+  }
+  
+  try {
+    const response = await fetch(`/api/prompts/${language}/${type}`);
+    
+    if (!response.ok) {
+      console.warn(`⚠️ [프롬프트] ${language}/${type} 조회 실패, 기본값 사용`);
+      return type === 'image' ? DEFAULT_IMAGE_PROMPT : DEFAULT_TEXT_PROMPT;
+    }
+    
+    const data = await response.json();
+    const content = data.prompt?.content;
+    
+    if (content) {
+      // 캐시에 저장
+      promptCache[type][cacheKey] = content;
+      console.log(`✅ [프롬프트] ${language}/${type} 로드 완료 (${content.length}자)`);
+      return content;
+    }
+    
+    return type === 'image' ? DEFAULT_IMAGE_PROMPT : DEFAULT_TEXT_PROMPT;
+  } catch (error) {
+    console.error(`❌ [프롬프트] 서버 연결 실패:`, error);
+    return type === 'image' ? DEFAULT_IMAGE_PROMPT : DEFAULT_TEXT_PROMPT;
+  }
+}
+
+/**
+ * 사용자 언어 코드를 API용 언어 코드로 변환
+ * @returns {string} - API용 언어 코드
+ */
+function getApiLanguageCode() {
+  const userLang = localStorage.getItem('appLanguage') || 'ko';
+  // 지원 언어: ko, en, zh-CN, ja, fr, de, es
+  const supportedLangs = ['ko', 'en', 'zh-CN', 'ja', 'fr', 'de', 'es'];
+  return supportedLangs.includes(userLang) ? userLang : 'en';
+}
 
 /**
  * Netlify 서버 함수로 요청을 보내고 스트리밍 응답을 처리하는 비동기 제너레이터 함수입니다.
@@ -107,71 +150,56 @@ async function* streamResponseFromServer(body) {
 
 
 /**
- * 사용자 선택 언어에 따른 언어 지시어 생성
- * @returns {string} - 언어 지시어 (한국어면 빈 문자열)
- */
-function getLanguageInstruction() {
-    const userLang = localStorage.getItem('appLanguage') || 'ko';
-    
-    if (userLang === 'ko') return '';
-    
-    const langNames = {
-        'en': 'English',
-        'ja': '日本語 (Japanese)',
-        'zh-CN': '中文 (Chinese)',
-        'fr': 'Français (French)',
-        'de': 'Deutsch (German)',
-        'es': 'Español (Spanish)'
-    };
-    
-    const langName = langNames[userLang] || 'English';
-    console.log('🌐 [언어설정] 선택된 언어:', langName);
-    
-    return `\n\n[중요: 반드시 ${langName} 언어로만 응답하세요. 한국어를 사용하지 마세요.]`;
-}
-
-/**
- * 이미지를 분석하고 설명을 생성하기 위해 Netlify 함수를 호출합니다.
+ * 이미지를 분석하고 설명을 생성하기 위해 서버 API를 호출합니다.
+ * 사용자 언어에 맞는 프롬프트를 DB에서 로드합니다.
  * @param {string} base64Image - Base64로 인코딩된 이미지 데이터
- * @returns {AsyncGenerator&lt;object, void, unknown&gt;} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
+ * @returns {AsyncGenerator<object, void, unknown>} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
  */
-export function generateDescriptionStream(base64Image) {
-    const baseInstruction = localStorage.getItem('customImagePrompt') || DEFAULT_IMAGE_PROMPT;
-    const langInstruction = getLanguageInstruction();
-    const systemInstruction = baseInstruction + langInstruction;
+export async function* generateDescriptionStream(base64Image) {
+    const language = getApiLanguageCode();
     
-    const userLang = localStorage.getItem('appLanguage') || 'ko';
-    console.log('🔍 [프롬프트확인] 사용중인 이미지 프롬프트:', baseInstruction.substring(0, 50) + '...');
-    console.log('🌐 [언어지시] 추가됨:', langInstruction ? '예' : '아니오 (한국어)');
+    // 서버에서 언어별 프롬프트 로드
+    const systemInstruction = await fetchPromptFromServer(language, 'image');
+    
+    console.log('🔍 [프롬프트확인] 언어:', language, '타입: image');
+    console.log('📝 [프롬프트미리보기]:', systemInstruction.substring(0, 80) + '...');
     
     const requestBody = {
         base64Image,
-        prompt: userLang === 'ko' 
-            ? "이 이미지를 분석하고 한국어로 생생하게 설명해주세요."
+        prompt: language === 'ko' 
+            ? "이 이미지를 분석하고 생생하게 설명해주세요."
             : "Analyze this image and describe it vividly.",
         systemInstruction
     };
     
-    return streamResponseFromServer(requestBody);
+    // 스트림 응답을 그대로 전달
+    for await (const chunk of streamResponseFromServer(requestBody)) {
+        yield chunk;
+    }
 }
 
 /**
- * 텍스트 프롬프트를 처리하고 답변을 생성하기 위해 Netlify 함수를 호출합니다.
+ * 텍스트 프롬프트를 처리하고 답변을 생성하기 위해 서버 API를 호출합니다.
+ * 사용자 언어에 맞는 프롬프트를 DB에서 로드합니다.
  * @param {string} prompt - 사용자의 텍스트 질문
- * @returns {AsyncGenerator&lt;object, void, unknown&gt;} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
+ * @returns {AsyncGenerator<object, void, unknown>} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
  */
-export function generateTextStream(prompt) {
-    const baseInstruction = localStorage.getItem('customTextPrompt') || DEFAULT_TEXT_PROMPT;
-    const langInstruction = getLanguageInstruction();
-    const systemInstruction = baseInstruction + langInstruction;
+export async function* generateTextStream(prompt) {
+    const language = getApiLanguageCode();
     
-    console.log('🔍 [프롬프트확인] 사용중인 텍스트 프롬프트:', baseInstruction.substring(0, 50) + '...');
-    console.log('🌐 [언어지시] 추가됨:', langInstruction ? '예' : '아니오 (한국어)');
+    // 서버에서 언어별 프롬프트 로드
+    const systemInstruction = await fetchPromptFromServer(language, 'text');
+    
+    console.log('🔍 [프롬프트확인] 언어:', language, '타입: text');
+    console.log('📝 [프롬프트미리보기]:', systemInstruction.substring(0, 80) + '...');
     
     const requestBody = {
         prompt,
         systemInstruction
     };
     
-    return streamResponseFromServer(requestBody);
+    // 스트림 응답을 그대로 전달
+    for await (const chunk of streamResponseFromServer(requestBody)) {
+        yield chunk;
+    }
 }
