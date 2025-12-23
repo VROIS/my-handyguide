@@ -110,95 +110,22 @@ async function* streamResponseFromServer(body) {
 
 
 
-/**
- * 사용자 선택 언어에 따른 시스템 프롬프트 반환
- * 🔧 2025-12-21: 언어별 맞춤형 페르소나 프롬프트 적용
- * @returns {object} - { prompt: 시스템 프롬프트, isCustomLang: 커스텀 언어 여부 }
- */
-function getLanguageSystemPrompt() {
-    const userLang = localStorage.getItem('appLanguage') || 'ko';
-    
-    const langNames = {
-        'ko': '한국어',
-        'en': 'English',
-        'ja': '日本語',
-        'zh-CN': '中文',
-        'fr': 'Français',
-        'de': 'Deutsch',
-        'es': 'Español'
-    };
-    
-    console.log('🌐 [언어설정] 선택된 언어:', langNames[userLang] || userLang);
-    
-    // 언어별 맞춤 프롬프트가 있으면 사용
-    if (window.LANGUAGE_PROMPTS && window.LANGUAGE_PROMPTS[userLang]) {
-        console.log('🎭 [페르소나] 언어별 맞춤 프롬프트 적용');
-        return {
-            prompt: window.LANGUAGE_PROMPTS[userLang],
-            isCustomLang: userLang !== 'ko'
-        };
-    }
-    
-    // 한국어이거나 프롬프트가 없으면 기본값
-    return {
-        prompt: null,
-        isCustomLang: false
-    };
-}
-
-/**
- * 레거시 호환: 단순 언어 지시어 (기존 코드 호환용)
- * @returns {string} - 언어 지시어 (한국어면 빈 문자열)
- */
-function getLanguageInstruction() {
-    const userLang = localStorage.getItem('appLanguage') || 'ko';
-    
-    if (userLang === 'ko') return '';
-    
-    const langNames = {
-        'en': 'English',
-        'ja': '日本語 (Japanese)',
-        'zh-CN': '中文 (Chinese)',
-        'fr': 'Français (French)',
-        'de': 'Deutsch (German)',
-        'es': 'Español (Spanish)'
-    };
-    
-    const langName = langNames[userLang] || 'English';
-    
-    return `\n\n[중요: 반드시 ${langName} 언어로만 응답하세요. 한국어를 사용하지 마세요.]`;
-}
 
 /**
  * 이미지를 분석하고 설명을 생성하기 위해 Netlify 함수를 호출합니다.
- * 🔧 2025-12-21: 언어별 맞춤형 페르소나 프롬프트 적용
+ * 🔧 2025-12-23: 기존 로직 복원 - 항상 한국어 응답 → Google Translate로 번역
  * @param {string} base64Image - Base64로 인코딩된 이미지 데이터
  * @returns {AsyncGenerator<object, void, unknown>} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
  */
 window.gemini.generateDescriptionStream = function(base64Image) {
-    const userLang = localStorage.getItem('appLanguage') || 'ko';
-    const langPromptResult = getLanguageSystemPrompt();
+    const systemInstruction = localStorage.getItem('customImagePrompt') || window.gemini.DEFAULT_IMAGE_PROMPT;
     
-    let systemInstruction;
-    
-    if (langPromptResult.prompt && langPromptResult.isCustomLang) {
-        // 외국어: 언어별 맞춤 페르소나 프롬프트 사용
-        systemInstruction = langPromptResult.prompt;
-        console.log('🎭 [이미지분석] 언어별 맞춤 페르소나 적용:', userLang);
-    } else {
-        // 한국어: 관리자 커스텀 프롬프트 또는 기본 프롬프트 사용
-        const baseInstruction = localStorage.getItem('customImagePrompt') || window.gemini.DEFAULT_IMAGE_PROMPT;
-        systemInstruction = langPromptResult.prompt || baseInstruction;
-        console.log('🔍 [이미지분석] 한국어 프롬프트 사용');
-    }
-    
+    console.log('🔍 [이미지분석] 한국어 프롬프트 사용 (번역은 Google Translate에서 처리)');
     console.log('📝 [프롬프트] 처음 50자:', systemInstruction.substring(0, 50) + '...');
     
     const requestBody = {
         base64Image,
-        prompt: userLang === 'ko' 
-            ? "이 이미지를 분석하고 한국어로 생생하게 설명해주세요."
-            : "Analyze this image and describe it vividly.",
+        prompt: "이 이미지를 분석하고 한국어로 생생하게 설명해주세요.",
         systemInstruction
     };
     
@@ -207,27 +134,14 @@ window.gemini.generateDescriptionStream = function(base64Image) {
 
 /**
  * 텍스트 프롬프트를 처리하고 답변을 생성하기 위해 Netlify 함수를 호출합니다.
- * 🔧 2025-12-21: 언어별 맞춤형 페르소나 프롬프트 적용
+ * 🔧 2025-12-23: 기존 로직 복원 - 항상 한국어 응답 → Google Translate로 번역
  * @param {string} prompt - 사용자의 텍스트 질문
  * @returns {AsyncGenerator<object, void, unknown>} - { text: "..." } 형태의 객체를 생성하는 비동기 제너레이터
  */
 window.gemini.generateTextStream = function(prompt) {
-    const userLang = localStorage.getItem('appLanguage') || 'ko';
-    const langPromptResult = getLanguageSystemPrompt();
+    const systemInstruction = localStorage.getItem('customTextPrompt') || window.gemini.DEFAULT_TEXT_PROMPT;
     
-    let systemInstruction;
-    
-    if (langPromptResult.prompt && langPromptResult.isCustomLang) {
-        // 외국어: 언어별 맞춤 페르소나 프롬프트 사용
-        systemInstruction = langPromptResult.prompt;
-        console.log('🎭 [텍스트응답] 언어별 맞춤 페르소나 적용:', userLang);
-    } else {
-        // 한국어: 관리자 커스텀 프롬프트 또는 기본 프롬프트 사용
-        const baseInstruction = localStorage.getItem('customTextPrompt') || window.gemini.DEFAULT_TEXT_PROMPT;
-        systemInstruction = langPromptResult.prompt || baseInstruction;
-        console.log('🔍 [텍스트응답] 한국어 프롬프트 사용');
-    }
-    
+    console.log('🔍 [텍스트응답] 한국어 프롬프트 사용 (번역은 Google Translate에서 처리)');
     console.log('📝 [프롬프트] 처음 50자:', systemInstruction.substring(0, 50) + '...');
     
     const requestBody = {
