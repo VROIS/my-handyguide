@@ -58,9 +58,38 @@ window.TTSHelper = (function() {
         return targetVoice;
     }
     
-    // 현재 앱 언어 가져오기
+    // 현재 앱 언어 가져오기 (독립 페이지 지원)
+    // 우선순위: URL 파라미터 > 페이지 저장 언어 > __ttsTargetLang > localStorage
     function getAppLanguage() {
-        return localStorage.getItem('appLanguage') || 'ko';
+        // 1. URL 파라미터 (?lang=fr) - 독립 페이지에서 앱이 전달
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlLang = urlParams.get('lang');
+        if (urlLang) {
+            console.log('🌐 [언어] URL 파라미터:', urlLang);
+            return urlLang;
+        }
+        
+        // 2. 페이지에 저장된 언어 (공유페이지 생성 시 저장)
+        if (window.__pageLanguage) {
+            console.log('🌐 [언어] 페이지 저장:', window.__pageLanguage);
+            return window.__pageLanguage;
+        }
+        
+        // 3. window.__ttsTargetLang (HEAD 스크립트에서 설정)
+        if (window.__ttsTargetLang) {
+            const lang = window.__ttsTargetLang.split('-')[0];
+            console.log('🌐 [언어] __ttsTargetLang:', lang);
+            return lang;
+        }
+        
+        // 4. localStorage (앱 내에서만 유효)
+        const storedLang = localStorage.getItem('appLanguage');
+        if (storedLang) {
+            console.log('🌐 [언어] localStorage:', storedLang);
+            return storedLang;
+        }
+        
+        return 'ko';
     }
     
     // 번역 완료 감지 (MutationObserver)
