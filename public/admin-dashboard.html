@@ -214,6 +214,9 @@
                 <button onclick="showTab('cashback')" id="tab-cashback" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
                     💰 캐시백
                 </button>
+                <button onclick="showTab('prompts')" id="tab-prompts" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
+                    🎯 AI 프롬프트
+                </button>
             </div>
         </div>
 
@@ -602,10 +605,79 @@
                 </div>
             </div>
         </div>
+
+        <!-- 프롬프트 탭 (2025-12-18 언어별 AI 프롬프트 관리) -->
+        <div id="content-prompts" class="hidden">
+            <div class="space-y-6">
+                <!-- 프롬프트 시딩 버튼 -->
+                <div class="bg-white rounded-lg p-6 shadow-sm border-l-4 border-blue-500">
+                    <div class="flex items-center justify-between mb-3">
+                        <div>
+                            <h2 class="text-lg font-semibold text-gray-800">🎯 언어별 AI 프롬프트 관리</h2>
+                            <p class="text-sm text-gray-500 mt-1">7개 언어 × 2가지 타입 = 14개 프롬프트</p>
+                        </div>
+                        <button id="seedPromptsBtn" onclick="seedDefaultPrompts()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                            기본 프롬프트 생성
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 프롬프트 필터 -->
+                <div class="bg-white rounded-lg p-4 shadow-sm flex flex-wrap gap-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">언어</label>
+                        <select id="promptLangFilter" onchange="filterPrompts()" class="px-3 py-2 border rounded-lg text-sm">
+                            <option value="all">전체</option>
+                            <option value="ko">한국어</option>
+                            <option value="en">English</option>
+                            <option value="zh-CN">中文</option>
+                            <option value="ja">日本語</option>
+                            <option value="fr">Français</option>
+                            <option value="de">Deutsch</option>
+                            <option value="es">Español</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">타입</label>
+                        <select id="promptTypeFilter" onchange="filterPrompts()" class="px-3 py-2 border rounded-lg text-sm">
+                            <option value="all">전체</option>
+                            <option value="image">이미지</option>
+                            <option value="text">텍스트</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- 프롬프트 목록 -->
+                <div id="promptsList" class="space-y-4">
+                    <p class="text-center text-gray-400 py-8">프롬프트 로딩 중...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 프롬프트 편집 모달 -->
+        <div id="promptEditModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+            <div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden">
+                <div class="p-4 border-b flex justify-between items-center">
+                    <h3 class="text-lg font-semibold" id="promptEditTitle">프롬프트 편집</h3>
+                    <button onclick="closePromptModal()" class="text-gray-500 hover:text-gray-700">✕</button>
+                </div>
+                <div class="p-4 overflow-y-auto max-h-[60vh]">
+                    <input type="hidden" id="promptEditLang" />
+                    <input type="hidden" id="promptEditType" />
+                    <textarea id="promptEditContent" class="w-full h-96 p-3 border rounded-lg text-sm font-mono leading-relaxed resize-y" placeholder="프롬프트 내용을 입력하세요..."></textarea>
+                    <p class="text-xs text-gray-400 mt-2">⚠️ 주의: [중요] 텍스트로만 응답 규칙을 항상 포함해야 합니다.</p>
+                </div>
+                <div class="p-4 border-t flex justify-end gap-2">
+                    <button onclick="closePromptModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">취소</button>
+                    <button onclick="savePrompt()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">저장</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
         let currentTab = 'overview';
+        let allPrompts = [];
         let allShares = [];
         let displayedShares = 0;
         const SHARES_PER_PAGE = 20;
@@ -632,7 +704,7 @@
             currentTab = tab;
             
             // 모든 탭 숨기기
-            ['overview', 'content', 'guides', 'revenue', 'stats', 'cashback'].forEach(t => {
+            ['overview', 'content', 'guides', 'revenue', 'stats', 'cashback', 'prompts'].forEach(t => {
                 document.getElementById(`content-${t}`).classList.add('hidden');
                 document.getElementById(`tab-${t}`).classList.remove('active');
                 document.getElementById(`tab-${t}`).classList.add('text-gray-500');
@@ -657,6 +729,8 @@
                 loadStats();
             } else if (tab === 'cashback') {
                 loadCashbackRequests();
+            } else if (tab === 'prompts') {
+                loadPrompts();
             }
         }
 
@@ -2442,6 +2516,186 @@
                     loadCashbackRequests();
                 } else {
                     alert('오류: ' + (result.error || '거절 실패'));
+                }
+            } catch (error) {
+                alert('오류: ' + error.message);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════
+        // 🎯 AI 프롬프트 관리 함수 (2025-12-18)
+        // ═══════════════════════════════════════════════════
+        
+        const LANGUAGE_NAMES = {
+            'ko': '한국어',
+            'en': 'English',
+            'zh-CN': '中文',
+            'ja': '日本語',
+            'fr': 'Français',
+            'de': 'Deutsch',
+            'es': 'Español'
+        };
+        
+        async function loadPrompts() {
+            const container = document.getElementById('promptsList');
+            container.innerHTML = '<p class="text-center text-gray-400 py-8">프롬프트 로딩 중...</p>';
+            
+            try {
+                const res = await fetch('/api/admin/prompts', { credentials: 'include' });
+                
+                if (!res.ok) throw new Error('프롬프트 로드 실패');
+                
+                const data = await res.json();
+                allPrompts = data.prompts || [];
+                
+                if (allPrompts.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center py-12">
+                            <p class="text-gray-500 mb-4">프롬프트가 없습니다.</p>
+                            <button onclick="seedDefaultPrompts()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                                기본 프롬프트 생성
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                filterPrompts();
+            } catch (error) {
+                container.innerHTML = `<p class="text-center text-red-500 py-8">오류: ${error.message}</p>`;
+            }
+        }
+        
+        function filterPrompts() {
+            const langFilter = document.getElementById('promptLangFilter').value;
+            const typeFilter = document.getElementById('promptTypeFilter').value;
+            
+            let filtered = allPrompts;
+            
+            if (langFilter !== 'all') {
+                filtered = filtered.filter(p => p.language === langFilter);
+            }
+            
+            if (typeFilter !== 'all') {
+                filtered = filtered.filter(p => p.type === typeFilter);
+            }
+            
+            renderPrompts(filtered);
+        }
+        
+        function renderPrompts(prompts) {
+            const container = document.getElementById('promptsList');
+            
+            if (prompts.length === 0) {
+                container.innerHTML = '<p class="text-center text-gray-400 py-8">필터링된 결과가 없습니다.</p>';
+                return;
+            }
+            
+            container.innerHTML = prompts.map(p => `
+                <div class="bg-white rounded-lg p-4 shadow-sm border-l-4 ${p.type === 'image' ? 'border-purple-500' : 'border-green-500'}">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">${p.type === 'image' ? '🖼️' : '💬'}</span>
+                            <span class="font-semibold">${LANGUAGE_NAMES[p.language] || p.language}</span>
+                            <span class="text-xs px-2 py-1 rounded ${p.type === 'image' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'}">
+                                ${p.type === 'image' ? '이미지' : '텍스트'}
+                            </span>
+                            <span class="text-xs text-gray-400">v${p.version || 1}</span>
+                        </div>
+                        <button onclick="openPromptEdit('${p.language}', '${p.type}')" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                            편집
+                        </button>
+                    </div>
+                    <div class="text-sm text-gray-600 bg-gray-50 p-3 rounded max-h-32 overflow-y-auto whitespace-pre-wrap font-mono">
+                        ${escapeHtml(p.content.substring(0, 300))}${p.content.length > 300 ? '...' : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function openPromptEdit(language, type) {
+            const prompt = allPrompts.find(p => p.language === language && p.type === type);
+            
+            if (!prompt) {
+                alert('프롬프트를 찾을 수 없습니다.');
+                return;
+            }
+            
+            document.getElementById('promptEditLang').value = language;
+            document.getElementById('promptEditType').value = type;
+            document.getElementById('promptEditContent').value = prompt.content;
+            document.getElementById('promptEditTitle').textContent = 
+                `프롬프트 편집: ${LANGUAGE_NAMES[language]} - ${type === 'image' ? '이미지' : '텍스트'}`;
+            
+            document.getElementById('promptEditModal').classList.remove('hidden');
+        }
+        
+        function closePromptModal() {
+            document.getElementById('promptEditModal').classList.add('hidden');
+        }
+        
+        async function savePrompt() {
+            const language = document.getElementById('promptEditLang').value;
+            const type = document.getElementById('promptEditType').value;
+            const content = document.getElementById('promptEditContent').value.trim();
+            
+            if (!content) {
+                alert('프롬프트 내용을 입력해주세요.');
+                return;
+            }
+            
+            if (!content.includes('텍스트로만 응답') && !content.includes('text only') && !content.includes('text-only')) {
+                if (!confirm('경고: 프롬프트에 "텍스트로만 응답" 규칙이 없습니다. 음성 응답이 생성될 수 있습니다. 계속하시겠습니까?')) {
+                    return;
+                }
+            }
+            
+            try {
+                const res = await fetch('/api/admin/prompts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ language, type, content })
+                });
+                
+                const result = await res.json();
+                
+                if (result.success) {
+                    alert('프롬프트가 저장되었습니다.');
+                    closePromptModal();
+                    loadPrompts();
+                } else {
+                    alert('오류: ' + (result.error || '저장 실패'));
+                }
+            } catch (error) {
+                alert('오류: ' + error.message);
+            }
+        }
+        
+        async function seedDefaultPrompts() {
+            if (!confirm('14개 기본 프롬프트를 생성하시겠습니까? (기존 프롬프트는 유지됩니다)')) {
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/admin/prompts/seed', {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                
+                const result = await res.json();
+                
+                if (result.success) {
+                    alert(result.message);
+                    loadPrompts();
+                } else {
+                    alert('오류: ' + (result.error || '시딩 실패'));
                 }
             } catch (error) {
                 alert('오류: ' + error.message);
