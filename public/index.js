@@ -3719,27 +3719,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('[TTS] 저장된 음성 사용:', targetVoice.name);
             }
         } else {
-            // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
-            const allVoices = synth.getVoices();
+            // 🔧 2025-12-23: TTSHelper 사용으로 일관된 음성 선택
             let targetVoice = null;
             
-            if (langCode === 'ko-KR') {
+            if (window.TTSHelper) {
+                const settings = window.TTSHelper.getVoiceSettings();
+                targetVoice = settings.voice;
+                console.log('[TTS] TTSHelper 사용:', settings.lang, '→', targetVoice?.name);
+            } else if (langCode === 'ko-KR') {
+                // ⭐ Fallback 한국어 하드코딩
+                const allVoices = synth.getVoices();
                 const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
-                // Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
                 targetVoice = koVoices.find(v => v.name.includes('Yuna'))
                            || koVoices.find(v => v.name.includes('Sora'))
                            || koVoices.find(v => v.name.includes('유나'))
                            || koVoices.find(v => v.name.includes('소라'))
                            || koVoices.find(v => v.name.includes('Heami'))
                            || koVoices[0];
-                console.log('🎤 [한국어] 음성:', targetVoice?.name || 'default');
+                console.log('🎤 [Fallback 한국어] 음성:', targetVoice?.name || 'default');
             } else {
-                // 다른 6개 언어는 DB 기반 유지
+                // Fallback: DB 기반 유지
+                const allVoices = synth.getVoices();
                 const voiceConfig = getVoicePriorityFromDB(langCode);
                 const priorities = voiceConfig.priorities;
                 const excludeVoices = voiceConfig.excludeVoices;
                 
-                // 우선순위대로 음성 찾기 (제외 목록 적용)
                 for (const voiceName of priorities) {
                     targetVoice = allVoices.find(v => 
                         v.name.includes(voiceName) && !excludeVoices.some(ex => v.name.includes(ex))
@@ -3747,11 +3751,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (targetVoice) break;
                 }
                 
-                // 우선순위에 없으면 언어 코드로 찾기
                 if (!targetVoice) {
                     targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
                 }
-                console.log('[TTS] 언어:', langCode, '음성:', targetVoice?.name || 'default');
+                console.log('[TTS] Fallback 언어:', langCode, '음성:', targetVoice?.name || 'default');
             }
             
             utterance.voice = targetVoice || null;

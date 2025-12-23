@@ -657,21 +657,24 @@ const guideDetailPage = {
         let targetVoice = null;
         const shortLang = fullLang.substring(0, 2);
         
-        if (shortLang === 'ko') {
-            // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
+        // 🔧 2025-12-23: TTSHelper 사용으로 일관된 음성 선택
+        if (window.TTSHelper) {
+            const settings = window.TTSHelper.getVoiceSettings();
+            targetVoice = settings.voice;
+            console.log('[TTS] TTSHelper 사용:', settings.lang, '→', targetVoice?.name);
+        } else if (shortLang === 'ko') {
+            // ⭐ Fallback 한국어 하드코딩 (iOS: Yuna/Sora, Windows: Heami)
             const koVoices = voices.filter(v => v.lang.startsWith('ko'));
-            // Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
             targetVoice = koVoices.find(v => v.name.includes('Yuna'))
                        || koVoices.find(v => v.name.includes('Sora'))
                        || koVoices.find(v => v.name.includes('유나'))
                        || koVoices.find(v => v.name.includes('소라'))
                        || koVoices.find(v => v.name.includes('Heami'))
                        || koVoices[0];
-            console.log('[TTS] 한국어 음성:', targetVoice?.name);
+            console.log('[TTS] Fallback 한국어 음성:', targetVoice?.name);
         } else {
-            // 다른 언어: 현재 앱 언어에 맞는 음성 사용 (savedVoiceName 무시)
             targetVoice = this._getVoiceForLanguage(shortLang === 'zh' ? 'zh-CN' : shortLang);
-            console.log('[TTS] 앱 언어 음성:', fullLang, '→', targetVoice?.name);
+            console.log('[TTS] Fallback 언어 음성:', fullLang, '→', targetVoice?.name);
         }
         
         this._state.currentUtterance.voice = targetVoice;
