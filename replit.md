@@ -39,7 +39,7 @@ Provides search, automatic featured ordering, and real-time statistics for share
 ### Service Workers
 `public/service-worker.js` (Cache First) for the main app and `public/sw-share.js` (Network First) for share pages to ensure offline access and always-latest content for shared guides.
 ### TTS Logic
-Prioritizes specific voice names for Korean (Yuna, Sora, Heami) and uses a `voice_configs` table in PostgreSQL for other languages, ensuring Google Translate completion before playback.
+Prioritizes specific voice names for Korean (Yuna, Sora, Heami) and uses a `voice_configs` table in PostgreSQL for other languages. **Critical: Dynamic content retranslation** - Uses `retranslateNewContent()` function to force Google Translate widget to re-scan dynamically added DOM content before TTS playback. Pattern: toggle `.goog-te-combo` dropdown ('' → currentLang) with 100ms/800ms delays, then read translated `innerText` for TTS. Applied to index.js, share-page.js, guideDetailPage.js, admin-dashboard.html, profile.html, and standard-template.ts (Gallery).
 
 # External Dependencies
 
