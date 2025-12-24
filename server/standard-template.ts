@@ -874,6 +874,8 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
         body { top: 0px !important; }
         .goog-te-gadget { font-size: 0px !important; color: transparent !important; }
         .goog-logo-link { display: none !important; }
+        #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+        .goog-text-highlight { background: none !important; box-shadow: none !important; }
         .skiptranslate { display: none !important; }
     </style>
 </body>
