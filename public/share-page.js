@@ -193,17 +193,12 @@ async function waitForTranslation() {
 let retranslationPending = false;
 
 async function retranslateNewContent() {
-    const userLang = localStorage.getItem('appLanguage') || 'ko';
-    if (userLang === 'ko') {
-        console.log('[Share Retranslate] 한국어 - 재번역 불필요');
-        return Promise.resolve();
-    }
-    
+    // 🌐 2025-12-24: userLang 체크 제거 - Google Translate 드롭다운 활성화 여부만 확인
     return new Promise((resolve) => {
         const selectElement = document.querySelector('.goog-te-combo');
         
         if (!selectElement || !selectElement.value) {
-            console.log('[Share Retranslate] Google Translate 드롭다운 없음 - 스킵');
+            console.log('[Share Retranslate] Google Translate 드롭다운 비활성 - 스킵');
             resolve();
             return;
         }
@@ -596,7 +591,7 @@ function updateAudioButton(state) {
 }
 
 // === 보관함의 populateDetailPageFromArchive를 그대로 복사 ===
-function populateShareDetailPage(item) {
+async function populateShareDetailPage(item) {
     console.log('populateShareDetailPage called:', item);
     
     // 보관함과 100% 동일한 음성 중지 로직
@@ -634,18 +629,24 @@ function populateShareDetailPage(item) {
     
     const description = item.description || '';
     
-    // 보관함과 100% 동일한 문장 분할 및 TTS 큐 설정
+    // 🌐 2025-12-24: DOM에 콘텐츠 먼저 추가
     const sentences = description.match(/[^.?!]+[.?!]+/g) || [description];
+    const spans = [];
     sentences.forEach(sentence => {
         if (!sentence) return;
         const span = document.createElement('span');
         span.textContent = sentence.trim() + ' ';
         shareDescriptionText.appendChild(span);
-        queueForSpeech(sentence.trim(), span);
+        spans.push({ text: sentence.trim(), span });
     });
     
-    // 🌐 2025-12-24: 동적으로 추가된 콘텐츠 강제 재번역
-    retranslateNewContent();
+    // 🌐 2025-12-24: 재번역 완료 후 TTS 큐에 추가
+    await retranslateNewContent();
+    
+    // 재번역 완료 후 TTS 큐에 추가
+    spans.forEach(({ text, span }) => {
+        queueForSpeech(text, span);
+    });
 
     updateAudioButton('play');
     

@@ -315,17 +315,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let retranslationPending = false;
     
     async function retranslateNewContent() {
-        const userLang = localStorage.getItem('appLanguage') || 'ko';
-        if (userLang === 'ko') {
-            console.log('[Retranslate] 한국어 - 재번역 불필요');
-            return Promise.resolve();
-        }
-        
+        // 🌐 2025-12-24: userLang 체크 제거 - Google Translate 드롭다운 활성화 여부만 확인
+        // 콘텐츠가 외국어이고 앱 언어가 한국어여도 번역이 필요함
         return new Promise((resolve) => {
             const selectElement = document.querySelector('.goog-te-combo');
             
             if (!selectElement || !selectElement.value) {
-                console.log('[Retranslate] Google Translate 드롭다운 없음 - 스킵');
+                console.log('[Retranslate] Google Translate 드롭다운 비활성 - 스킵');
                 resolve();
                 return;
             }
@@ -3692,16 +3688,24 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const description = item.description || '';
             const sentences = description.match(/[^.?!]+[.?!]+/g) || [description];
+            
+            // 🌐 2025-12-24: DOM에 콘텐츠 먼저 추가
+            const spans = [];
             sentences.forEach(sentence => {
                 if (!sentence) return;
                 const span = document.createElement('span');
                 span.textContent = sentence.trim() + ' ';
                 descriptionText.appendChild(span);
-                queueForSpeech(sentence.trim(), span);
+                spans.push({ text: sentence.trim(), span });
             });
             
-            // 🌐 2025-12-24: 동적으로 추가된 콘텐츠 강제 재번역
-            retranslateNewContent();
+            // 🌐 2025-12-24: 재번역 완료 후 TTS 큐에 추가
+            await retranslateNewContent();
+            
+            // 재번역 완료 후 TTS 큐에 추가
+            spans.forEach(({ text, span }) => {
+                queueForSpeech(text, span);
+            });
             
             updateAudioButton('play');
 
@@ -3723,10 +3727,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // 🌐 구글 번역 완료 대기 (번역된 텍스트로 TTS 재생)
         await waitForTranslation();
         
-        // 🌐 2025-12-24: 동적 콘텐츠 재번역 완료 대기
-        const userLang = localStorage.getItem('appLanguage') || 'ko';
-        if (userLang !== 'ko') {
-            await waitForRetranslation();
+        // 🌐 2025-12-24: 동적 콘텐츠 재번역 완료 대기 (언어 무관)
+        await waitForRetranslation();
+        if (retranslationPending) {
             console.log('[TTS] 재번역 완료 후 TTS 시작');
         }
         

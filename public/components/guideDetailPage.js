@@ -299,17 +299,12 @@ const guideDetailPage = {
     
     _retranslateNewContent: function() {
         const self = this;
-        const userLang = localStorage.getItem('appLanguage') || 'ko';
-        if (userLang === 'ko') {
-            console.log('[GuideDetailPage Retranslate] 한국어 - 재번역 불필요');
-            return Promise.resolve();
-        }
-        
+        // 🌐 2025-12-24: userLang 체크 제거 - Google Translate 드롭다운 활성화 여부만 확인
         return new Promise((resolve) => {
             const selectElement = document.querySelector('.goog-te-combo');
             
             if (!selectElement || !selectElement.value) {
-                console.log('[GuideDetailPage Retranslate] Google Translate 드롭다운 없음 - 스킵');
+                console.log('[GuideDetailPage Retranslate] Google Translate 드롭다운 비활성 - 스킵');
                 resolve();
                 return;
             }
