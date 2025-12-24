@@ -3659,6 +3659,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // 🌐 구글 번역 완료 대기 (번역된 텍스트로 TTS 재생)
         await waitForTranslation();
         
+        // 🌐 2025-12-24: 번역 클래스 감지 후 실제 텍스트 변환까지 추가 대기 (500ms)
+        const userLang = localStorage.getItem('appLanguage') || 'ko';
+        if (userLang !== 'ko') {
+            await new Promise(r => setTimeout(r, 500));
+            console.log('[TTS] 번역 텍스트 적용 대기 완료 (500ms)');
+        }
+        
         if (utteranceQueue.length === 0) {
             isSpeaking = false;
             updateAudioButton('play');

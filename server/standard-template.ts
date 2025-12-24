@@ -179,16 +179,20 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                         
                         if (window.__ttsQueue.length > 0) {
                             console.log('🎤✅ [대기열 재생]', window.__ttsQueue.length + '개');
-                            window.__ttsQueue.forEach(function(utt) {
-                                var descEl = document.getElementById('detail-description');
-                                if (descEl) {
-                                    // 🌐 innerText 우선 (화면에 보이는 번역된 텍스트)
-                                    utt.text = descEl.innerText || descEl.textContent;
-                                    utt.lang = window.__ttsTargetLang;
-                                }
-                                originalSpeak(utt);
-                            });
-                            window.__ttsQueue = [];
+                            // 🌐 2025-12-24: 번역 클래스 감지 후 실제 텍스트 변환까지 500ms 추가 대기
+                            setTimeout(function() {
+                                console.log('[TTS] 번역 텍스트 적용 대기 완료 (500ms)');
+                                window.__ttsQueue.forEach(function(utt) {
+                                    var descEl = document.getElementById('detail-description');
+                                    if (descEl) {
+                                        // 🌐 innerText 우선 (화면에 보이는 번역된 텍스트)
+                                        utt.text = descEl.innerText || descEl.textContent;
+                                        utt.lang = window.__ttsTargetLang;
+                                    }
+                                    originalSpeak(utt);
+                                });
+                                window.__ttsQueue = [];
+                            }, 500);
                         }
                     }
                 });
@@ -1080,16 +1084,20 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
                         observer.disconnect();
                         
                         if (window.__ttsQueue.length > 0) {
-                            window.__ttsQueue.forEach(function(utt) {
-                                var descEl = document.getElementById('detail-description');
-                                if (descEl) {
-                                    // 🌐 innerText 우선 (화면에 보이는 번역된 텍스트)
-                                    utt.text = descEl.innerText || descEl.textContent;
-                                    utt.lang = window.__ttsTargetLang;
-                                }
-                                originalSpeak(utt);
-                            });
-                            window.__ttsQueue = [];
+                            // 🌐 2025-12-24: 번역 클래스 감지 후 실제 텍스트 변환까지 500ms 추가 대기
+                            setTimeout(function() {
+                                console.log('[TTS] 번역 텍스트 적용 대기 완료 (500ms)');
+                                window.__ttsQueue.forEach(function(utt) {
+                                    var descEl = document.getElementById('detail-description');
+                                    if (descEl) {
+                                        // 🌐 innerText 우선 (화면에 보이는 번역된 텍스트)
+                                        utt.text = descEl.innerText || descEl.textContent;
+                                        utt.lang = window.__ttsTargetLang;
+                                    }
+                                    originalSpeak(utt);
+                                });
+                                window.__ttsQueue = [];
+                            }, 500);
                         }
                     }
                 });

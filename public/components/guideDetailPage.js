@@ -612,6 +612,12 @@ const guideDetailPage = {
             });
         }
         
+        // 🌐 2025-12-24: 번역 클래스 감지 후 실제 텍스트 변환까지 추가 대기 (500ms)
+        if (userLang !== 'ko') {
+            await new Promise(r => setTimeout(r, 500));
+            console.log('[TTS] 번역 텍스트 적용 대기 완료 (500ms)');
+        }
+        
         // 🌐 번역된 텍스트 가져오기 (innerText = 화면에 보이는 번역된 텍스트)
         const currentText = this._els.description.innerText || text;
         
