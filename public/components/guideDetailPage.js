@@ -567,10 +567,13 @@ const guideDetailPage = {
         this._state.savedVoiceLang = guide.voiceLang || null;
         this._state.savedVoiceName = guide.voiceName || null;
 
-        // 🎤 저장된 음성 정보 전달 (voiceLang, voiceName, renderId)
-        if (guide.description) {
-            this._playAudio(guide.description, guide.voiceLang, guide.voiceName, renderId);
-        }
+        // 🌐 2025-12-24: 동적 콘텐츠 재번역 후 TTS 재생
+        this._retranslateNewContent().then(() => {
+            // 🎤 저장된 음성 정보 전달 (voiceLang, voiceName, renderId)
+            if (guide.description) {
+                this._playAudio(guide.description, guide.voiceLang, guide.voiceName, renderId);
+            }
+        });
     },
 
     // 페이지 표시

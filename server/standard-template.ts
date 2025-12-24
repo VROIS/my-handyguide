@@ -809,6 +809,46 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
         // 🎤 현재 보고 있는 아이템의 voiceLang 저장
         let currentVoiceLang = null;
         
+        // 🌐 2025-12-24: 동적 콘텐츠 강제 재번역 함수
+        let retranslationPending = false;
+        
+        function retranslateNewContent() {
+            const userLang = localStorage.getItem('appLanguage') || 'ko';
+            if (userLang === 'ko') {
+                console.log('[Gallery Retranslate] 한국어 - 재번역 불필요');
+                return Promise.resolve();
+            }
+            
+            return new Promise((resolve) => {
+                const selectElement = document.querySelector('.goog-te-combo');
+                
+                if (!selectElement || !selectElement.value) {
+                    console.log('[Gallery Retranslate] Google Translate 드롭다운 없음 - 스킵');
+                    resolve();
+                    return;
+                }
+                
+                const currentLang = selectElement.value;
+                console.log('[Gallery Retranslate] 🔄 강제 재번역 시작:', currentLang);
+                retranslationPending = true;
+                
+                selectElement.value = '';
+                selectElement.dispatchEvent(new Event('change'));
+                
+                setTimeout(() => {
+                    selectElement.value = currentLang;
+                    selectElement.dispatchEvent(new Event('change'));
+                    
+                    setTimeout(() => {
+                        console.log('[Gallery Retranslate] ✅ 재번역 완료');
+                        retranslationPending = false;
+                        window.dispatchEvent(new CustomEvent('galleryRetranslationComplete'));
+                        resolve();
+                    }, 800);
+                }, 100);
+            });
+        }
+        
         // 갤러리 아이템 클릭 (앱과 100% 동일한 로직)
         document.querySelectorAll('.gallery-item').forEach(item => {
             item.addEventListener('click', () => {
@@ -872,8 +912,11 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                 // 텍스트는 표시 상태로 시작 (음성과 동시에 보임)
                 document.getElementById('detail-text').classList.remove('hidden');
                 
-                // 🎤 음성 자동 재생 (저장된 언어 사용)
-                playAudio(itemData.description, currentVoiceLang);
+                // 🌐 2025-12-24: 동적 콘텐츠 재번역 후 TTS 재생
+                retranslateNewContent().then(() => {
+                    // 🎤 음성 자동 재생 (저장된 언어 사용)
+                    playAudio(itemData.description, currentVoiceLang);
+                });
             });
         });
         

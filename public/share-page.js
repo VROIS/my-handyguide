@@ -189,6 +189,60 @@ async function waitForTranslation() {
     });
 }
 
+// 🌐 동적 콘텐츠 강제 재번역 함수 (2025-12-24)
+let retranslationPending = false;
+
+async function retranslateNewContent() {
+    const userLang = localStorage.getItem('appLanguage') || 'ko';
+    if (userLang === 'ko') {
+        console.log('[Share Retranslate] 한국어 - 재번역 불필요');
+        return Promise.resolve();
+    }
+    
+    return new Promise((resolve) => {
+        const selectElement = document.querySelector('.goog-te-combo');
+        
+        if (!selectElement || !selectElement.value) {
+            console.log('[Share Retranslate] Google Translate 드롭다운 없음 - 스킵');
+            resolve();
+            return;
+        }
+        
+        const currentLang = selectElement.value;
+        console.log('[Share Retranslate] 🔄 강제 재번역 시작:', currentLang);
+        retranslationPending = true;
+        
+        selectElement.value = '';
+        selectElement.dispatchEvent(new Event('change'));
+        
+        setTimeout(() => {
+            selectElement.value = currentLang;
+            selectElement.dispatchEvent(new Event('change'));
+            
+            setTimeout(() => {
+                console.log('[Share Retranslate] ✅ 재번역 완료');
+                retranslationPending = false;
+                window.dispatchEvent(new CustomEvent('shareRetranslationComplete'));
+                resolve();
+            }, 800);
+        }, 100);
+    });
+}
+
+async function waitForRetranslation() {
+    if (!retranslationPending) return;
+    
+    console.log('[Share TTS] 재번역 완료 대기 중...');
+    await new Promise(resolve => {
+        const handler = () => {
+            window.removeEventListener('shareRetranslationComplete', handler);
+            resolve();
+        };
+        window.addEventListener('shareRetranslationComplete', handler);
+        setTimeout(resolve, 2000);
+    });
+}
+
 // 공유 페이지 로딩
 document.addEventListener('DOMContentLoaded', async () => {
     // 번역 감시 초기화
@@ -436,11 +490,11 @@ async function playNextInQueue() {
     // 번역 완료 대기 후 TTS 재생
     await waitForTranslation();
     
-    // 🌐 2025-12-24: 번역 클래스 감지 후 실제 텍스트 변환까지 추가 대기 (500ms)
+    // 🌐 2025-12-24: 동적 콘텐츠 재번역 완료 대기
     const userLang = localStorage.getItem('appLanguage') || 'ko';
     if (userLang !== 'ko') {
-        await new Promise(r => setTimeout(r, 500));
-        console.log('[TTS] 번역 텍스트 적용 대기 완료 (500ms)');
+        await waitForRetranslation();
+        console.log('[TTS] 재번역 완료 후 TTS 시작');
     }
     
     isSpeaking = true;
@@ -589,6 +643,9 @@ function populateShareDetailPage(item) {
         shareDescriptionText.appendChild(span);
         queueForSpeech(sentence.trim(), span);
     });
+    
+    // 🌐 2025-12-24: 동적으로 추가된 콘텐츠 강제 재번역
+    retranslateNewContent();
 
     updateAudioButton('play');
     

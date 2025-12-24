@@ -1380,6 +1380,47 @@
                 
                 return { priorities: [], excludeVoices: [] };
             },
+            
+            // 🌐 2025-12-24: 동적 콘텐츠 강제 재번역
+            _retranslationPending: false,
+            
+            _retranslateNewContent: function() {
+                const self = this;
+                const userLang = localStorage.getItem('appLanguage') || 'ko';
+                if (userLang === 'ko') {
+                    console.log('[AdminDetailPage Retranslate] 한국어 - 재번역 불필요');
+                    return Promise.resolve();
+                }
+                
+                return new Promise((resolve) => {
+                    const selectElement = document.querySelector('.goog-te-combo');
+                    
+                    if (!selectElement || !selectElement.value) {
+                        console.log('[AdminDetailPage Retranslate] Google Translate 드롭다운 없음 - 스킵');
+                        resolve();
+                        return;
+                    }
+                    
+                    const currentLang = selectElement.value;
+                    console.log('[AdminDetailPage Retranslate] 🔄 강제 재번역 시작:', currentLang);
+                    self._retranslationPending = true;
+                    
+                    selectElement.value = '';
+                    selectElement.dispatchEvent(new Event('change'));
+                    
+                    setTimeout(() => {
+                        selectElement.value = currentLang;
+                        selectElement.dispatchEvent(new Event('change'));
+                        
+                        setTimeout(() => {
+                            console.log('[AdminDetailPage Retranslate] ✅ 재번역 완료');
+                            self._retranslationPending = false;
+                            window.dispatchEvent(new CustomEvent('adminRetranslationComplete'));
+                            resolve();
+                        }, 800);
+                    }, 100);
+                });
+            },
 
             _initTranslationWatcher: function() {
                 const self = this;
@@ -1523,9 +1564,12 @@
                 this._state.savedVoiceLang = guide.voiceLang || null;
                 this._state.savedVoiceName = guide.voiceName || null;
 
-                if (guide.description) {
-                    this._playAudio(guide.description, guide.voiceLang, guide.voiceName, renderId);
-                }
+                // 🌐 2025-12-24: 동적 콘텐츠 재번역 후 TTS 재생
+                this._retranslateNewContent().then(() => {
+                    if (guide.description) {
+                        this._playAudio(guide.description, guide.voiceLang, guide.voiceName, renderId);
+                    }
+                });
             },
 
             _show: function() {
