@@ -194,27 +194,27 @@
         </div>
 
         <!-- 탭 네비게이션 -->
-        <div class="bg-white rounded-lg shadow-sm mb-6">
-            <div class="flex border-b">
-                <button onclick="showTab('overview')" id="tab-overview" class="tab-button active px-6 py-3 font-medium text-gray-700">
+        <div class="bg-white rounded-lg shadow-sm mb-6 overflow-x-auto">
+            <div class="flex border-b min-w-max">
+                <button onclick="showTab('overview')" id="tab-overview" class="tab-button active px-4 sm:px-6 py-3 font-medium text-gray-700 whitespace-nowrap text-sm sm:text-base">
                     요약
                 </button>
-                <button onclick="showTab('content')" id="tab-content" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
+                <button onclick="showTab('content')" id="tab-content" class="tab-button px-4 sm:px-6 py-3 font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap text-sm sm:text-base">
                     공유페이지
                 </button>
-                <button onclick="showTab('guides')" id="tab-guides" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
+                <button onclick="showTab('guides')" id="tab-guides" class="tab-button px-4 sm:px-6 py-3 font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap text-sm sm:text-base">
                     상세페이지
                 </button>
-                <button onclick="showTab('revenue')" id="tab-revenue" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
+                <button onclick="showTab('revenue')" id="tab-revenue" class="tab-button px-4 sm:px-6 py-3 font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap text-sm sm:text-base">
                     수익
                 </button>
-                <button onclick="showTab('stats')" id="tab-stats" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
+                <button onclick="showTab('stats')" id="tab-stats" class="tab-button px-4 sm:px-6 py-3 font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap text-sm sm:text-base">
                     통계
                 </button>
-                <button onclick="showTab('cashback')" id="tab-cashback" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
+                <button onclick="showTab('cashback')" id="tab-cashback" class="tab-button px-4 sm:px-6 py-3 font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap text-sm sm:text-base">
                     💰 캐시백
                 </button>
-                <button onclick="showTab('prompts')" id="tab-prompts" class="tab-button px-6 py-3 font-medium text-gray-500 hover:text-gray-700">
+                <button onclick="showTab('prompts')" id="tab-prompts" class="tab-button px-4 sm:px-6 py-3 font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap text-sm sm:text-base">
                     🎯 AI 프롬프트
                 </button>
             </div>
@@ -2593,7 +2593,7 @@
             
             container.innerHTML = prompts.map(p => `
                 <div class="bg-white rounded-lg p-4 shadow-sm border-l-4 ${p.type === 'image' ? 'border-purple-500' : 'border-green-500'}">
-                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
                         <div class="flex flex-wrap items-center gap-2">
                             <span class="text-lg">${p.type === 'image' ? '🖼️' : '💬'}</span>
                             <span class="font-semibold">${LANGUAGE_NAMES[p.language] || p.language}</span>
@@ -2602,12 +2602,13 @@
                             </span>
                             <span class="text-xs text-gray-400">v${p.version || 1}</span>
                         </div>
-                        <button onclick="openPromptEdit('${p.language}', '${p.type}')" class="w-full sm:w-auto px-3 py-2 text-sm bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition font-medium">
-                            편집
-                        </button>
                     </div>
-                    <div class="text-sm text-gray-600 bg-gray-50 p-3 rounded max-h-32 overflow-y-auto whitespace-pre-wrap font-mono">
-                        ${escapeHtml(p.content.substring(0, 300))}${p.content.length > 300 ? '...' : ''}
+                    <textarea id="prompt-${p.language}-${p.type}" class="w-full h-48 p-3 text-sm text-gray-700 bg-gray-50 border border-gray-200 rounded-lg font-mono leading-relaxed resize-y focus:ring-2 focus:ring-blue-500 focus:border-transparent">${escapeHtml(p.content)}</textarea>
+                    <div class="flex justify-between items-center mt-3">
+                        <p class="text-xs text-gray-400">⚠️ "텍스트로만 응답" 규칙 필수</p>
+                        <button onclick="savePromptDirect('${p.language}', '${p.type}')" class="px-4 py-2 text-sm bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition font-medium">
+                            저장
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -2617,6 +2618,47 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+        
+        async function savePromptDirect(language, type) {
+            const textarea = document.getElementById(`prompt-${language}-${type}`);
+            if (!textarea) {
+                alert('프롬프트를 찾을 수 없습니다.');
+                return;
+            }
+            
+            const content = textarea.value.trim();
+            
+            if (!content) {
+                alert('프롬프트 내용을 입력해주세요.');
+                return;
+            }
+            
+            if (!content.includes('텍스트로만 응답') && !content.includes('text only') && !content.includes('text-only')) {
+                if (!confirm('경고: "텍스트로만 응답" 규칙이 없습니다. 음성 응답이 생성될 수 있습니다. 계속하시겠습니까?')) {
+                    return;
+                }
+            }
+            
+            try {
+                const res = await fetch('/api/admin/prompts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ language, type, content })
+                });
+                
+                const result = await res.json();
+                
+                if (result.success) {
+                    alert('저장되었습니다.');
+                    loadPrompts();
+                } else {
+                    alert('오류: ' + (result.error || '저장 실패'));
+                }
+            } catch (error) {
+                alert('오류: ' + error.message);
+            }
         }
         
         function openPromptEdit(language, type) {
