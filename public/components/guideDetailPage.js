@@ -294,6 +294,61 @@ const guideDetailPage = {
         return { priorities: [], excludeVoices: [] };
     },
 
+    // 🌐 동적 콘텐츠 강제 재번역 (2025-12-24)
+    _retranslationPending: false,
+    
+    _retranslateNewContent: function() {
+        const self = this;
+        const userLang = localStorage.getItem('appLanguage') || 'ko';
+        if (userLang === 'ko') {
+            console.log('[GuideDetailPage Retranslate] 한국어 - 재번역 불필요');
+            return Promise.resolve();
+        }
+        
+        return new Promise((resolve) => {
+            const selectElement = document.querySelector('.goog-te-combo');
+            
+            if (!selectElement || !selectElement.value) {
+                console.log('[GuideDetailPage Retranslate] Google Translate 드롭다운 없음 - 스킵');
+                resolve();
+                return;
+            }
+            
+            const currentLang = selectElement.value;
+            console.log('[GuideDetailPage Retranslate] 🔄 강제 재번역 시작:', currentLang);
+            self._retranslationPending = true;
+            
+            selectElement.value = '';
+            selectElement.dispatchEvent(new Event('change'));
+            
+            setTimeout(() => {
+                selectElement.value = currentLang;
+                selectElement.dispatchEvent(new Event('change'));
+                
+                setTimeout(() => {
+                    console.log('[GuideDetailPage Retranslate] ✅ 재번역 완료');
+                    self._retranslationPending = false;
+                    window.dispatchEvent(new CustomEvent('guideRetranslationComplete'));
+                    resolve();
+                }, 800);
+            }, 100);
+        });
+    },
+    
+    _waitForRetranslation: async function() {
+        if (!this._retranslationPending) return;
+        
+        console.log('[GuideDetailPage TTS] 재번역 완료 대기 중...');
+        await new Promise(resolve => {
+            const handler = () => {
+                window.removeEventListener('guideRetranslationComplete', handler);
+                resolve();
+            };
+            window.addEventListener('guideRetranslationComplete', handler);
+            setTimeout(resolve, 2000);
+        });
+    },
+
     // 🌐 번역 완료 감지 (MutationObserver)
     _initTranslationWatcher: function() {
         const self = this;
