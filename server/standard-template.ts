@@ -143,30 +143,6 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             // 🔒 speechSynthesis.speak 원본 백업 및 가로채기
             var originalSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);
             
-            // 🎤 언어별 원어민 음성 선택 함수
-            function getVoiceForLang(langCode) {
-                var allVoices = window.speechSynthesis.getVoices();
-                var shortLang = langCode.substring(0, 2);
-                var targetVoice = null;
-                
-                // 한국어 우선순위: Yuna → Sora → 유나 → 소라 → Heami
-                if (shortLang === 'ko') {
-                    var koVoices = allVoices.filter(function(v) { return v.lang.startsWith('ko'); });
-                    targetVoice = koVoices.find(function(v) { return v.name.includes('Yuna'); })
-                               || koVoices.find(function(v) { return v.name.includes('Sora'); })
-                               || koVoices.find(function(v) { return v.name.includes('유나'); })
-                               || koVoices.find(function(v) { return v.name.includes('소라'); })
-                               || koVoices.find(function(v) { return v.name.includes('Heami'); })
-                               || koVoices[0];
-                } else {
-                    // 다른 언어: 언어 코드로 음성 찾기
-                    targetVoice = allVoices.find(function(v) { 
-                        return v.lang.replace('_', '-').startsWith(shortLang); 
-                    });
-                }
-                return targetVoice;
-            }
-            
             window.speechSynthesis.speak = function(utterance) {
                 if (!window.__translationComplete) {
                     console.log('🎤🔒 [TTS 차단] 대기열 추가 (번역 미완료)');
@@ -180,14 +156,7 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                         var translatedText = descEl.textContent || descEl.innerText;
                         utterance.text = translatedText;
                         utterance.lang = window.__ttsTargetLang;
-                        // 🎤 번역된 언어의 원어민 음성 선택
-                        var targetVoice = getVoiceForLang(window.__ttsTargetLang);
-                        if (targetVoice) {
-                            utterance.voice = targetVoice;
-                            console.log('🎤✅ [TTS 재생] 언어:', window.__ttsTargetLang, '음성:', targetVoice.name);
-                        } else {
-                            console.log('🎤✅ [TTS 재생] 언어:', window.__ttsTargetLang, '음성: default');
-                        }
+                        console.log('🎤✅ [TTS 재생] 언어:', window.__ttsTargetLang, '길이:', translatedText.length);
                     }
                 }
                 
@@ -265,18 +234,6 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
       theme_color: '#4285F4'
     }))}">
     <style>
-        /* 🌐 구글 번역 스패너/배너 숨기기 (head에서 즉시 적용) */
-        .goog-te-banner-frame { display: none !important; }
-        body { top: 0px !important; }
-        .goog-te-gadget { font-size: 0px !important; color: transparent !important; }
-        .goog-logo-link { display: none !important; }
-        #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
-        .goog-text-highlight { background: none !important; box-shadow: none !important; }
-        .skiptranslate { display: none !important; }
-        iframe.goog-te-menu-frame { display: none !important; }
-        .goog-te-menu2 { display: none !important; }
-        #google_translate_element { display: none !important; }
-        
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -963,18 +920,6 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
     <meta property="og:title" content="${escapeHTML(locationName || '상세 가이드')} - 내손가이드">
     <meta property="og:description" content="${escapeHTML(description?.substring(0, 100) || '나만의 여행 가이드')}">
     <style>
-        /* 🌐 구글 번역 스패너/배너 숨기기 */
-        .goog-te-banner-frame { display: none !important; }
-        body { top: 0px !important; }
-        .goog-te-gadget { font-size: 0px !important; color: transparent !important; }
-        .goog-logo-link { display: none !important; }
-        #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
-        .goog-text-highlight { background: none !important; box-shadow: none !important; }
-        .skiptranslate { display: none !important; }
-        iframe.goog-te-menu-frame { display: none !important; }
-        .goog-te-menu2 { display: none !important; }
-        #google_translate_element { display: none !important; }
-        
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
