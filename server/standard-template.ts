@@ -143,6 +143,30 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             // 🔒 speechSynthesis.speak 원본 백업 및 가로채기
             var originalSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);
             
+            // 🎤 언어별 원어민 음성 선택 함수
+            function getVoiceForLang(langCode) {
+                var allVoices = window.speechSynthesis.getVoices();
+                var shortLang = langCode.substring(0, 2);
+                var targetVoice = null;
+                
+                // 한국어 우선순위: Yuna → Sora → 유나 → 소라 → Heami
+                if (shortLang === 'ko') {
+                    var koVoices = allVoices.filter(function(v) { return v.lang.startsWith('ko'); });
+                    targetVoice = koVoices.find(function(v) { return v.name.includes('Yuna'); })
+                               || koVoices.find(function(v) { return v.name.includes('Sora'); })
+                               || koVoices.find(function(v) { return v.name.includes('유나'); })
+                               || koVoices.find(function(v) { return v.name.includes('소라'); })
+                               || koVoices.find(function(v) { return v.name.includes('Heami'); })
+                               || koVoices[0];
+                } else {
+                    // 다른 언어: 언어 코드로 음성 찾기
+                    targetVoice = allVoices.find(function(v) { 
+                        return v.lang.replace('_', '-').startsWith(shortLang); 
+                    });
+                }
+                return targetVoice;
+            }
+            
             window.speechSynthesis.speak = function(utterance) {
                 if (!window.__translationComplete) {
                     console.log('🎤🔒 [TTS 차단] 대기열 추가 (번역 미완료)');
@@ -156,7 +180,14 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                         var translatedText = descEl.textContent || descEl.innerText;
                         utterance.text = translatedText;
                         utterance.lang = window.__ttsTargetLang;
-                        console.log('🎤✅ [TTS 재생] 언어:', window.__ttsTargetLang, '길이:', translatedText.length);
+                        // 🎤 번역된 언어의 원어민 음성 선택
+                        var targetVoice = getVoiceForLang(window.__ttsTargetLang);
+                        if (targetVoice) {
+                            utterance.voice = targetVoice;
+                            console.log('🎤✅ [TTS 재생] 언어:', window.__ttsTargetLang, '음성:', targetVoice.name);
+                        } else {
+                            console.log('🎤✅ [TTS 재생] 언어:', window.__ttsTargetLang, '음성: default');
+                        }
                     }
                 }
                 
