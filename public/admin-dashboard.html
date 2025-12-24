@@ -4,6 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>관리자 대시보드</title>
+    
+    <!-- 🌐 2025-12-24: 구글 번역 쿠키 사전 설정 -->
+    <script>
+        (function() {
+            var storedLang = null;
+            try { storedLang = localStorage.getItem('appLanguage'); } catch(e) {}
+            var lang = storedLang || 'ko';
+            if (lang && lang !== 'ko' && /^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
+                var domain = window.location.hostname;
+                document.cookie = 'googtrans=/ko/' + lang + ';path=/;domain=' + domain;
+                document.cookie = 'googtrans=/ko/' + lang + ';path=/';
+                console.log('🌐 [admin-dashboard.html] googtrans 쿠키 설정:', lang);
+            }
+        })();
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
     <style>

@@ -26,6 +26,21 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="format-detection" content="telephone=no">
     
+    <!-- 🌐 2025-12-24: 구글 번역 쿠키 사전 설정 (번역 위젯 로드 전에 실행) -->
+    <script>
+        (function() {
+            var storedLang = null;
+            try { storedLang = localStorage.getItem('appLanguage'); } catch(e) {}
+            var lang = storedLang || 'ko';
+            if (lang && lang !== 'ko' && /^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
+                var domain = window.location.hostname;
+                document.cookie = 'googtrans=/ko/' + lang + ';path=/;domain=' + domain;
+                document.cookie = 'googtrans=/ko/' + lang + ';path=/';
+                console.log('🌐 [share.html] googtrans 쿠키 설정:', lang);
+            }
+        })();
+    </script>
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://hangeul.pstatic.net">
     <link rel="stylesheet" href="https://hangeul.pstatic.net/maruburi/maruburi.css">
