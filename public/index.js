@@ -3678,7 +3678,10 @@ document.addEventListener('DOMContentLoaded', () => {
         element.classList.add('speaking');
         currentlySpeakingElement = element;
         
-        const utterance = new SpeechSynthesisUtterance(text);
+        // 🌐 2025-12-24: DOM에서 번역된 텍스트 가져오기 (원본 text 대신)
+        const translatedText = element.textContent.trim() || text;
+        const utterance = new SpeechSynthesisUtterance(translatedText);
+        console.log('[TTS] 번역된 텍스트 사용:', translatedText.substring(0, 30) + '...');
         
         // 🌐 2025-12-24: 앱 언어 최우선 (저장된 언어 무시, 번역된 텍스트에 맞춤)
         const userLang = localStorage.getItem('appLanguage') || 'ko';
