@@ -234,6 +234,18 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
       theme_color: '#4285F4'
     }))}">
     <style>
+        /* 🌐 구글 번역 스패너/배너 숨기기 (head에서 즉시 적용) */
+        .goog-te-banner-frame { display: none !important; }
+        body { top: 0px !important; }
+        .goog-te-gadget { font-size: 0px !important; color: transparent !important; }
+        .goog-logo-link { display: none !important; }
+        #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+        .goog-text-highlight { background: none !important; box-shadow: none !important; }
+        .skiptranslate { display: none !important; }
+        iframe.goog-te-menu-frame { display: none !important; }
+        .goog-te-menu2 { display: none !important; }
+        #google_translate_element { display: none !important; }
+        
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -920,6 +932,18 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
     <meta property="og:title" content="${escapeHTML(locationName || '상세 가이드')} - 내손가이드">
     <meta property="og:description" content="${escapeHTML(description?.substring(0, 100) || '나만의 여행 가이드')}">
     <style>
+        /* 🌐 구글 번역 스패너/배너 숨기기 */
+        .goog-te-banner-frame { display: none !important; }
+        body { top: 0px !important; }
+        .goog-te-gadget { font-size: 0px !important; color: transparent !important; }
+        .goog-logo-link { display: none !important; }
+        #goog-gt-tt, .goog-te-balloon-frame { display: none !important; }
+        .goog-text-highlight { background: none !important; box-shadow: none !important; }
+        .skiptranslate { display: none !important; }
+        iframe.goog-te-menu-frame { display: none !important; }
+        .goog-te-menu2 { display: none !important; }
+        #google_translate_element { display: none !important; }
+        
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
