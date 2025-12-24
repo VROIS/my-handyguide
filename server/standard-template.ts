@@ -957,7 +957,7 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
     <script type="text/javascript">
         function googleTranslateElementInit() {
             new google.translate.TranslateElement({
-                pageLanguage: 'ko',
+                pageLanguage: 'auto', // 🌐 2025-12-24: 양방향 번역
                 includedLanguages: 'ko,en,ja,zh-CN,fr,de,es',
                 autoDisplay: false
             }, 'google_translate_element');
@@ -1556,7 +1556,7 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
     <script type="text/javascript">
         function googleTranslateElementInit() {
             new google.translate.TranslateElement({
-                pageLanguage: 'ko',
+                pageLanguage: 'auto', // 🌐 2025-12-24: 양방향 번역
                 includedLanguages: 'ko,en,ja,zh-CN,fr,de,es',
                 autoDisplay: false
             }, 'google_translate_element');

@@ -308,8 +308,9 @@
     <div id="google_translate_element" style="display:none;"></div>
     <script type="text/javascript">
         function googleTranslateElementInit() {
+            // 🌐 2025-12-24: 양방향 번역 - 콘텐츠 언어 자동 감지, 앱 언어로 번역
             new google.translate.TranslateElement({
-                pageLanguage: 'ko',
+                pageLanguage: 'auto',
                 includedLanguages: 'ko,en,ja,zh-CN,fr,de,es',
                 autoDisplay: false
             }, 'google_translate_element');
