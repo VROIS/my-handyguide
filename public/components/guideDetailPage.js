@@ -626,9 +626,9 @@ const guideDetailPage = {
         
         this._state.currentUtterance = new SpeechSynthesisUtterance(cleanText);
         
-        // 🎤 TTS 언어 결정: 현재 appLanguage 우선 (번역된 텍스트에 맞춤)
+        // 🌐 2025-12-24: 앱 언어 무조건 우선 (저장된 언어 무시, 번역된 텍스트에 맞춤)
         const langFullMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
-        const fullLang = (userLang !== 'ko') ? (langFullMap[userLang] || 'ko-KR') : (savedVoiceLang || 'ko-KR');
+        const fullLang = langFullMap[userLang] || 'ko-KR';
         
         console.log('[TTS] 재생 언어:', fullLang, '텍스트 길이:', cleanText.length);
         

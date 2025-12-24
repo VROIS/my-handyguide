@@ -1325,8 +1325,9 @@
                 this._state.originalText = cleanText;
                 this._state.currentUtterance = new SpeechSynthesisUtterance(cleanText);
                 
+                // 🌐 2025-12-24: 앱 언어 무조건 우선 (저장된 언어 무시)
                 const langFullMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
-                const fullLang = (userLang !== 'ko') ? (langFullMap[userLang] || 'ko-KR') : (savedVoiceLang || 'ko-KR');
+                const fullLang = langFullMap[userLang] || 'ko-KR';
                 
                 let voices = this._state.synth.getVoices();
                 if (voices.length === 0) {
