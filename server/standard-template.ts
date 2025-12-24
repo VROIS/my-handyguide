@@ -586,6 +586,115 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
         let voices = [];
         let currentUtterance = null;
         
+        // ═══════════════════════════════════════════════════════════════
+        // 🔊 표준 음성 로직 (2025-12-24) - guideDetailPage.js와 동일
+        // ═══════════════════════════════════════════════════════════════
+        let voiceConfigsCache = null;
+        let voiceConfigsLoading = false;
+        
+        const DEFAULT_VOICE_PRIORITIES = {
+            'ko-KR': { default: ['Microsoft Heami', 'Yuna'] },
+            'en-US': { default: ['Samantha', 'Microsoft Zira', 'Google US English', 'English'] },
+            'ja-JP': { default: ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'] },
+            'zh-CN': { default: ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'] },
+            'fr-FR': { default: ['Thomas', 'Microsoft Hortense', 'Google français', 'French'] },
+            'de-DE': { default: ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'] },
+            'es-ES': { default: ['Monica', 'Microsoft Helena', 'Google español', 'Spanish'] }
+        };
+        
+        function detectPlatform() {
+            const ua = navigator.userAgent;
+            if (/iPhone|iPad|iPod/.test(ua)) return 'ios';
+            if (/Android/.test(ua)) return 'android';
+            return 'windows';
+        }
+        
+        async function loadVoiceConfigsFromDB() {
+            if (voiceConfigsCache) return voiceConfigsCache;
+            if (voiceConfigsLoading) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                return voiceConfigsCache || null;
+            }
+            
+            voiceConfigsLoading = true;
+            try {
+                const response = await fetch('/api/voice-configs');
+                if (response.ok) {
+                    const configs = await response.json();
+                    voiceConfigsCache = {};
+                    for (const config of configs) {
+                        if (!voiceConfigsCache[config.langCode]) {
+                            voiceConfigsCache[config.langCode] = {};
+                        }
+                        voiceConfigsCache[config.langCode][config.platform] = {
+                            priorities: config.voicePriorities,
+                            excludeVoices: config.excludeVoices || []
+                        };
+                    }
+                    console.log('🔊 [ShareTemplate Voice DB] 설정 로드 완료:', Object.keys(voiceConfigsCache));
+                }
+            } catch (error) {
+                console.warn('🔊 [ShareTemplate Voice DB] 로드 실패, 기본값 사용:', error.message);
+            }
+            voiceConfigsLoading = false;
+            return voiceConfigsCache;
+        }
+        
+        function getVoicePriorityFromDB(langCode) {
+            const platform = detectPlatform();
+            
+            if (voiceConfigsCache && voiceConfigsCache[langCode]) {
+                const config = voiceConfigsCache[langCode][platform] || voiceConfigsCache[langCode]['default'];
+                if (config) {
+                    return { priorities: config.priorities, excludeVoices: config.excludeVoices };
+                }
+            }
+            
+            const fallback = DEFAULT_VOICE_PRIORITIES[langCode];
+            if (fallback) {
+                const priorities = fallback[platform] || fallback['default'] || fallback[Object.keys(fallback)[0]];
+                return { priorities, excludeVoices: [] };
+            }
+            
+            return { priorities: [], excludeVoices: [] };
+        }
+        
+        function getVoiceForLanguage(userLang) {
+            const langMap = {
+                'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP',
+                'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES'
+            };
+            
+            const fullLang = langMap[userLang] || 'ko-KR';
+            const langCode = fullLang.substring(0, 2);
+            
+            const voiceConfig = getVoicePriorityFromDB(fullLang);
+            const priorities = voiceConfig.priorities;
+            const excludeVoices = voiceConfig.excludeVoices;
+            
+            const allVoices = synth.getVoices();
+            let targetVoice = null;
+            
+            for (const voiceName of priorities) {
+                targetVoice = allVoices.find(v => 
+                    v.name.includes(voiceName) && !excludeVoices.some(ex => v.name.includes(ex))
+                );
+                if (targetVoice) break;
+            }
+            
+            if (!targetVoice) {
+                targetVoice = allVoices.find(v => 
+                    v.lang.replace('_', '-').startsWith(langCode) && !excludeVoices.some(ex => v.name.includes(ex))
+                );
+            }
+            
+            console.log('[ShareTemplate TTS] userLang:', userLang, 'fullLang:', fullLang, '→ voice:', targetVoice?.name);
+            return targetVoice || allVoices[0];
+        }
+        
+        // 앱 시작 시 음성 설정 로드
+        loadVoiceConfigsFromDB();
+        
         function populateVoiceList() {
             voices = synth.getVoices();
         }
@@ -601,7 +710,7 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             if (pauseIcon) pauseIcon.style.display = 'none';
         }
         
-        // 🎤 2025-12-03: voiceLang 파라미터 추가 (저장된 언어로 TTS 재생)
+        // 🎤 2025-12-24: 표준 음성 로직 - 사용자 언어 기준 TTS 재생
         function playAudio(text, voiceLang) {
             stopAudio();
             
@@ -617,12 +726,12 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             
             currentUtterance = new SpeechSynthesisUtterance(cleanText);
             
-            // 🎤 저장된 voiceLang 사용 (각 가이드별 원본 언어, 없으면 TTS 스킵)
-            if (!voiceLang) {
-                console.warn('[Share TTS] voiceLang 없음 - TTS 스킵');
-                return;
-            }
-            const langCode = voiceLang;
+            // 🔊 표준 음성 로직: URL lang 파라미터 또는 appLanguage 기준
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlLang = urlParams.get('lang');
+            const userLang = urlLang || localStorage.getItem('appLanguage') || 'ko';
+            const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
+            const langCode = langCodeMap[userLang] || 'ko-KR';
             
             const allVoices = synth.getVoices();
             let targetVoice = null;
@@ -636,29 +745,17 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                            || koVoices.find(v => v.name.includes('소라'))
                            || koVoices.find(v => v.name.includes('Heami'))
                            || koVoices[0];
-                console.log('[Share TTS] 한국어 음성:', targetVoice?.name || 'default');
+                console.log('[ShareTemplate TTS] 한국어 음성:', targetVoice?.name || 'default');
             } else {
-                // 다른 언어: 저장된 voiceName 사용 (각 가이드별 원본 음성)
-                // voiceName이 appData에 있으면 그 음성 사용
-                const currentItem = appData.find(item => item.voiceLang === langCode);
-                const savedVoiceName = currentItem?.voiceName;
-                
-                if (savedVoiceName) {
-                    targetVoice = allVoices.find(v => v.name.includes(savedVoiceName));
-                    console.log('[Share TTS] 저장된 음성:', savedVoiceName, '→', targetVoice?.name);
-                }
-                
-                // 저장된 음성 없으면 언어 코드로 찾기
-                if (!targetVoice) {
-                    targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
-                }
+                // 다른 언어: DB voice_configs 또는 기본값
+                targetVoice = getVoiceForLanguage(userLang);
             }
             
             currentUtterance.voice = targetVoice || null;
             currentUtterance.lang = langCode;
             currentUtterance.rate = 1.0;
             
-            console.log('[Share TTS] 언어:', langCode, '음성:', targetVoice ? targetVoice.name : 'default');
+            console.log('[ShareTemplate TTS] 언어:', langCode, '음성:', targetVoice ? targetVoice.name : 'default');
             
             const playIcon = document.getElementById('play-icon');
             const pauseIcon = document.getElementById('pause-icon');
@@ -1085,8 +1182,115 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
         const synth = window.speechSynthesis;
         let voices = [];
         let currentUtterance = null;
-        const voiceLang = '${voiceLang || 'ko-KR'}';
-        const savedVoiceName = '${voiceName || ''}';
+        
+        // ═══════════════════════════════════════════════════════════════
+        // 🔊 표준 음성 로직 (2025-12-24) - guideDetailPage.js와 동일
+        // ═══════════════════════════════════════════════════════════════
+        let voiceConfigsCache = null;
+        let voiceConfigsLoading = false;
+        
+        const DEFAULT_VOICE_PRIORITIES = {
+            'ko-KR': { default: ['Microsoft Heami', 'Yuna'] },
+            'en-US': { default: ['Samantha', 'Microsoft Zira', 'Google US English', 'English'] },
+            'ja-JP': { default: ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'] },
+            'zh-CN': { default: ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'] },
+            'fr-FR': { default: ['Thomas', 'Microsoft Hortense', 'Google français', 'French'] },
+            'de-DE': { default: ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'] },
+            'es-ES': { default: ['Monica', 'Microsoft Helena', 'Google español', 'Spanish'] }
+        };
+        
+        function detectPlatform() {
+            const ua = navigator.userAgent;
+            if (/iPhone|iPad|iPod/.test(ua)) return 'ios';
+            if (/Android/.test(ua)) return 'android';
+            return 'windows';
+        }
+        
+        async function loadVoiceConfigsFromDB() {
+            if (voiceConfigsCache) return voiceConfigsCache;
+            if (voiceConfigsLoading) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                return voiceConfigsCache || null;
+            }
+            
+            voiceConfigsLoading = true;
+            try {
+                const response = await fetch('/api/voice-configs');
+                if (response.ok) {
+                    const configs = await response.json();
+                    voiceConfigsCache = {};
+                    for (const config of configs) {
+                        if (!voiceConfigsCache[config.langCode]) {
+                            voiceConfigsCache[config.langCode] = {};
+                        }
+                        voiceConfigsCache[config.langCode][config.platform] = {
+                            priorities: config.voicePriorities,
+                            excludeVoices: config.excludeVoices || []
+                        };
+                    }
+                    console.log('🔊 [SingleGuide Voice DB] 설정 로드 완료:', Object.keys(voiceConfigsCache));
+                }
+            } catch (error) {
+                console.warn('🔊 [SingleGuide Voice DB] 로드 실패, 기본값 사용:', error.message);
+            }
+            voiceConfigsLoading = false;
+            return voiceConfigsCache;
+        }
+        
+        function getVoicePriorityFromDB(langCode) {
+            const platform = detectPlatform();
+            
+            if (voiceConfigsCache && voiceConfigsCache[langCode]) {
+                const config = voiceConfigsCache[langCode][platform] || voiceConfigsCache[langCode]['default'];
+                if (config) {
+                    return { priorities: config.priorities, excludeVoices: config.excludeVoices };
+                }
+            }
+            
+            const fallback = DEFAULT_VOICE_PRIORITIES[langCode];
+            if (fallback) {
+                const priorities = fallback[platform] || fallback['default'] || fallback[Object.keys(fallback)[0]];
+                return { priorities, excludeVoices: [] };
+            }
+            
+            return { priorities: [], excludeVoices: [] };
+        }
+        
+        function getVoiceForLanguage(userLang) {
+            const langMap = {
+                'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP',
+                'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES'
+            };
+            
+            const fullLang = langMap[userLang] || 'ko-KR';
+            const langCode = fullLang.substring(0, 2);
+            
+            const voiceConfig = getVoicePriorityFromDB(fullLang);
+            const priorities = voiceConfig.priorities;
+            const excludeVoices = voiceConfig.excludeVoices;
+            
+            const allVoices = synth.getVoices();
+            let targetVoice = null;
+            
+            for (const voiceName of priorities) {
+                targetVoice = allVoices.find(v => 
+                    v.name.includes(voiceName) && !excludeVoices.some(ex => v.name.includes(ex))
+                );
+                if (targetVoice) break;
+            }
+            
+            if (!targetVoice) {
+                targetVoice = allVoices.find(v => 
+                    v.lang.replace('_', '-').startsWith(langCode) && !excludeVoices.some(ex => v.name.includes(ex))
+                );
+            }
+            
+            console.log('[SingleGuide TTS] userLang:', userLang, 'fullLang:', fullLang, '→ voice:', targetVoice?.name);
+            return targetVoice || allVoices[0];
+        }
+        
+        // 앱 시작 시 음성 설정 로드
+        loadVoiceConfigsFromDB();
         
         function populateVoiceList() {
             voices = synth.getVoices();
@@ -1110,37 +1314,36 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
             const cleanText = text.replace(/<br\\s*\\/?>/gi, ' ');
             currentUtterance = new SpeechSynthesisUtterance(cleanText);
             
-            // 저장된 음성 이름으로 찾기
+            // 🔊 표준 음성 로직: URL lang 파라미터 또는 appLanguage 기준
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlLang = urlParams.get('lang');
+            const userLang = urlLang || localStorage.getItem('appLanguage') || 'ko';
+            const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
+            const langCode = langCodeMap[userLang] || 'ko-KR';
+            
             const allVoices = synth.getVoices();
             let targetVoice = null;
             
-            if (savedVoiceName) {
-                targetVoice = allVoices.find(v => v.name === savedVoiceName);
-            }
-            
-            // 없으면 언어별 로직
-            if (!targetVoice) {
-                // ⭐ 한국어 하드코딩 (Yuna → Sora → 유나 → 소라 → Heami)
-                if (voiceLang === 'ko-KR' || voiceLang.startsWith('ko')) {
-                    const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
-                    targetVoice = koVoices.find(v => v.name.includes('Yuna'))
-                               || koVoices.find(v => v.name.includes('Sora'))
-                               || koVoices.find(v => v.name.includes('유나'))
-                               || koVoices.find(v => v.name.includes('소라'))
-                               || koVoices.find(v => v.name.includes('Heami'))
-                               || koVoices[0];
-                    console.log('[Single TTS] 한국어 음성:', targetVoice?.name || 'default');
-                } else {
-                    // 다른 언어: 언어 코드로 찾기
-                    targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(voiceLang.substring(0, 2)));
-                }
+            // ⭐ 한국어 하드코딩 (Yuna → Sora → 유나 → 소라 → Heami)
+            if (langCode === 'ko-KR' || langCode.startsWith('ko')) {
+                const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
+                targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                           || koVoices.find(v => v.name.includes('Sora'))
+                           || koVoices.find(v => v.name.includes('유나'))
+                           || koVoices.find(v => v.name.includes('소라'))
+                           || koVoices.find(v => v.name.includes('Heami'))
+                           || koVoices[0];
+                console.log('[SingleGuide TTS] 한국어 음성:', targetVoice?.name || 'default');
+            } else {
+                // 다른 언어: DB voice_configs 또는 기본값
+                targetVoice = getVoiceForLanguage(userLang);
             }
             
             currentUtterance.voice = targetVoice || null;
-            currentUtterance.lang = voiceLang;
+            currentUtterance.lang = langCode;
             currentUtterance.rate = 1.0;
             
-            console.log('[SingleGuide TTS] 언어:', voiceLang, '음성:', targetVoice ? targetVoice.name : 'default');
+            console.log('[SingleGuide TTS] 언어:', langCode, '음성:', targetVoice ? targetVoice.name : 'default');
             
             currentUtterance.onstart = () => {
                 document.getElementById('play-icon').style.display = 'none';

@@ -8,6 +8,124 @@ let isPaused = false;
 let currentlySpeakingElement = null;
 let lastAudioClickTime = 0;
 let textHidden = false;
+let voices = [];
+
+// ═══════════════════════════════════════════════════════════════
+// 🔊 표준 음성 로직 (2025-12-24) - guideDetailPage.js와 동일
+// ═══════════════════════════════════════════════════════════════
+let voiceConfigsCache = null;
+let voiceConfigsLoading = false;
+
+const DEFAULT_VOICE_PRIORITIES = {
+    'ko-KR': { default: ['Microsoft Heami', 'Yuna'] },
+    'en-US': { default: ['Samantha', 'Microsoft Zira', 'Google US English', 'English'] },
+    'ja-JP': { default: ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'] },
+    'zh-CN': { default: ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'] },
+    'fr-FR': { default: ['Thomas', 'Microsoft Hortense', 'Google français', 'French'] },
+    'de-DE': { default: ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'] },
+    'es-ES': { default: ['Monica', 'Microsoft Helena', 'Google español', 'Spanish'] }
+};
+
+function detectPlatform() {
+    const ua = navigator.userAgent;
+    if (/iPhone|iPad|iPod/.test(ua)) return 'ios';
+    if (/Android/.test(ua)) return 'android';
+    return 'windows';
+}
+
+async function loadVoiceConfigsFromDB() {
+    if (voiceConfigsCache) return voiceConfigsCache;
+    if (voiceConfigsLoading) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        return voiceConfigsCache || null;
+    }
+    
+    voiceConfigsLoading = true;
+    try {
+        const response = await fetch('/api/voice-configs');
+        if (response.ok) {
+            const configs = await response.json();
+            voiceConfigsCache = {};
+            for (const config of configs) {
+                if (!voiceConfigsCache[config.langCode]) {
+                    voiceConfigsCache[config.langCode] = {};
+                }
+                voiceConfigsCache[config.langCode][config.platform] = {
+                    priorities: config.voicePriorities,
+                    excludeVoices: config.excludeVoices || []
+                };
+            }
+            console.log('🔊 [SharePage Voice DB] 설정 로드 완료:', Object.keys(voiceConfigsCache));
+        }
+    } catch (error) {
+        console.warn('🔊 [SharePage Voice DB] 로드 실패, 기본값 사용:', error.message);
+    }
+    voiceConfigsLoading = false;
+    return voiceConfigsCache;
+}
+
+function getVoicePriorityFromDB(langCode) {
+    const platform = detectPlatform();
+    
+    if (voiceConfigsCache && voiceConfigsCache[langCode]) {
+        const config = voiceConfigsCache[langCode][platform] || voiceConfigsCache[langCode]['default'];
+        if (config) {
+            return { priorities: config.priorities, excludeVoices: config.excludeVoices };
+        }
+    }
+    
+    const fallback = DEFAULT_VOICE_PRIORITIES[langCode];
+    if (fallback) {
+        const priorities = fallback[platform] || fallback['default'] || fallback[Object.keys(fallback)[0]];
+        return { priorities, excludeVoices: [] };
+    }
+    
+    return { priorities: [], excludeVoices: [] };
+}
+
+function getVoiceForLanguage(userLang) {
+    const langMap = {
+        'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP',
+        'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES'
+    };
+    
+    const fullLang = langMap[userLang] || 'ko-KR';
+    const langCode = fullLang.substring(0, 2);
+    
+    const voiceConfig = getVoicePriorityFromDB(fullLang);
+    const priorities = voiceConfig.priorities;
+    const excludeVoices = voiceConfig.excludeVoices;
+    
+    const allVoices = synth.getVoices();
+    let targetVoice = null;
+    
+    for (const voiceName of priorities) {
+        targetVoice = allVoices.find(v => 
+            v.name.includes(voiceName) && !excludeVoices.some(ex => v.name.includes(ex))
+        );
+        if (targetVoice) break;
+    }
+    
+    if (!targetVoice) {
+        targetVoice = allVoices.find(v => 
+            v.lang.replace('_', '-').startsWith(langCode) && !excludeVoices.some(ex => v.name.includes(ex))
+        );
+    }
+    
+    console.log('[SharePage TTS] userLang:', userLang, 'fullLang:', fullLang, '→ voice:', targetVoice?.name);
+    return targetVoice || allVoices[0];
+}
+
+function populateVoiceList() {
+    voices = synth.getVoices();
+}
+
+// 앱 시작 시 음성 설정 로드
+loadVoiceConfigsFromDB();
+populateVoiceList();
+if (speechSynthesis.onvoiceschanged !== undefined) {
+    speechSynthesis.onvoiceschanged = populateVoiceList;
+}
 
 // 번역 완료 대기 시스템 (2025-12-06)
 let translationState = {
@@ -277,8 +395,24 @@ function stopSpeech() {
 
 function queueForSpeech(text, element) {
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'ko-KR';
-    utterance.voice = getOptimalKoreanVoice();  // ✅ 음성 설정 추가
+    
+    // 🔊 표준 음성 로직: 사용자 언어 기준 음성 선택
+    const userLang = localStorage.getItem('appLanguage') || 'ko';
+    const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
+    const langCode = langCodeMap[userLang] || 'ko-KR';
+    
+    let targetVoice = null;
+    
+    if (langCode === 'ko-KR') {
+        // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
+        targetVoice = getOptimalKoreanVoice();
+    } else {
+        // 다른 언어: DB voice_configs 또는 기본값
+        targetVoice = getVoiceForLanguage(userLang);
+    }
+    
+    utterance.voice = targetVoice;
+    utterance.lang = langCode;
     utteranceQueue.push({ utterance, element });
 
     if (!isSpeaking && !synth.speaking && !isPaused) {
