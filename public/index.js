@@ -3680,27 +3680,15 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const utterance = new SpeechSynthesisUtterance(text);
         
-        // 🎤 저장된 음성 정보 사용 (없으면 현재 앱 언어)
-        const savedVoiceLang = currentContent.voiceLang;
-        const savedVoiceName = currentContent.voiceName;
+        // 🌐 2025-12-24: 앱 언어 최우선 (저장된 언어 무시, 번역된 텍스트에 맞춤)
         const userLang = localStorage.getItem('appLanguage') || 'ko';
         const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
-        const langCode = savedVoiceLang || langCodeMap[userLang] || 'ko-KR';
+        const langCode = langCodeMap[userLang] || 'ko-KR';
         
-        console.log('[TTS] 저장된 음성:', savedVoiceLang, savedVoiceName, '→ 사용:', langCode);
+        console.log('[TTS] 앱 언어 우선:', userLang, '→', langCode);
         
-        // 저장된 voiceName이 있으면 해당 음성 사용
-        if (savedVoiceName) {
-            const allVoices = synth.getVoices();
-            const targetVoice = allVoices.find(v => v.name === savedVoiceName || v.name.includes(savedVoiceName));
-            if (targetVoice) {
-                utterance.voice = targetVoice;
-                utterance.lang = langCode;
-                utterance.rate = 0.9;
-                utterance.pitch = 1.0;
-                console.log('[TTS] 저장된 음성 사용:', targetVoice.name);
-            }
-        } else {
+        // 🌐 앱 언어 기준 음성 선택 (저장된 voiceName 무시)
+        {
             // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
             const allVoices = synth.getVoices();
             let targetVoice = null;
