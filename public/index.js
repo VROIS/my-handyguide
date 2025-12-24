@@ -3691,7 +3691,7 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('[TTS] 번역된 텍스트 사용:', translatedText.substring(0, 30) + '...');
         
         // 🌐 2025-12-24: 앱 언어 최우선 (저장된 언어 무시, 번역된 텍스트에 맞춤)
-        const userLang = localStorage.getItem('appLanguage') || 'ko';
+        // userLang은 위에서 이미 선언됨
         const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
         const langCode = langCodeMap[userLang] || 'ko-KR';
         
