@@ -3678,8 +3678,8 @@ document.addEventListener('DOMContentLoaded', () => {
         element.classList.add('speaking');
         currentlySpeakingElement = element;
         
-        // 🌐 2025-12-24: DOM에서 번역된 텍스트 가져오기 (원본 text 대신)
-        const translatedText = element.textContent.trim() || text;
+        // 🌐 2025-12-24: DOM에서 번역된 텍스트 가져오기 (innerText = 화면에 보이는 번역된 텍스트)
+        const translatedText = element.innerText.trim() || text;
         const utterance = new SpeechSynthesisUtterance(translatedText);
         console.log('[TTS] 번역된 텍스트 사용:', translatedText.substring(0, 30) + '...');
         

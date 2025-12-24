@@ -1318,7 +1318,8 @@
                     });
                 }
                 
-                const currentText = this._els.description.textContent || text;
+                // 🌐 번역된 텍스트 (innerText = 화면에 보이는 번역된 텍스트)
+                const currentText = this._els.description.innerText || text;
                 const cleanText = currentText.replace(new RegExp('<br\\s*/?>', 'gi'), ' ');
                 const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
                 

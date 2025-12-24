@@ -612,8 +612,8 @@ const guideDetailPage = {
             });
         }
         
-        // 🌐 번역된 텍스트 가져오기 (DOM에서 현재 보이는 텍스트)
-        const currentText = this._els.description.textContent || text;
+        // 🌐 번역된 텍스트 가져오기 (innerText = 화면에 보이는 번역된 텍스트)
+        const currentText = this._els.description.innerText || text;
         
         // <br> 태그 제거
         const cleanText = currentText.replace(new RegExp('<br\\s*/?>', 'gi'), ' ');

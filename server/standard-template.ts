@@ -153,7 +153,8 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                 if (window.__ttsTargetLang) {
                     var descEl = document.getElementById('detail-description');
                     if (descEl) {
-                        var translatedText = descEl.textContent || descEl.innerText;
+                        // 🌐 innerText 우선 (화면에 보이는 번역된 텍스트)
+                        var translatedText = descEl.innerText || descEl.textContent;
                         utterance.text = translatedText;
                         utterance.lang = window.__ttsTargetLang;
                         console.log('🎤✅ [TTS 재생] 언어:', window.__ttsTargetLang, '길이:', translatedText.length);
@@ -181,7 +182,8 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                             window.__ttsQueue.forEach(function(utt) {
                                 var descEl = document.getElementById('detail-description');
                                 if (descEl) {
-                                    utt.text = descEl.textContent || descEl.innerText;
+                                    // 🌐 innerText 우선 (화면에 보이는 번역된 텍스트)
+                                    utt.text = descEl.innerText || descEl.textContent;
                                     utt.lang = window.__ttsTargetLang;
                                 }
                                 originalSpeak(utt);
@@ -1054,7 +1056,8 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
                 if (window.__ttsTargetLang) {
                     var descEl = document.getElementById('detail-description');
                     if (descEl) {
-                        var translatedText = descEl.textContent || descEl.innerText;
+                        // 🌐 innerText 우선 (화면에 보이는 번역된 텍스트)
+                        var translatedText = descEl.innerText || descEl.textContent;
                         utterance.text = translatedText;
                         utterance.lang = window.__ttsTargetLang;
                         console.log('🎤✅ [SingleGuide TTS 재생] 언어:', window.__ttsTargetLang, '길이:', translatedText.length);
@@ -1080,7 +1083,8 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
                             window.__ttsQueue.forEach(function(utt) {
                                 var descEl = document.getElementById('detail-description');
                                 if (descEl) {
-                                    utt.text = descEl.textContent || descEl.innerText;
+                                    // 🌐 innerText 우선 (화면에 보이는 번역된 텍스트)
+                                    utt.text = descEl.innerText || descEl.textContent;
                                     utt.lang = window.__ttsTargetLang;
                                 }
                                 originalSpeak(utt);

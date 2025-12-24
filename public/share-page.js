@@ -439,8 +439,8 @@ async function playNextInQueue() {
     isSpeaking = true;
     const { utterance, element } = utteranceQueue.shift();
     
-    // 번역된 텍스트를 DOM에서 읽기
-    const translatedText = element.textContent.trim();
+    // 🌐 번역된 텍스트를 DOM에서 읽기 (innerText = 화면에 보이는 번역된 텍스트)
+    const translatedText = element.innerText.trim();
     if (translatedText) {
         utterance.text = translatedText;
     }
