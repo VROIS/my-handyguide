@@ -2593,8 +2593,8 @@
             
             container.innerHTML = prompts.map(p => `
                 <div class="bg-white rounded-lg p-4 shadow-sm border-l-4 ${p.type === 'image' ? 'border-purple-500' : 'border-green-500'}">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="flex items-center gap-2">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-2">
+                        <div class="flex flex-wrap items-center gap-2">
                             <span class="text-lg">${p.type === 'image' ? '🖼️' : '💬'}</span>
                             <span class="font-semibold">${LANGUAGE_NAMES[p.language] || p.language}</span>
                             <span class="text-xs px-2 py-1 rounded ${p.type === 'image' ? 'bg-purple-100 text-purple-700' : 'bg-green-100 text-green-700'}">
@@ -2602,7 +2602,7 @@
                             </span>
                             <span class="text-xs text-gray-400">v${p.version || 1}</span>
                         </div>
-                        <button onclick="openPromptEdit('${p.language}', '${p.type}')" class="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition">
+                        <button onclick="openPromptEdit('${p.language}', '${p.type}')" class="w-full sm:w-auto px-3 py-2 text-sm bg-blue-500 text-white hover:bg-blue-600 rounded-lg transition font-medium">
                             편집
                         </button>
                     </div>
