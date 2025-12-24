@@ -3685,8 +3685,18 @@ document.addEventListener('DOMContentLoaded', () => {
         element.classList.add('speaking');
         currentlySpeakingElement = element;
         
-        // 🌐 2025-12-24: DOM에서 번역된 텍스트 가져오기 (innerText = 화면에 보이는 번역된 텍스트)
-        const translatedText = element.innerText.trim() || text;
+        // 🌐 2025-12-24: Google Translate의 <font> 태그에서 번역된 텍스트 추출
+        // Google Translate는 번역된 텍스트를 <font> 태그로 감쌈
+        let translatedText = text;
+        const fontEl = element.querySelector('font');
+        if (fontEl) {
+            // Google Translate <font> 태그에서 번역된 텍스트 가져오기
+            translatedText = fontEl.innerText.trim() || fontEl.textContent.trim() || text;
+            console.log('[TTS] Google Translate <font> 태그에서 번역 텍스트 추출');
+        } else {
+            // <font> 태그가 없으면 innerText 시도
+            translatedText = element.innerText.trim() || text;
+        }
         const utterance = new SpeechSynthesisUtterance(translatedText);
         console.log('[TTS] 번역된 텍스트 사용:', translatedText.substring(0, 30) + '...');
         

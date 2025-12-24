@@ -1324,8 +1324,15 @@
                     console.log('[TTS] 번역 텍스트 적용 대기 완료 (500ms)');
                 }
                 
-                // 🌐 번역된 텍스트 (innerText = 화면에 보이는 번역된 텍스트)
-                const currentText = this._els.description.innerText || text;
+                // 🌐 Google Translate의 <font> 태그에서 번역된 텍스트 추출
+                let currentText = text;
+                const fontEl = this._els.description.querySelector('font');
+                if (fontEl) {
+                    currentText = fontEl.innerText.trim() || fontEl.textContent.trim() || text;
+                    console.log('[TTS] Google Translate <font> 태그에서 번역 텍스트 추출');
+                } else {
+                    currentText = this._els.description.innerText || text;
+                }
                 const cleanText = currentText.replace(new RegExp('<br\\s*/?>', 'gi'), ' ');
                 const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
                 
