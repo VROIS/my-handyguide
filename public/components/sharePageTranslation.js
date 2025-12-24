@@ -177,16 +177,19 @@ const SharePageTranslation = {
     // 쿠키 설정 스크립트 반환 (head에 삽입)
     getCookieScript: function() {
         return `
-    <!-- 🌐 2025-12-04: 구글 번역 쿠키 사전 설정 -->
+    <!-- 🌐 2025-12-24: 구글 번역 쿠키 사전 설정 (appLanguage 우선) -->
     <script>
         (function() {
-            var params = new URLSearchParams(window.location.search);
-            var lang = params.get('lang');
-            if (lang && /^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
+            var storedLang = null;
+            try { storedLang = localStorage.getItem('appLanguage'); } catch(e) {}
+            var urlParams = new URLSearchParams(window.location.search);
+            var urlLang = urlParams.get('lang');
+            var lang = storedLang || urlLang || 'ko';
+            if (lang && lang !== 'ko' && /^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
                 var domain = window.location.hostname;
                 document.cookie = 'googtrans=/ko/' + lang + ';path=/;domain=' + domain;
                 document.cookie = 'googtrans=/ko/' + lang + ';path=/';
-                console.log('🌐 [쿠키] googtrans 설정:', lang);
+                console.log('🌐 [쿠키] googtrans 설정 (appLanguage 우선):', lang);
             }
         })();
     </script>`;

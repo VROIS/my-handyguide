@@ -222,13 +222,16 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
     <!-- 🌐 2025.12.03: 쿼리 파라미터로 구글 번역 쿠키 설정 (자동 번역용) -->
     <script>
         (function() {
-            var params = new URLSearchParams(window.location.search);
-            var lang = params.get('lang');
-            if (lang && /^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
+            var storedLang = null;
+            try { storedLang = localStorage.getItem('appLanguage'); } catch(e) {}
+            var urlParams = new URLSearchParams(window.location.search);
+            var urlLang = urlParams.get('lang');
+            var lang = storedLang || urlLang || 'ko';
+            if (lang && lang !== 'ko' && /^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
                 var domain = window.location.hostname;
                 document.cookie = 'googtrans=/ko/' + lang + ';path=/;domain=' + domain;
                 document.cookie = 'googtrans=/ko/' + lang + ';path=/';
-                console.log('🌐 Pre-set googtrans cookie for:', lang);
+                console.log('🌐 [Gallery] googtrans 쿠키 설정 (appLanguage 우선):', lang);
             }
         })();
     </script>
@@ -1168,13 +1171,16 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
     <!-- 🌐 구글 번역 쿠키 사전 설정 -->
     <script>
         (function() {
-            var params = new URLSearchParams(window.location.search);
-            var lang = params.get('lang');
-            if (lang && /^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
+            var storedLang = null;
+            try { storedLang = localStorage.getItem('appLanguage'); } catch(e) {}
+            var urlParams = new URLSearchParams(window.location.search);
+            var urlLang = urlParams.get('lang');
+            var lang = storedLang || urlLang || 'ko';
+            if (lang && lang !== 'ko' && /^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
                 var domain = window.location.hostname;
                 document.cookie = 'googtrans=/ko/' + lang + ';path=/;domain=' + domain;
                 document.cookie = 'googtrans=/ko/' + lang + ';path=/';
-                console.log('🌐 [SingleGuide] googtrans 쿠키 설정:', lang);
+                console.log('🌐 [SingleGuide] googtrans 쿠키 설정 (appLanguage 우선):', lang);
             }
         })();
     </script>
