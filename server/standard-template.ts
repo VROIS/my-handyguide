@@ -624,34 +624,29 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             }
             const langCode = voiceLang;
             
+            const voicePriority = {
+                'ko-KR': ['Microsoft Heami', 'Yuna'],
+                'en-US': ['Samantha', 'Microsoft Zira', 'Google US English', 'English'],
+                'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'],
+                'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'],
+                'fr-FR': ['Thomas', 'Microsoft Hortense', 'Google français', 'French'],
+                'de-DE': ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'],
+                'es-ES': ['Monica', 'Microsoft Helena', 'Google español', 'Spanish']
+            };
+            
             const allVoices = synth.getVoices();
             let targetVoice = null;
             
-            // ⭐ 한국어 하드코딩 (Yuna → Sora → 유나 → 소라 → Heami)
-            if (langCode === 'ko-KR' || langCode.startsWith('ko')) {
-                const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
-                targetVoice = koVoices.find(v => v.name.includes('Yuna'))
-                           || koVoices.find(v => v.name.includes('Sora'))
-                           || koVoices.find(v => v.name.includes('유나'))
-                           || koVoices.find(v => v.name.includes('소라'))
-                           || koVoices.find(v => v.name.includes('Heami'))
-                           || koVoices[0];
-                console.log('[Share TTS] 한국어 음성:', targetVoice?.name || 'default');
-            } else {
-                // 다른 언어: 저장된 voiceName 사용 (각 가이드별 원본 음성)
-                // voiceName이 appData에 있으면 그 음성 사용
-                const currentItem = appData.find(item => item.voiceLang === langCode);
-                const savedVoiceName = currentItem?.voiceName;
-                
-                if (savedVoiceName) {
-                    targetVoice = allVoices.find(v => v.name.includes(savedVoiceName));
-                    console.log('[Share TTS] 저장된 음성:', savedVoiceName, '→', targetVoice?.name);
-                }
-                
-                // 저장된 음성 없으면 언어 코드로 찾기
-                if (!targetVoice) {
-                    targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
-                }
+            // 우선순위대로 음성 찾기
+            const priorities = voicePriority[langCode] || [];
+            for (const voiceName of priorities) {
+                targetVoice = allVoices.find(v => v.name.includes(voiceName));
+                if (targetVoice) break;
+            }
+            
+            // 우선순위에 없으면 언어 코드로 찾기
+            if (!targetVoice) {
+                targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
             }
             
             currentUtterance.voice = targetVoice || null;
@@ -1118,20 +1113,25 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
                 targetVoice = allVoices.find(v => v.name === savedVoiceName);
             }
             
-            // 없으면 언어별 로직
+            // 없으면 언어 코드로 찾기
             if (!targetVoice) {
-                // ⭐ 한국어 하드코딩 (Yuna → Sora → 유나 → 소라 → Heami)
-                if (voiceLang === 'ko-KR' || voiceLang.startsWith('ko')) {
-                    const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
-                    targetVoice = koVoices.find(v => v.name.includes('Yuna'))
-                               || koVoices.find(v => v.name.includes('Sora'))
-                               || koVoices.find(v => v.name.includes('유나'))
-                               || koVoices.find(v => v.name.includes('소라'))
-                               || koVoices.find(v => v.name.includes('Heami'))
-                               || koVoices[0];
-                    console.log('[Single TTS] 한국어 음성:', targetVoice?.name || 'default');
-                } else {
-                    // 다른 언어: 언어 코드로 찾기
+                const voicePriority = {
+                    'ko-KR': ['Microsoft Heami', 'Yuna'],
+                    'en-US': ['Samantha', 'Microsoft Zira', 'Google US English'],
+                    'ja-JP': ['Kyoko', 'Microsoft Haruka', 'Google 日本語'],
+                    'zh-CN': ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话'],
+                    'fr-FR': ['Thomas', 'Microsoft Hortense', 'Google français'],
+                    'de-DE': ['Anna', 'Microsoft Hedda', 'Google Deutsch'],
+                    'es-ES': ['Monica', 'Microsoft Helena', 'Google español']
+                };
+                
+                const priorities = voicePriority[voiceLang] || [];
+                for (const voiceName of priorities) {
+                    targetVoice = allVoices.find(v => v.name.includes(voiceName));
+                    if (targetVoice) break;
+                }
+                
+                if (!targetVoice) {
                     targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(voiceLang.substring(0, 2)));
                 }
             }
