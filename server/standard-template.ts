@@ -1014,6 +1014,117 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
     <title>${escapeHTML(locationName || '상세 가이드')} - 내손가이드</title>
     <meta property="og:title" content="${escapeHTML(locationName || '상세 가이드')} - 내손가이드">
     <meta property="og:description" content="${escapeHTML(description?.substring(0, 100) || '나만의 여행 가이드')}">
+    
+    <!-- 🎤🔒 2025-12-24: TTS 강제 차단 + 번역 완료 후 재생 (SingleGuide용) -->
+    <script>
+        (function() {
+            'use strict';
+            
+            var LANG_MAP = {
+                'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP',
+                'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES'
+            };
+            
+            var params = new URLSearchParams(window.location.search);
+            var urlLang = params.get('lang');
+            var storedLang = null;
+            try { storedLang = localStorage.getItem('appLanguage'); } catch(e) {}
+            
+            var activeLang = urlLang || storedLang || 'ko';
+            var targetLang = LANG_MAP[activeLang] || LANG_MAP[activeLang.split('-')[0]] || null;
+            
+            var needsTranslation = activeLang !== 'ko' && targetLang;
+            window.__translationComplete = !needsTranslation;
+            window.__ttsTargetLang = targetLang;
+            window.__ttsQueue = [];
+            
+            if (needsTranslation) {
+                console.log('🎤🔒 [SingleGuide TTS 차단] 번역 대기 중... 대상:', targetLang);
+            }
+            
+            var originalSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);
+            
+            window.speechSynthesis.speak = function(utterance) {
+                if (!window.__translationComplete) {
+                    console.log('🎤🔒 [SingleGuide TTS 차단] 대기열 추가');
+                    window.__ttsQueue.push(utterance);
+                    return;
+                }
+                
+                if (window.__ttsTargetLang) {
+                    var descEl = document.getElementById('detail-description');
+                    if (descEl) {
+                        var translatedText = descEl.textContent || descEl.innerText;
+                        utterance.text = translatedText;
+                        utterance.lang = window.__ttsTargetLang;
+                        console.log('🎤✅ [SingleGuide TTS 재생] 언어:', window.__ttsTargetLang, '길이:', translatedText.length);
+                    }
+                }
+                
+                originalSpeak(utterance);
+            };
+            
+            function watchForTranslation() {
+                if (!needsTranslation) return;
+                
+                var observer = new MutationObserver(function() {
+                    var hasTranslateClass = document.body.classList.contains('translated-ltr') || 
+                                            document.body.classList.contains('translated-rtl');
+                    
+                    if (hasTranslateClass) {
+                        console.log('🎤✅ [SingleGuide 번역 완료] TTS 차단 해제!');
+                        window.__translationComplete = true;
+                        observer.disconnect();
+                        
+                        if (window.__ttsQueue.length > 0) {
+                            window.__ttsQueue.forEach(function(utt) {
+                                var descEl = document.getElementById('detail-description');
+                                if (descEl) {
+                                    utt.text = descEl.textContent || descEl.innerText;
+                                    utt.lang = window.__ttsTargetLang;
+                                }
+                                originalSpeak(utt);
+                            });
+                            window.__ttsQueue = [];
+                        }
+                    }
+                });
+                
+                observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+                
+                setTimeout(function() {
+                    if (!window.__translationComplete) {
+                        console.log('🎤⚠️ [SingleGuide 번역 타임아웃] 원본으로 재생');
+                        window.__translationComplete = true;
+                        observer.disconnect();
+                        window.__ttsQueue.forEach(function(utt) { originalSpeak(utt); });
+                        window.__ttsQueue = [];
+                    }
+                }, 5000);
+            }
+            
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', watchForTranslation);
+            } else {
+                watchForTranslation();
+            }
+        })();
+    </script>
+    
+    <!-- 🌐 구글 번역 쿠키 사전 설정 -->
+    <script>
+        (function() {
+            var params = new URLSearchParams(window.location.search);
+            var lang = params.get('lang');
+            if (lang && /^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
+                var domain = window.location.hostname;
+                document.cookie = 'googtrans=/ko/' + lang + ';path=/;domain=' + domain;
+                document.cookie = 'googtrans=/ko/' + lang + ';path=/';
+                console.log('🌐 [SingleGuide] googtrans 쿠키 설정:', lang);
+            }
+        })();
+    </script>
+    
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -1437,6 +1548,30 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
             stopAudio();
         });
     </script>
+
+    <!-- Google Translate Widget (숨김) - SingleGuide용 -->
+    <div id="google_translate_element" style="display:none;"></div>
+
+    <!-- Google Translate Initialization -->
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'ko',
+                includedLanguages: 'ko,en,ja,zh-CN,fr,de,es',
+                autoDisplay: false
+            }, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+    <!-- Google Translate CSS 숨김 -->
+    <style>
+        .goog-te-banner-frame { display: none !important; }
+        body { top: 0px !important; }
+        .goog-te-gadget { font-size: 0px !important; color: transparent !important; }
+        .goog-logo-link { display: none !important; }
+        .skiptranslate { display: none !important; }
+    </style>
 </body>
 </html>`;
 }
