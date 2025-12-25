@@ -14,15 +14,8 @@
     }
 })();
 
-// TTS State - 보관함과 100% 동일
-const synth = window.speechSynthesis;
-let utteranceQueue = [];
-let isSpeaking = false;
-let isPaused = false;
-let currentlySpeakingElement = null;
-let lastAudioClickTime = 0;
-let textHidden = false;
-let voices = [];
+// 🔊 2025-12-25: 전역 변수 삭제됨 (IIFE 내부로 이동 예정)
+// 기존 인라인 코드와 충돌 방지를 위해 모든 TTS 로직은 IIFE 내부에서 처리
 
 // ═══════════════════════════════════════════════════════════════
 // 🔊 표준 음성 로직 (2025-12-24) - guideDetailPage.js와 동일

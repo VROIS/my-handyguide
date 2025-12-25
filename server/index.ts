@@ -151,13 +151,17 @@ app.get('/s/:id', async (req, res) => {
                 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES'
             };
             
-            // ?lang= 파라미터 감지
+            // 🌐 2025-12-25: appLanguage 최우선 (URL ?lang= 파라미터는 fallback)
+            var appLang = localStorage.getItem('appLanguage') || 'ko';
             var params = new URLSearchParams(window.location.search);
             var urlLang = params.get('lang');
-            var targetLang = urlLang ? (LANG_MAP[urlLang] || LANG_MAP[urlLang.split('-')[0]] || null) : null;
             
-            // 한국어거나 lang 파라미터 없으면 → 번역 불필요, 바로 재생 허용
-            var needsTranslation = targetLang && urlLang !== 'ko';
+            // appLanguage 우선, URL은 fallback
+            var effectiveLang = appLang !== 'ko' ? appLang : (urlLang || 'ko');
+            var targetLang = LANG_MAP[effectiveLang] || LANG_MAP[effectiveLang.split('-')[0]] || 'ko-KR';
+            
+            // appLanguage가 ko가 아니면 번역 필요
+            var needsTranslation = effectiveLang !== 'ko';
             window.__translationComplete = !needsTranslation;
             window.__ttsTargetLang = targetLang;
             window.__ttsQueue = []; // 대기 중인 TTS 요청
