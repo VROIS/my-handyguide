@@ -136,8 +136,11 @@ app.get('/s/:id', async (req, res) => {
         result = result.replace(/<\/body>/i, googleTranslateWidget + '</body>');
       }
       
-      // 🎤 2025-12-25: TTS 차단 스크립트 제거됨
+      // 🎤 2025-12-25: 기존 DB 페이지에서 옛날 TTS 차단 스크립트 제거
       // share-page.js에서 TTS 로직 전담 (appLanguage 우선, font 태그 추출)
+      // 기존 페이지에 이미 포함된 TTS 차단 스크립트 제거 (충돌 방지)
+      result = result.replace(/<!-- 🎤🔒.*?TTS.*?차단.*?-->[\s\S]*?<script>[\s\S]*?__translationComplete[\s\S]*?<\/script>/gi, '<!-- TTS 차단 스크립트 제거됨 (share-page.js 전담) -->');
+      result = result.replace(/<script>\s*\(function\(\)\s*\{\s*'use strict';\s*[\s\S]*?__translationComplete[\s\S]*?<\/script>/gi, '<!-- TTS 차단 스크립트 제거됨 -->');
       
       // 1. 버튼 문구 통일: 다양한 기존 문구 → "나도 만들어보기"
       // (이모지 제거, 모든 기존 페이지에 적용)
