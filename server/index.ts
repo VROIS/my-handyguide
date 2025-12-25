@@ -331,6 +331,17 @@ app.get('/s/:id', async (req, res) => {
         result = result.replace(/<\/head>/i, ttsVoiceOptimizationScript + '</head>');
       }
       
+      // 🔊 2025-12-25: 외부 TTS 로직 강제 주입 (기존 DB 페이지도 share-page.js 로드)
+      // 인라인 TTS 코드 대신 share-page.js의 최신 로직 사용
+      const sharePageScript = `
+    <!-- 🔊 2025-12-25: 외부 TTS 로직 (기존 DB 페이지도 동적 업데이트) -->
+    <script src="/share-page.js"></script>`;
+      
+      // </body> 앞에 share-page.js 삽입 (없으면만!)
+      if (!result.includes('src="/share-page.js"')) {
+        result = result.replace(/<\/body>/i, sharePageScript + '</body>');
+      }
+      
       return result;
     };
     
