@@ -499,26 +499,71 @@ async function playNextInQueue() {
     // 번역 완료 대기 후 TTS 재생
     await waitForTranslation();
     
-    // 🌐 2025-12-24: 동적 콘텐츠 재번역 완료 대기
-    const userLang = localStorage.getItem('appLanguage') || 'ko';
-    if (userLang !== 'ko') {
-        await waitForRetranslation();
+    // 🌐 2025-12-24: 동적 콘텐츠 재번역 완료 대기 (언어 무관 - 조건 제거)
+    await waitForRetranslation();
+    if (retranslationPending) {
         console.log('[TTS] 재번역 완료 후 TTS 시작');
     }
     
     isSpeaking = true;
     const { utterance, element } = utteranceQueue.shift();
     
-    // 🌐 Google Translate의 <font> 태그에서 번역된 텍스트 추출
-    let translatedText = element.innerText.trim();
+    // 🌐 2025-12-25: Google Translate의 <font> 태그에서 번역된 텍스트 추출 (index.js와 동일)
+    let translatedText = utterance.text;
     const fontEl = element.querySelector('font');
     if (fontEl) {
-        translatedText = fontEl.innerText.trim() || fontEl.textContent.trim() || translatedText;
+        translatedText = fontEl.innerText.trim() || fontEl.textContent.trim() || utterance.text;
         console.log('[TTS] Google Translate <font> 태그에서 번역 텍스트 추출');
+    } else {
+        translatedText = element.innerText.trim() || utterance.text;
     }
-    if (translatedText) {
-        utterance.text = translatedText;
+    utterance.text = translatedText;
+    console.log('[TTS] 번역된 텍스트 사용:', translatedText.substring(0, 30) + '...');
+    
+    // 🌐 2025-12-25: 앱 언어 최우선 (index.js와 동일) - 번역된 텍스트에 맞춤
+    const userLang = localStorage.getItem('appLanguage') || 'ko';
+    const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
+    const langCode = langCodeMap[userLang] || 'ko-KR';
+    
+    console.log('[TTS] 앱 언어 우선:', userLang, '→', langCode);
+    
+    // 🌐 앱 언어 기준 음성 선택 (index.js와 동일)
+    const allVoices = synth.getVoices();
+    let targetVoice = null;
+    
+    if (langCode === 'ko-KR') {
+        // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
+        const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
+        targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                   || koVoices.find(v => v.name.includes('Sora'))
+                   || koVoices.find(v => v.name.includes('유나'))
+                   || koVoices.find(v => v.name.includes('소라'))
+                   || koVoices.find(v => v.name.includes('Heami'))
+                   || koVoices[0];
+        console.log('🎤 [한국어] 음성:', targetVoice?.name || 'default');
+    } else {
+        // 다른 6개 언어는 DB 기반 유지
+        const voiceConfig = getVoicePriorityFromDB(langCode);
+        const priorities = voiceConfig.priorities;
+        const excludeVoices = voiceConfig.excludeVoices;
+        
+        for (const voiceName of priorities) {
+            targetVoice = allVoices.find(v => 
+                v.name.includes(voiceName) && !excludeVoices.some(ex => v.name.includes(ex))
+            );
+            if (targetVoice) break;
+        }
+        
+        if (!targetVoice) {
+            targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
+        }
+        console.log('[TTS] 언어:', langCode, '음성:', targetVoice?.name || 'default');
     }
+    
+    utterance.voice = targetVoice || null;
+    utterance.lang = langCode;
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
     
     if (currentlySpeakingElement) {
         currentlySpeakingElement.classList.remove('speaking');
@@ -527,6 +572,12 @@ async function playNextInQueue() {
     currentlySpeakingElement = element;
     
     utterance.onend = () => {
+        element.classList.remove('speaking');
+        playNextInQueue();
+    };
+    
+    utterance.onerror = () => {
+        element.classList.remove('speaking');
         playNextInQueue();
     };
 

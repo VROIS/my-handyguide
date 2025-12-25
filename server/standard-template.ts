@@ -1022,6 +1022,9 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
         .goog-logo-link { display: none !important; }
         .skiptranslate { display: none !important; }
     </style>
+    
+    <!-- 🔊 2025-12-25: 외부 TTS 로직 (기존 DB 페이지도 동적 업데이트) -->
+    <script src="/share-page.js"></script>
 </body>
 </html>`;
 }
@@ -1632,6 +1635,9 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
         .goog-logo-link { display: none !important; }
         .skiptranslate { display: none !important; }
     </style>
+    
+    <!-- 🔊 2025-12-25: 외부 TTS 로직 (기존 DB 페이지도 동적 업데이트) -->
+    <script src="/share-page.js"></script>
 </body>
 </html>`;
 }
