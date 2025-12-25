@@ -1,5 +1,28 @@
 // === 보관함 코드를 그대로 복사한 공유 페이지 ===
 
+// 🌐 2025-12-25: appLanguage 우선 googtrans 쿠키 재설정 (기존 페이지에도 적용)
+// 인라인 스크립트가 URL lang으로 쿠키를 설정한 후, 이 코드가 appLanguage로 덮어씀
+(function() {
+    try {
+        var storedLang = localStorage.getItem('appLanguage') || 'ko';
+        var domain = window.location.hostname;
+        
+        if (storedLang === 'ko') {
+            // 한국어 사용자: 번역 쿠키 제거 (원본 유지 또는 한국어로 표시)
+            document.cookie = 'googtrans=;path=/;domain=' + domain + ';expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            document.cookie = 'googtrans=;path=/;expires=Thu, 01 Jan 1970 00:00:00 GMT';
+            console.log('🌐 [share-page.js] 한국어 사용자: googtrans 쿠키 제거 (번역 비활성화)');
+        } else if (/^[a-z]{2}(-[A-Z]{2})?$/.test(storedLang)) {
+            // 다른 언어 사용자: 해당 언어로 번역
+            document.cookie = 'googtrans=/ko/' + storedLang + ';path=/;domain=' + domain;
+            document.cookie = 'googtrans=/ko/' + storedLang + ';path=/';
+            console.log('🌐 [share-page.js] appLanguage 우선 googtrans 쿠키 재설정:', storedLang);
+        }
+    } catch(e) {
+        console.warn('🌐 [share-page.js] appLanguage 쿠키 재설정 실패:', e.message);
+    }
+})();
+
 // TTS State - 보관함과 100% 동일
 const synth = window.speechSynthesis;
 let utteranceQueue = [];
