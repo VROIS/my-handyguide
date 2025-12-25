@@ -14,8 +14,17 @@
     }
 })();
 
-// 🔊 2025-12-25: 전역 변수 삭제됨 (IIFE 내부로 이동 예정)
-// 기존 인라인 코드와 충돌 방지를 위해 모든 TTS 로직은 IIFE 내부에서 처리
+// 🔊 2025-12-25: window 접두어로 변수 선언 (기존 인라인 코드와 충돌 방지)
+// var 사용으로 재선언 허용, window 객체에 할당
+var synth = window.speechSynthesis;
+var utteranceQueue = window.__shareUtteranceQueue || [];
+window.__shareUtteranceQueue = utteranceQueue;
+var isSpeaking = false;
+var isPaused = false;
+var currentlySpeakingElement = null;
+var lastAudioClickTime = 0;
+var textHidden = false;
+var voices = [];
 
 // ═══════════════════════════════════════════════════════════════
 // 🔊 표준 음성 로직 (2025-12-24) - guideDetailPage.js와 동일
