@@ -14,17 +14,26 @@
     }
 })();
 
-// 🔊 2025-12-25: window 접두어로 변수 선언 (기존 인라인 코드와 충돌 방지)
-// var 사용으로 재선언 허용, window 객체에 할당
-var synth = window.speechSynthesis;
-var utteranceQueue = window.__shareUtteranceQueue || [];
-window.__shareUtteranceQueue = utteranceQueue;
-var isSpeaking = false;
-var isPaused = false;
-var currentlySpeakingElement = null;
-var lastAudioClickTime = 0;
-var textHidden = false;
-var voices = [];
+// 🔊 2025-12-25: 변수 충돌 방지 - window 객체에 직접 할당
+// synth 선언 제거 → window.speechSynthesis 직접 사용
+(function() {
+    // 기존 인라인 코드가 이미 선언한 변수들과 충돌 방지
+    if (typeof window.__shareTTSInit === 'undefined') {
+        window.__shareTTSInit = true;
+        window.__shareUtteranceQueue = [];
+        window.__shareIsSpeaking = false;
+        window.__shareIsPaused = false;
+        window.__shareCurrentElement = null;
+        window.__shareLastClickTime = 0;
+    }
+})();
+
+// 간편 접근용 (IIFE 외부에서도 사용)
+var utteranceQueue = window.__shareUtteranceQueue;
+var isSpeaking = window.__shareIsSpeaking;
+var isPaused = window.__shareIsPaused;
+var currentlySpeakingElement = window.__shareCurrentElement;
+var lastAudioClickTime = window.__shareLastClickTime;
 
 // ═══════════════════════════════════════════════════════════════
 // 🔊 표준 음성 로직 (2025-12-24) - guideDetailPage.js와 동일
@@ -112,7 +121,7 @@ function getVoiceForLanguage(userLang) {
     const priorities = voiceConfig.priorities;
     const excludeVoices = voiceConfig.excludeVoices;
     
-    const allVoices = synth.getVoices();
+    const allVoices = window.speechSynthesis.getVoices();
     let targetVoice = null;
     
     for (const voiceName of priorities) {
@@ -133,7 +142,7 @@ function getVoiceForLanguage(userLang) {
 }
 
 function populateVoiceList() {
-    voices = synth.getVoices();
+    voices = window.speechSynthesis.getVoices();
 }
 
 // 앱 시작 시 음성 설정 로드
@@ -419,7 +428,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
 function getOptimalKoreanVoice() {
-    const allVoices = synth.getVoices();
+    const allVoices = window.speechSynthesis.getVoices();
     const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
     
     // Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
@@ -450,8 +459,8 @@ function resetSpeechState() {
 
 function stopSpeech() {
     // 즉시 음성 중지 (타이머 없음)
-    if (synth.speaking || synth.pending) {
-        synth.cancel();
+    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+        window.speechSynthesis.cancel();
     }
     
     // 상태 완전 초기화
@@ -480,7 +489,7 @@ function queueForSpeech(text, element) {
     utterance.lang = langCode;
     utteranceQueue.push({ utterance, element });
 
-    if (!isSpeaking && !synth.speaking && !isPaused) {
+    if (!isSpeaking && !window.speechSynthesis.speaking && !isPaused) {
         updateAudioButton('pause');
         playNextInQueue();
     }
@@ -530,7 +539,7 @@ async function playNextInQueue() {
     console.log('[TTS] 앱 언어 우선:', userLang, '→', langCode);
     
     // 🌐 앱 언어 기준 음성 선택 (index.js와 동일)
-    const allVoices = synth.getVoices();
+    const allVoices = window.speechSynthesis.getVoices();
     let targetVoice = null;
     
     if (langCode === 'ko-KR') {
@@ -583,7 +592,7 @@ async function playNextInQueue() {
         playNextInQueue();
     };
 
-    synth.speak(utterance);
+    window.speechSynthesis.speak(utterance);
 }
 
 function restartAudio() {
@@ -607,11 +616,11 @@ function handleAudioButtonClick() {
         restartAudio();
     } else if (isSpeaking && !isPaused) {
         isPaused = true;
-        synth.pause();
+        window.speechSynthesis.pause();
         updateAudioButton('play');
     } else if (isSpeaking && isPaused) {
         isPaused = false;
-        synth.resume();
+        window.speechSynthesis.resume();
         updateAudioButton('pause');
     }
 }
