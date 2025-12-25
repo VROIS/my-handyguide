@@ -278,15 +278,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     try {
-        // 공유 ID 가져오기 (URL 경로에서 추출: /s/{shortCode})
-        const pathParts = window.location.pathname.split('/');
-        const shareId = pathParts[pathParts.length - 1]; // 마지막 경로 부분
+        // 공유 ID 가져오기
+        const urlParams = new URLSearchParams(window.location.search);
+        const shareId = urlParams.get('id');
 
-        if (!shareId || shareId === 's') {
+        if (!shareId) {
             throw new Error('공유 ID가 없습니다.');
         }
-
-        console.log('[share-page.js] 공유 ID 추출:', shareId);
 
         // API에서 데이터 가져오기
         const response = await fetch(`/api/share?id=${shareId}`);

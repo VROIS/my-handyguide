@@ -1665,8 +1665,6 @@
                 const langFullMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
                 const fullLang = langFullMap[userLang] || 'ko-KR';
                 
-                console.log('[TTS] 앱 언어 우선:', userLang, '→', fullLang);
-                
                 let voices = this._state.synth.getVoices();
                 if (voices.length === 0) {
                     await new Promise(resolve => {

@@ -136,29 +136,8 @@ app.get('/s/:id', async (req, res) => {
         result = result.replace(/<\/body>/i, googleTranslateWidget + '</body>');
       }
       
-      // 🔊 2025-12-25: 모든 인라인 TTS/음성 스크립트 완전 제거 (share-page.js만 TTS 담당)
-      // 포괄적 패턴으로 모든 TTS 관련 인라인 코드 삭제
-      
-      // 1. playAudio 함수 포함 스크립트 제거
-      result = result.replace(/<script[^>]*>[\s\S]*?function\s+playAudio[\s\S]*?<\/script>/gi, '<!-- 인라인 TTS 스크립트 제거됨 -->');
-      
-      // 2. [Share TTS] 로그 포함 스크립트 제거
-      result = result.replace(/<script[^>]*>[\s\S]*?\[Share TTS\][\s\S]*?<\/script>/gi, '<!-- 인라인 TTS 스크립트 제거됨 -->');
-      
-      // 3. 한국어 음성 하드코딩 스크립트 제거
-      result = result.replace(/<script[^>]*>[\s\S]*?한국어 음성[\s\S]*?<\/script>/gi, '<!-- 인라인 TTS 스크립트 제거됨 -->');
-      
-      // 4. getOptimalVoice 함수 포함 스크립트 제거
-      result = result.replace(/<script[^>]*>[\s\S]*?getOptimalVoice[\s\S]*?<\/script>/gi, '<!-- 인라인 TTS 스크립트 제거됨 -->');
-      
-      // 5. __translationComplete 변수 포함 스크립트 제거
-      result = result.replace(/<script[^>]*>[\s\S]*?__translationComplete[\s\S]*?<\/script>/gi, '<!-- 인라인 TTS 스크립트 제거됨 -->');
-      
-      // 6. speechSynthesis.speak 직접 호출 스크립트 제거 (share-page.js 제외)
-      result = result.replace(/<script[^>]*>[\s\S]*?speechSynthesis\.speak[\s\S]*?<\/script>/gi, '<!-- 인라인 TTS 스크립트 제거됨 -->');
-      
-      // 7. TTS 음성 최적화 주석 포함 스크립트 제거
-      result = result.replace(/<!-- 🔊.*?TTS.*?-->[\s\S]*?<\/script>/gi, '<!-- 인라인 TTS 스크립트 제거됨 -->');
+      // 🎤 2025-12-25: TTS 차단 스크립트 제거됨
+      // share-page.js에서 TTS 로직 전담 (appLanguage 우선, font 태그 추출)
       
       // 1. 버튼 문구 통일: 다양한 기존 문구 → "나도 만들어보기"
       // (이모지 제거, 모든 기존 페이지에 적용)
@@ -192,6 +171,52 @@ app.get('/s/:id', async (req, res) => {
       // ⚠️ detail-back 버튼이 있는 페이지(상세페이지)에는 추가하지 않음 (중복 방지)
       if (!result.includes('shareReturnBtn') && !result.includes('detail-back')) {
         result = result.replace(/<\/body>/i, returnButtonHTML + '</body>');
+      }
+      
+      // 4. TTS 음성 최적화 스크립트 주입 (한국어 하드코딩 + 다른언어 저장된 voiceName)
+      const ttsVoiceOptimizationScript = `
+    <!-- 🔊 2025.12.15: TTS 음성 최적화 (한국어 하드코딩: Yuna→Sora→유나→소라→Heami) -->
+    <script>
+        (function() {
+            // 언어별 최적 음성 찾기
+            window.getOptimalVoice = function(langCode, voices, savedVoiceName) {
+                var allVoices = voices || speechSynthesis.getVoices();
+                var targetVoice = null;
+                
+                // ⭐ 한국어 하드코딩 (Yuna → Sora → 유나 → 소라 → Heami)
+                if (langCode === 'ko-KR' || (langCode && langCode.startsWith('ko'))) {
+                    var koVoices = allVoices.filter(function(v) { return v.lang.startsWith('ko'); });
+                    targetVoice = koVoices.find(function(v) { return v.name.includes('Yuna'); })
+                               || koVoices.find(function(v) { return v.name.includes('Sora'); })
+                               || koVoices.find(function(v) { return v.name.includes('유나'); })
+                               || koVoices.find(function(v) { return v.name.includes('소라'); })
+                               || koVoices.find(function(v) { return v.name.includes('Heami'); })
+                               || koVoices[0];
+                    console.log('[Runtime TTS] 한국어 음성:', targetVoice ? targetVoice.name : 'default');
+                } else {
+                    // 다른 언어: 저장된 voiceName 사용
+                    if (savedVoiceName) {
+                        targetVoice = allVoices.find(function(v) { return v.name.includes(savedVoiceName); });
+                        console.log('[Runtime TTS] 저장된 음성:', savedVoiceName, '→', targetVoice ? targetVoice.name : 'not found');
+                    }
+                    
+                    // 저장된 음성 없으면 언어 코드로 찾기
+                    if (!targetVoice && langCode) {
+                        var langPrefix = langCode.substring(0, 2);
+                        targetVoice = allVoices.find(function(v) { return v.lang.replace('_', '-').startsWith(langPrefix); });
+                    }
+                }
+                
+                return targetVoice || allVoices[0];
+            };
+            
+            console.log('🔊 TTS 음성 최적화 로드 완료 (한국어 하드코딩)');
+        })();
+    </script>`;
+      
+      // </head> 앞에 TTS 최적화 스크립트 삽입 (없으면)
+      if (!result.includes('getOptimalVoice')) {
+        result = result.replace(/<\/head>/i, ttsVoiceOptimizationScript + '</head>');
       }
       
       // 🔊 2025-12-25: 외부 TTS 로직 강제 주입 (기존 DB 페이지도 share-page.js 로드)
