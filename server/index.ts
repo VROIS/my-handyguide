@@ -136,11 +136,29 @@ app.get('/s/:id', async (req, res) => {
         result = result.replace(/<\/body>/i, googleTranslateWidget + '</body>');
       }
       
-      // 🎤 2025-12-25: 기존 DB 페이지에서 옛날 TTS 차단 스크립트 제거
-      // share-page.js에서 TTS 로직 전담 (appLanguage 우선, font 태그 추출)
-      // 기존 페이지에 이미 포함된 TTS 차단 스크립트 제거 (충돌 방지)
-      result = result.replace(/<!-- 🎤🔒.*?TTS.*?차단.*?-->[\s\S]*?<script>[\s\S]*?__translationComplete[\s\S]*?<\/script>/gi, '<!-- TTS 차단 스크립트 제거됨 (share-page.js 전담) -->');
-      result = result.replace(/<script>\s*\(function\(\)\s*\{\s*'use strict';\s*[\s\S]*?__translationComplete[\s\S]*?<\/script>/gi, '<!-- TTS 차단 스크립트 제거됨 -->');
+      // 🔊 2025-12-25: 모든 인라인 TTS/음성 스크립트 완전 제거 (share-page.js만 TTS 담당)
+      // 포괄적 패턴으로 모든 TTS 관련 인라인 코드 삭제
+      
+      // 1. playAudio 함수 포함 스크립트 제거
+      result = result.replace(/<script[^>]*>[\s\S]*?function\s+playAudio[\s\S]*?<\/script>/gi, '<!-- 인라인 TTS 스크립트 제거됨 -->');
+      
+      // 2. [Share TTS] 로그 포함 스크립트 제거
+      result = result.replace(/<script[^>]*>[\s\S]*?\[Share TTS\][\s\S]*?<\/script>/gi, '<!-- 인라인 TTS 스크립트 제거됨 -->');
+      
+      // 3. 한국어 음성 하드코딩 스크립트 제거
+      result = result.replace(/<script[^>]*>[\s\S]*?한국어 음성[\s\S]*?<\/script>/gi, '<!-- 인라인 TTS 스크립트 제거됨 -->');
+      
+      // 4. getOptimalVoice 함수 포함 스크립트 제거
+      result = result.replace(/<script[^>]*>[\s\S]*?getOptimalVoice[\s\S]*?<\/script>/gi, '<!-- 인라인 TTS 스크립트 제거됨 -->');
+      
+      // 5. __translationComplete 변수 포함 스크립트 제거
+      result = result.replace(/<script[^>]*>[\s\S]*?__translationComplete[\s\S]*?<\/script>/gi, '<!-- 인라인 TTS 스크립트 제거됨 -->');
+      
+      // 6. speechSynthesis.speak 직접 호출 스크립트 제거 (share-page.js 제외)
+      result = result.replace(/<script[^>]*>[\s\S]*?speechSynthesis\.speak[\s\S]*?<\/script>/gi, '<!-- 인라인 TTS 스크립트 제거됨 -->');
+      
+      // 7. TTS 음성 최적화 주석 포함 스크립트 제거
+      result = result.replace(/<!-- 🔊.*?TTS.*?-->[\s\S]*?<\/script>/gi, '<!-- 인라인 TTS 스크립트 제거됨 -->');
       
       // 1. 버튼 문구 통일: 다양한 기존 문구 → "나도 만들어보기"
       // (이모지 제거, 모든 기존 페이지에 적용)
@@ -175,12 +193,6 @@ app.get('/s/:id', async (req, res) => {
       if (!result.includes('shareReturnBtn') && !result.includes('detail-back')) {
         result = result.replace(/<\/body>/i, returnButtonHTML + '</body>');
       }
-      
-      // 🔊 2025-12-25: TTS 음성 최적화 스크립트 완전 삭제
-      // share-page.js가 appLanguage 기준으로 TTS 처리 (index.js와 동일 방식)
-      // 기존 DB 페이지에서 getOptimalVoice 스크립트 제거
-      result = result.replace(/<!-- 🔊.*?TTS 음성 최적화.*?-->[\s\S]*?<script>[\s\S]*?getOptimalVoice[\s\S]*?<\/script>/gi, '<!-- TTS 음성 최적화 스크립트 제거됨 -->');
-      result = result.replace(/<script>\s*\(function\(\)\s*\{[\s\S]*?getOptimalVoice[\s\S]*?<\/script>/gi, '<!-- TTS 음성 최적화 스크립트 제거됨 -->');
       
       // 🔊 2025-12-25: 외부 TTS 로직 강제 주입 (기존 DB 페이지도 share-page.js 로드)
       // 인라인 TTS 코드 대신 share-page.js의 최신 로직 사용
