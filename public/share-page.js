@@ -273,8 +273,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const descriptionEl = document.getElementById('guidebook-description');
 
     const showError = (message) => {
-        loader.style.display = 'none';
-        contentContainer.innerHTML = `<div class="text-center py-10 text-red-600">${message}</div>`;
+        if (loader) loader.style.display = 'none';
+        if (contentContainer) contentContainer.innerHTML = `<div class="text-center py-10 text-red-600">${message}</div>`;
     };
 
     try {
