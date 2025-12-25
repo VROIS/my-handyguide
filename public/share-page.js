@@ -288,56 +288,46 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         console.log('[share-page.js] 공유 ID 추출:', shareId);
 
-        // API에서 데이터 가져오기
-        const response = await fetch(`/api/share?id=${shareId}`);
-        if (!response.ok) {
-            throw new Error('공유된 가이드북을 찾을 수 없습니다.');
-        }
-
-        const shareData = response.json ? await response.json() : response;
+        // 🔥 2025-12-25: window.GUIDE_DATA 우선 사용 (HTML에 이미 임베딩됨)
+        // API 호출 불필요 - description 포함된 데이터가 이미 페이지에 있음
+        let shareData;
         
-        console.log('🔍 Received shareData:', shareData);
-        console.log('🔍 shareData.name:', shareData.name);
-        console.log('🔍 shareData.linkName:', shareData.linkName);
-        console.log('🔍 shareData keys:', Object.keys(shareData));
-        
-        // 🔄 오프라인 지원: 로컬스토리지에 데이터 저장
-        try {
-            localStorage.setItem(`share-${shareId}`, JSON.stringify(shareData));
-            console.log('💾 공유 데이터를 로컬스토리지에 저장했습니다:', shareId);
-        } catch (e) {
-            console.warn('로컬스토리지 저장 실패:', e);
+        if (window.GUIDE_DATA && window.GUIDE_DATA.length > 0) {
+            // ✅ 임베딩된 데이터 사용 (대부분의 경우)
+            shareData = { contents: window.GUIDE_DATA };
+            console.log('[share-page.js] ✅ window.GUIDE_DATA 사용:', window.GUIDE_DATA.length, '개 아이템');
+        } else {
+            // ⚠️ window.GUIDE_DATA 없음 - 에러 처리
+            console.error('[share-page.js] ❌ window.GUIDE_DATA 없음');
+            throw new Error('공유 데이터가 페이지에 없습니다.');
         }
+        
+        console.log('🔍 shareData.contents:', shareData.contents.length, '개');
         
         if (!shareData || !shareData.contents || shareData.contents.length === 0) {
             throw new Error('유효하지 않은 공유 데이터입니다.');
         }
 
-        // 🔥 새로운 헤더 시스템 적용
+        // 🔥 2025-12-25: 헤더 정보는 서버에서 이미 렌더링됨
+        // window.GUIDE_DATA 사용 시 title/location/date 필드가 없으므로 기존 DOM 유지
+        // 레거시 호환: 요소가 비어있고 shareData에 값이 있을 때만 업데이트
         const titleEl = document.getElementById('guidebook-title');
         const locationEl = document.getElementById('guidebook-location');
         const createdDateEl = document.getElementById('guidebook-created-date');
         
-        // 링크 이름을 타이틀로 사용
-        const linkName = shareData.name || shareData.linkName || '공유된 가이드북';
-        titleEl.textContent = linkName;
-        
-        // 🔥 페이지 타이틀과 메타태그 동적 업데이트
-        document.title = `${linkName} - 내손가이드`;
-        document.getElementById('page-title').textContent = `${linkName} - 내손가이드`;
-        document.getElementById('og-title').setAttribute('content', `${linkName} - 내손가이드`);
-        document.getElementById('twitter-title').setAttribute('content', `${linkName} - 내손가이드`);
-        
-        // GPS 위치 정보 표시 (사진촬영시만, 업로드시 제외)
-        if (shareData.location && shareData.location.trim() !== '') {
-            locationEl.textContent = `📍 ${shareData.location}`;
-            locationEl.style.display = 'block';
-        } else {
-            locationEl.style.display = 'none';
+        // 이미 서버에서 렌더링된 경우 건너뜀
+        if (titleEl && !titleEl.textContent.trim() && shareData.name) {
+            const linkName = shareData.name || shareData.linkName || '공유된 가이드북';
+            titleEl.textContent = linkName;
+            document.title = `${linkName} - 내손가이드`;
         }
         
-        // 생성일자 표시 (인간적인 형태로)
-        if (shareData.createdAt) {
+        if (locationEl && !locationEl.textContent.trim() && shareData.location) {
+            locationEl.textContent = `📍 ${shareData.location}`;
+            locationEl.style.display = 'block';
+        }
+        
+        if (createdDateEl && !createdDateEl.textContent.trim() && shareData.createdAt) {
             const date = new Date(shareData.createdAt);
             const formattedDate = date.toLocaleDateString('ko-KR', {
                 year: 'numeric',
