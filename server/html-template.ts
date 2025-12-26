@@ -185,7 +185,146 @@ export function generateShareHtml(data: SharePageData): string {
   return `<!DOCTYPE html>
 <html lang="ko">
 <head>
+    <!-- 🌐 2025.12.03: 쿼리 파라미터로 구글 번역 쿠키 설정 (자동 번역용) -->
+    <script>
+        (function() {
+            var params = new URLSearchParams(window.location.search);
+            var lang = params.get('lang');
+            if (lang && /^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
+                var domain = window.location.hostname;
+                document.cookie = 'googtrans=/ko/' + lang + ';path=/;domain=' + domain;
+                document.cookie = 'googtrans=/ko/' + lang + ';path=/';
+                console.log('🌐 Pre-set googtrans cookie for:', lang);
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
+    <!-- 🎤🔒 2025.12.04: TTS 강제 차단 + 번역 완료 후 재생 (speechSynthesis.speak 가로채기) -->
+    <script>
+        (function() {
+            'use strict';
+            
+            // 언어코드 매핑
+            var LANG_MAP = {
+                'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP',
+                'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES'
+            };
+            
+            // 🌐 2025.12.05: URL 파라미터 + localStorage 모두 체크
+            var params = new URLSearchParams(window.location.search);
+            var urlLang = params.get('lang');
+            var storedLang = null;
+            try { storedLang = localStorage.getItem('appLanguage'); } catch(e) {}
+            
+            // URL 파라미터 우선, 없으면 localStorage
+            var activeLang = urlLang || storedLang || 'ko';
+            var targetLang = LANG_MAP[activeLang] || LANG_MAP[activeLang.split('-')[0]] || null;
+            
+            // 한국어가 아니면 → 번역 필요, TTS 대기
+            var needsTranslation = activeLang !== 'ko' && targetLang;
+            window.__translationComplete = !needsTranslation;
+            window.__ttsTargetLang = targetLang;
+            window.__ttsQueue = [];
+            
+            if (needsTranslation) {
+                console.log('🎤🔒 [TTS 차단] 번역 대기 중... 대상:', targetLang);
+            }
+            
+            // 🔒 speechSynthesis.speak 원본 백업 및 가로채기
+            var originalSpeak = window.speechSynthesis.speak.bind(window.speechSynthesis);
+            
+            window.speechSynthesis.speak = function(utterance) {
+                if (!window.__translationComplete) {
+                    console.log('🎤🔒 [TTS 차단] 대기열 추가 (번역 미완료)');
+                    window.__ttsQueue.push(utterance);
+                    return;
+                }
+                
+                if (window.__ttsTargetLang) {
+                    var descEl = document.getElementById('detail-description');
+                    if (descEl) {
+                        // 🌐 Google Translate의 <font> 태그에서 번역된 텍스트 추출
+                        var fontEl = descEl.querySelector('font');
+                        var translatedText = fontEl ? (fontEl.innerText || fontEl.textContent) : (descEl.innerText || descEl.textContent);
+                        utterance.text = translatedText;
+                        utterance.lang = window.__ttsTargetLang;
+                        console.log('🎤✅ [TTS 재생] 언어:', window.__ttsTargetLang, fontEl ? '(font태그)' : '(innerText)', '길이:', translatedText.length);
+                    }
+                }
+                
+                originalSpeak(utterance);
+            };
+            
+            // 번역 완료 감지
+            function watchForTranslation() {
+                if (!needsTranslation) return;
+                
+                var observer = new MutationObserver(function() {
+                    var hasTranslateClass = document.body.classList.contains('translated-ltr') || 
+                                            document.body.classList.contains('translated-rtl');
+                    
+                    if (hasTranslateClass) {
+                        console.log('🎤✅ [번역 완료] TTS 차단 해제!');
+                        window.__translationComplete = true;
+                        observer.disconnect();
+                        
+                        if (window.__ttsQueue.length > 0) {
+                            console.log('🎤✅ [대기열 재생]', window.__ttsQueue.length + '개');
+                            // 🌐 2025-12-24: 번역 클래스 감지 후 실제 텍스트 변환까지 500ms 추가 대기
+                            setTimeout(function() {
+                                console.log('[TTS] 번역 텍스트 적용 대기 완료 (500ms)');
+                                window.__ttsQueue.forEach(function(utt) {
+                                    var descEl = document.getElementById('detail-description');
+                                    if (descEl) {
+                                        // 🌐 Google Translate의 <font> 태그에서 번역된 텍스트 추출
+                                        var fontEl = descEl.querySelector('font');
+                                        utt.text = fontEl ? (fontEl.innerText || fontEl.textContent) : (descEl.innerText || descEl.textContent);
+                                        utt.lang = window.__ttsTargetLang;
+                                    }
+                                    originalSpeak(utt);
+                                });
+                                window.__ttsQueue = [];
+                            }, 500);
+                        }
+                    }
+                });
+                
+                observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+                
+                setTimeout(function() {
+                    if (!window.__translationComplete) {
+                        console.log('🎤⚠️ [번역 타임아웃] 원본으로 재생');
+                        window.__translationComplete = true;
+                        observer.disconnect();
+                        window.__ttsQueue.forEach(function(utt) { originalSpeak(utt); });
+                        window.__ttsQueue = [];
+                    }
+                }, 5000);
+            }
+            
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', watchForTranslation);
+            } else {
+                watchForTranslation();
+            }
+        })();
+    </script>
+    <!-- 🌐 2025.12.03: 쿼리 파라미터로 구글 번역 쿠키 설정 (appLanguage 우선) -->
+    <script>
+        (function() {
+            var storedLang = null;
+            try { storedLang = localStorage.getItem('appLanguage'); } catch(e) {}
+            var urlParams = new URLSearchParams(window.location.search);
+            var urlLang = urlParams.get('lang');
+            var lang = storedLang || urlLang || 'ko';
+            if (lang && lang !== 'ko' && /^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
+                var domain = window.location.hostname;
+                document.cookie = 'googtrans=/ko/' + lang + ';path=/;domain=' + domain;
+                document.cookie = 'googtrans=/ko/' + lang + ';path=/';
+                console.log('🌐 [Gallery] googtrans 쿠키 설정 (appLanguage 우선):', lang);
+            }
+        })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>${title} - 손안에 가이드</title>
     <meta property="og:title" content="${title} - 내손가이드">
@@ -459,9 +598,10 @@ export function generateShareHtml(data: SharePageData): string {
         const synth = window.speechSynthesis;
         let voices = [];
         let currentUtterance = null;
+        let currentVoiceLang = null;
         
         function populateVoiceList() {
-            voices = synth.getVoices().filter(v => v.lang.startsWith('ko'));
+            voices = synth.getVoices();
         }
         
         function stopAudio() {
@@ -472,13 +612,44 @@ export function generateShareHtml(data: SharePageData): string {
             if (pauseIcon) pauseIcon.style.display = 'none';
         }
         
-        function playAudio(text) {
+        // 🎤 2025-12-24: 표준 음성 로직 - 사용자 언어 기준 TTS 재생
+        function playAudio(text, voiceLang) {
             stopAudio();
-            currentUtterance = new SpeechSynthesisUtterance(text);
-            const koVoice = voices.find(v => v.lang.startsWith('ko'));
-            if (koVoice) currentUtterance.voice = koVoice;
-            currentUtterance.lang = 'ko-KR';
+            
+            // ⚠️ **핵심 로직 - 절대 수정 금지!** (2025-10-03 치명적 버그 해결)
+            const cleanText = text.replace(new RegExp('<br\\\\s*/?>', 'gi'), ' ');
+            
+            currentUtterance = new SpeechSynthesisUtterance(cleanText);
+            
+            // 🔊 표준 음성 로직: URL lang 파라미터 또는 appLanguage 기준
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlLang = urlParams.get('lang');
+            const userLang = urlLang || localStorage.getItem('appLanguage') || 'ko';
+            const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
+            const langCode = langCodeMap[userLang] || 'ko-KR';
+            
+            const allVoices = synth.getVoices();
+            let targetVoice = null;
+            
+            // ⭐ 한국어 하드코딩 (Yuna → Sora → 유나 → 소라 → Heami)
+            if (langCode === 'ko-KR' || langCode.startsWith('ko')) {
+                const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
+                targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                           || koVoices.find(v => v.name.includes('Sora'))
+                           || koVoices.find(v => v.name.includes('유나'))
+                           || koVoices.find(v => v.name.includes('소라'))
+                           || koVoices.find(v => v.name.includes('Heami'))
+                           || koVoices[0];
+            } else {
+                // 다른 언어: 해당 언어 음성 찾기
+                const langVoices = allVoices.filter(v => v.lang.startsWith(langCode.split('-')[0]));
+                targetVoice = langVoices[0];
+            }
+            
+            if (targetVoice) currentUtterance.voice = targetVoice;
+            currentUtterance.lang = langCode;
             currentUtterance.rate = 1.0;
+            console.log('🎤 [TTS 재생] 언어:', langCode, '음성:', targetVoice?.name || 'default');
             
             const playIcon = document.getElementById('play-icon');
             const pauseIcon = document.getElementById('pause-icon');
@@ -492,6 +663,40 @@ export function generateShareHtml(data: SharePageData): string {
                 if (pauseIcon) pauseIcon.style.display = 'none';
             };
             synth.speak(currentUtterance);
+        }
+        
+        // 🌐 2025-12-24: 동적 콘텐츠 강제 재번역 함수
+        let retranslationPending = false;
+        
+        function retranslateNewContent() {
+            return new Promise((resolve) => {
+                const selectElement = document.querySelector('.goog-te-combo');
+                
+                if (!selectElement || !selectElement.value) {
+                    console.log('[Gallery Retranslate] Google Translate 드롭다운 비활성 - 스킵');
+                    resolve();
+                    return;
+                }
+                
+                const currentLang = selectElement.value;
+                console.log('[Gallery Retranslate] 🔄 강제 재번역 시작:', currentLang);
+                retranslationPending = true;
+                
+                selectElement.value = '';
+                selectElement.dispatchEvent(new Event('change'));
+                
+                setTimeout(() => {
+                    selectElement.value = currentLang;
+                    selectElement.dispatchEvent(new Event('change'));
+                    
+                    setTimeout(() => {
+                        console.log('[Gallery Retranslate] ✅ 재번역 완료');
+                        retranslationPending = false;
+                        window.dispatchEvent(new CustomEvent('galleryRetranslationComplete'));
+                        resolve();
+                    }, 800);
+                }, 100);
+            });
         }
         
         populateVoiceList();
@@ -527,12 +732,15 @@ export function generateShareHtml(data: SharePageData): string {
                 detailView.classList.remove('hidden');
                 document.getElementById('detail-footer').classList.remove('hidden');
                 
-                // 텍스트는 숨김 상태로 시작 (앱과 동일)
-                document.getElementById('detail-text').classList.add('hidden');
+                // 텍스트는 표시 상태로 시작 (음성과 동시에 보임)
+                document.getElementById('detail-text').classList.remove('hidden');
                 
                 ${includeAudio ? `
-                // 음성 자동 재생
-                playAudio(itemData.description);
+                // 🌐 2025-12-24: 동적 콘텐츠 재번역 후 TTS 재생
+                retranslateNewContent().then(() => {
+                    // 🎤 음성 자동 재생 (저장된 언어 사용)
+                    playAudio(itemData.description, currentVoiceLang);
+                });
                 ` : ''}
             });
         });
@@ -580,6 +788,34 @@ export function generateShareHtml(data: SharePageData): string {
             });
         }
     </script>
+
+    <!-- Google Translate Widget (숨김) -->
+    <div id="google_translate_element" style="display:none;"></div>
+
+    <!-- Google Translate Initialization -->
+    <!-- 🌐 쿠키는 <head>에서 미리 설정됨 (구글 번역 로드 전) -->
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({
+                pageLanguage: 'auto', // 🌐 2025-12-24: 양방향 번역
+                includedLanguages: 'ko,en,ja,zh-CN,fr,de,es',
+                autoDisplay: false
+            }, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+    <!-- Google Translate CSS 숨김 -->
+    <style>
+        .goog-te-banner-frame { display: none !important; }
+        body { top: 0px !important; }
+        .goog-te-gadget { font-size: 0px !important; color: transparent !important; }
+        .goog-logo-link { display: none !important; }
+        .skiptranslate { display: none !important; }
+    </style>
+    
+    <!-- 🔊 2025-12-25: 외부 TTS 로직 (기존 DB 페이지도 동적 업데이트) -->
+    <script src="/share-page.js"></script>
 </body>
 </html>`;
 }
