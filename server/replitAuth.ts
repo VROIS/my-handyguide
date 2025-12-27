@@ -7,6 +7,7 @@ import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
+import { creditService } from "./creditService";
 
 if (!process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
@@ -65,6 +66,13 @@ async function upsertUser(
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
   });
+  
+  // 🎁 신규 가입 보너스 지급 (이미 받은 경우 무시됨)
+  try {
+    await creditService.grantSignupBonus(claims["sub"]);
+  } catch (bonusError) {
+    console.error('가입 보너스 지급 오류:', bonusError);
+  }
 }
 
 export async function setupAuth(app: Express) {

@@ -16,6 +16,7 @@ import passport from "passport";
 import { Strategy as KakaoStrategy } from "passport-kakao";
 import type { Express } from "express";
 import { storage } from "./storage";
+import { creditService } from "./creditService";
 
 export async function setupKakaoAuth(app: Express) {
   const kakaoClientId = process.env.KAKAO_CLIENT_ID?.trim();
@@ -137,6 +138,13 @@ export async function setupKakaoAuth(app: Express) {
             }
           } catch (refError) {
             console.error('Referral 처리 오류:', refError);
+          }
+          
+          // 🎁 신규 가입 보너스 지급 (이미 받은 경우 무시됨)
+          try {
+            await creditService.grantSignupBonus(user.id);
+          } catch (bonusError) {
+            console.error('가입 보너스 지급 오류:', bonusError);
           }
           
           // ⚠️ 2025.11.12: 공유페이지와 100% 동일한 디자인
