@@ -1021,6 +1021,10 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
         .goog-te-gadget { font-size: 0px !important; color: transparent !important; }
         .goog-logo-link { display: none !important; }
         .skiptranslate { display: none !important; }
+        /* 구글 번역 스피너 완전 숨김 */
+        .goog-te-spinner-pos { display: none !important; }
+        .goog-te-spinner { display: none !important; }
+        .goog-te-spinner-animation { display: none !important; }
     </style>
     
     <!-- 🔊 2025-12-25: 외부 TTS 로직 (기존 DB 페이지도 동적 업데이트) -->
@@ -1634,6 +1638,10 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
         .goog-te-gadget { font-size: 0px !important; color: transparent !important; }
         .goog-logo-link { display: none !important; }
         .skiptranslate { display: none !important; }
+        /* 구글 번역 스피너 완전 숨김 */
+        .goog-te-spinner-pos { display: none !important; }
+        .goog-te-spinner { display: none !important; }
+        .goog-te-spinner-animation { display: none !important; }
     </style>
     
     <!-- 🔊 2025-12-25: 외부 TTS 로직 (기존 DB 페이지도 동적 업데이트) -->
