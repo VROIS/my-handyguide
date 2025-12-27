@@ -81,7 +81,8 @@ const LanguageHelper = {
       const response = await fetch('/api/profile/language', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ language: lang })
+        body: JSON.stringify({ language: lang }),
+        credentials: 'include'
       });
       if (response.ok) {
         console.log('🌐 DB에 선호 언어 저장:', lang);
