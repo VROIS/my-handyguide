@@ -1,16 +1,40 @@
 // === 보관함 코드를 그대로 복사한 공유 페이지 ===
 
-// 🌐 2025-12-25: appLanguage 우선 googtrans 쿠키 재설정 (기존 페이지에도 적용)
-// 인라인 스크립트가 URL lang으로 쿠키를 설정한 후, 이 코드가 appLanguage로 덮어씀
+// 🌐 2025-12-27: 수신자 디바이스 언어 감지 우선 (앱 미설치 사용자 지원)
+// 우선순위: appLanguage (앱 설치 사용자) > navigator.language (디바이스 언어) > 'ko' (기본값)
 (function() {
     try {
-        var storedLang = localStorage.getItem('appLanguage') || 'ko';
+        // 🎯 언어 감지 로직: 앱 설정 > 디바이스 언어 > 기본값
+        var storedLang = localStorage.getItem('appLanguage');
+        var deviceLang = (navigator.language || navigator.userLanguage || 'ko').split('-')[0];
+        
+        // 지원 언어 목록
+        var supportedLangs = ['ko', 'en', 'ja', 'zh-CN', 'fr', 'de', 'es'];
+        
+        // zh는 zh-CN으로 매핑
+        if (deviceLang === 'zh') deviceLang = 'zh-CN';
+        
+        // 지원 언어가 아니면 영어로 fallback
+        if (!supportedLangs.includes(deviceLang)) deviceLang = 'en';
+        
+        var targetLang = storedLang || deviceLang;
         var domain = window.location.hostname;
-        document.cookie = 'googtrans=/ko/' + storedLang + ';path=/;domain=' + domain;
-        document.cookie = 'googtrans=/ko/' + storedLang + ';path=/';
-        console.log('🌐 [share-page.js] appLanguage 우선 googtrans 설정:', storedLang);
+        
+        // googtrans 쿠키 설정 (원본 언어는 auto-detect)
+        document.cookie = 'googtrans=/auto/' + targetLang + ';path=/;domain=' + domain;
+        document.cookie = 'googtrans=/auto/' + targetLang + ';path=/';
+        
+        // 전역 변수로 저장 (다른 함수에서 사용)
+        window.__detectedUserLang = targetLang;
+        
+        console.log('🌐 [share-page.js] 수신자 언어 감지:', {
+            appLanguage: storedLang,
+            deviceLang: deviceLang,
+            targetLang: targetLang
+        });
     } catch(e) {
-        console.warn('🌐 [share-page.js] appLanguage 쿠키 설정 실패:', e.message);
+        console.warn('🌐 [share-page.js] 언어 감지 실패:', e.message);
+        window.__detectedUserLang = 'ko';
     }
 })();
 
@@ -160,7 +184,8 @@ let translationState = {
 };
 
 function initTranslationWatcher() {
-    const userLang = localStorage.getItem('appLanguage') || 'ko';
+    // 🌐 2025-12-27: 수신자 디바이스 언어 감지 우선
+    const userLang = window.__detectedUserLang || localStorage.getItem('appLanguage') || 'ko';
     if (userLang === 'ko') {
         translationState.complete = true;
         return;
@@ -199,7 +224,8 @@ function initTranslationWatcher() {
 }
 
 async function waitForTranslation() {
-    const userLang = localStorage.getItem('appLanguage') || 'ko';
+    // 🌐 2025-12-27: 수신자 디바이스 언어 감지 우선
+    const userLang = window.__detectedUserLang || localStorage.getItem('appLanguage') || 'ko';
     if (userLang === 'ko' || translationState.complete) {
         return;
     }
@@ -470,8 +496,8 @@ function stopSpeech() {
 function queueForSpeech(text, element) {
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // 🔊 표준 음성 로직: 사용자 언어 기준 음성 선택
-    const userLang = localStorage.getItem('appLanguage') || 'ko';
+    // 🔊 2025-12-27: 수신자 디바이스 언어 감지 우선
+    const userLang = window.__detectedUserLang || localStorage.getItem('appLanguage') || 'ko';
     const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
     const langCode = langCodeMap[userLang] || 'ko-KR';
     
@@ -531,12 +557,12 @@ async function playNextInQueue() {
     utterance.text = translatedText;
     console.log('[TTS] 번역된 텍스트 사용:', translatedText.substring(0, 30) + '...');
     
-    // 🌐 2025-12-25: 앱 언어 최우선 (index.js와 동일) - 번역된 텍스트에 맞춤
-    const userLang = localStorage.getItem('appLanguage') || 'ko';
+    // 🌐 2025-12-27: 수신자 디바이스 언어 감지 우선 (앱 미설치 사용자 지원)
+    const userLang = window.__detectedUserLang || localStorage.getItem('appLanguage') || 'ko';
     const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
     const langCode = langCodeMap[userLang] || 'ko-KR';
     
-    console.log('[TTS] 앱 언어 우선:', userLang, '→', langCode);
+    console.log('[TTS] 수신자 언어:', userLang, '→', langCode);
     
     // 🌐 앱 언어 기준 음성 선택 (index.js와 동일)
     const allVoices = window.speechSynthesis.getVoices();
@@ -889,12 +915,13 @@ async function legacyPlayAudio() {
     
     console.log('[Legacy TTS] 텍스트 길이:', translatedText.length);
     
-    // 🌐 appLanguage 최우선
-    const userLang = localStorage.getItem('appLanguage') || 'ko';
+    // 🌐 2025-12-27: 수신자 디바이스 언어 감지 우선 (앱 미설치 사용자 지원)
+    // window.__detectedUserLang는 페이지 로드 시 감지됨 (appLanguage > navigator.language > 'ko')
+    const userLang = window.__detectedUserLang || localStorage.getItem('appLanguage') || 'ko';
     const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
     const langCode = langCodeMap[userLang] || 'ko-KR';
     
-    console.log('[Legacy TTS] appLanguage:', userLang, '→', langCode);
+    console.log('[Legacy TTS] 수신자 언어:', userLang, '→', langCode);
     
     // 음성 선택
     const allVoices = window.speechSynthesis.getVoices();
