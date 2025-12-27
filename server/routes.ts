@@ -998,14 +998,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // 🎬 드림 스튜디오: Featured 가이드 이미지 가져오기 (공개 API)
+  // 🎬 드림 스튜디오: 가이드 이미지 가져오기 (공개 API)
   app.get('/api/dream-studio/samples', async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 10;
-      const featuredLinks = await storage.getFeaturedShareLinks();
-      
       const samples: any[] = [];
       
+      // 1차: Featured 갤러리에서 시도
+      const featuredLinks = await storage.getFeaturedShareLinks();
       for (const link of featuredLinks.slice(0, 5)) {
         if (link.guideIds && link.guideIds.length > 0) {
           const guides = await storage.getGuidesByIds(link.guideIds);
@@ -1023,6 +1023,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         if (samples.length >= limit) break;
+      }
+      
+      // 2차: Featured가 없으면 최근 가이드에서 가져오기
+      if (samples.length === 0) {
+        const recentGuides = await storage.getRecentGuidesWithImages(limit);
+        for (const guide of recentGuides) {
+          samples.push({
+            id: guide.id,
+            name: guide.locationName || guide.title || '알 수 없는 장소',
+            image: guide.imageUrl,
+            description: guide.description || '',
+            aiContent: guide.aiGeneratedContent || ''
+          });
+        }
       }
       
       res.json(samples);

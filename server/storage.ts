@@ -209,6 +209,15 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(guides).where(inArray(guides.id, ids));
   }
 
+  async getRecentGuidesWithImages(limit: number = 10): Promise<Guide[]> {
+    return await db
+      .select()
+      .from(guides)
+      .where(sql`${guides.imageUrl} IS NOT NULL AND ${guides.imageUrl} != ''`)
+      .orderBy(desc(guides.createdAt))
+      .limit(limit);
+  }
+
   async updateGuide(id: string, updates: Partial<InsertGuide>): Promise<Guide> {
     const [guide] = await db
       .update(guides)
