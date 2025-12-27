@@ -1,5 +1,33 @@
 // === 보관함 코드를 그대로 복사한 공유 페이지 ===
 
+// ⭐ 2025-12-27: window.playAudio 즉시 덮어쓰기 (인라인 스크립트보다 먼저!)
+// 이 IIFE는 스크립트 로드 시 즉시 실행됨 - DOMContentLoaded 대기 없음
+(function() {
+    // legacyPlayAudio 함수는 아직 정의되지 않았으므로 나중에 호출
+    window.playAudio = async function(text, voiceLang) {
+        console.log('[playAudio Override] ⭐ 인라인 스크립트 호출 가로채기! 원본:', text?.substring(0, 30));
+        // legacyPlayAudio가 정의되면 호출, 아니면 대기
+        if (typeof legacyPlayAudio === 'function') {
+            await legacyPlayAudio();
+        } else {
+            // DOMContentLoaded 후 다시 시도
+            await new Promise(resolve => {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', resolve);
+                } else {
+                    resolve();
+                }
+            });
+            if (typeof legacyPlayAudio === 'function') {
+                await legacyPlayAudio();
+            } else {
+                console.warn('[playAudio Override] legacyPlayAudio 함수 없음');
+            }
+        }
+    };
+    console.log('[share-page.js] ⭐ window.playAudio 즉시 덮어쓰기 완료');
+})();
+
 // 🌐 2025-12-27: 수신자 디바이스 언어 감지 우선 (앱 미설치 사용자 지원)
 // 우선순위: appLanguage (앱 설치 사용자) > navigator.language (디바이스 언어) > 'ko' (기본값)
 (function() {
@@ -859,14 +887,9 @@ function setupLegacyPageSupport() {
     
     console.log('[Legacy] 🔄 구버전 DB 페이지 감지! TTS 로직 적용');
     
-    // ⭐ 핵심: 전역 playAudio 함수 덮어쓰기 (인라인 스크립트보다 먼저!)
-    // 인라인 스크립트가 playAudio()를 호출하면 이 함수가 실행됨
-    window.playAudio = async function(text, voiceLang) {
-        console.log('[Legacy TTS] ⭐ playAudio 함수 가로채기! 원본:', text?.substring(0, 30));
-        await legacyPlayAudio();
-    };
-    
-    console.log('[Legacy] ⭐ 전역 playAudio 함수 덮어쓰기 완료');
+    // ⭐ window.playAudio는 이미 파일 최상단 IIFE에서 즉시 덮어씀 (DOMContentLoaded 대기 없음)
+    // 여기서는 추가 작업 없음
+    console.log('[Legacy] ⭐ window.playAudio 덮어쓰기는 이미 완료됨 (최상단 IIFE)');
 }
 
 // 구버전 페이지용 TTS 재생 함수
