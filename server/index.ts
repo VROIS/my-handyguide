@@ -113,13 +113,13 @@ app.get('/s/:id', async (req, res) => {
       }
       
       // 🌐 구글 번역 위젯 주입 (기존 페이지에 없는 경우만!)
+      // 2025-12-27: pageLanguage 제거 → 자동 감지 (프랑스어 원본 등 다국어 지원)
       const googleTranslateWidget = `
     <!-- 🌐 2025.12.04: 구글 번역 위젯 자동 주입 (다국어 지원) -->
     <div id="google_translate_element" style="display:none;"></div>
     <script type="text/javascript">
         function googleTranslateElementInit() {
             new google.translate.TranslateElement({
-                pageLanguage: 'ko',
                 includedLanguages: 'ko,en,ja,zh-CN,fr,de,es',
                 autoDisplay: false
             }, 'google_translate_element');
