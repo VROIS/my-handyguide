@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>드림 스튜디오 테스트 | 손안에 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Noto Sans KR', sans-serif; }
+        
+        /* Ken Burns 애니메이션 */
+        @keyframes kenBurnsZoomIn {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.3) translate(-5%, -5%); }
+        }
+        
+        @keyframes kenBurnsZoomOut {
+            0% { transform: scale(1.3) translate(-5%, -5%); }
+            100% { transform: scale(1) translate(0, 0); }
+        }
+        
+        @keyframes kenBurnsPanLeft {
+            0% { transform: scale(1.2) translate(10%, 0); }
+            100% { transform: scale(1.2) translate(-10%, 0); }
+        }
+        
+        @keyframes kenBurnsPanRight {
+            0% { transform: scale(1.2) translate(-10%, 0); }
+            100% { transform: scale(1.2) translate(10%, 0); }
+        }
+        
+        .ken-burns-zoom-in {
+            animation: kenBurnsZoomIn 20s ease-in-out forwards;
+        }
+        
+        .ken-burns-zoom-out {
+            animation: kenBurnsZoomOut 20s ease-in-out forwards;
+        }
+        
+        .ken-burns-pan-left {
+            animation: kenBurnsPanLeft 20s ease-in-out forwards;
+        }
+        
+        .ken-burns-pan-right {
+            animation: kenBurnsPanRight 20s ease-in-out forwards;
+        }
+        
+        /* 자막 하이라이팅 */
+        .subtitle-container {
+            position: absolute;
+            bottom: 60px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            text-align: center;
+        }
+        
+        .subtitle-text {
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 18px;
+            line-height: 1.6;
+            display: inline-block;
+        }
+        
+        .subtitle-word {
+            transition: color 0.2s, font-weight 0.2s;
+        }
+        
+        .subtitle-word.active {
+            color: #fbbf24;
+            font-weight: bold;
+        }
+        
+        .subtitle-word.spoken {
+            color: #9ca3af;
+        }
+        
+        /* 비디오 컨테이너 */
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 9/16;
+            overflow: hidden;
+            border-radius: 16px;
+            background: #000;
+        }
+        
+        .video-container img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* 컨트롤 버튼 */
+        .control-btn {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .control-btn:hover {
+            background: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 min-h-screen flex flex-col items-center justify-center p-4">
+    
+    <div class="text-center mb-6">
+        <h1 class="text-2xl font-bold text-white mb-2">🎬 드림 스튜디오 테스트</h1>
+        <p class="text-gray-400 text-sm">Phase 1: CSS 시네마틱 + 1인칭 페르소나 + TTS</p>
+    </div>
+    
+    <!-- 카테고리 선택 -->
+    <div class="flex gap-2 mb-4 flex-wrap justify-center">
+        <button onclick="selectCategory('landmark')" class="category-btn px-4 py-2 rounded-full bg-blue-600 text-white text-sm" data-category="landmark">🏛️ 여행지</button>
+        <button onclick="selectCategory('food')" class="category-btn px-4 py-2 rounded-full bg-gray-700 text-white text-sm" data-category="food">🍕 음식</button>
+        <button onclick="selectCategory('wine')" class="category-btn px-4 py-2 rounded-full bg-gray-700 text-white text-sm" data-category="wine">🍷 와인</button>
+        <button onclick="selectCategory('art')" class="category-btn px-4 py-2 rounded-full bg-gray-700 text-white text-sm" data-category="art">🎨 예술</button>
+    </div>
+    
+    <!-- 샘플 선택 -->
+    <div id="sample-selector" class="flex gap-2 mb-6 flex-wrap justify-center">
+        <!-- 동적으로 채워짐 -->
+    </div>
+    
+    <!-- 비디오 플레이어 -->
+    <div class="video-container" id="videoContainer">
+        <img id="mainImage" src="" alt="콘텐츠 이미지" class="">
+        <div class="subtitle-container">
+            <div class="subtitle-text" id="subtitleText">
+                재생 버튼을 눌러 시작하세요
+            </div>
+        </div>
+        <button class="control-btn" id="playBtn" onclick="startPresentation()">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/>
+            </svg>
+        </button>
+    </div>
+    
+    <!-- 효과 선택 -->
+    <div class="mt-6 flex gap-2 flex-wrap justify-center">
+        <button onclick="setEffect('zoom-in')" class="effect-btn px-3 py-1 rounded bg-gray-700 text-white text-xs" data-effect="zoom-in">Zoom In</button>
+        <button onclick="setEffect('zoom-out')" class="effect-btn px-3 py-1 rounded bg-gray-700 text-white text-xs" data-effect="zoom-out">Zoom Out</button>
+        <button onclick="setEffect('pan-left')" class="effect-btn px-3 py-1 rounded bg-gray-700 text-white text-xs" data-effect="pan-left">Pan Left</button>
+        <button onclick="setEffect('pan-right')" class="effect-btn px-3 py-1 rounded bg-gray-700 text-white text-xs" data-effect="pan-right">Pan Right</button>
+    </div>
+    
+    <!-- 상태 표시 -->
+    <div class="mt-4 text-center">
+        <p id="statusText" class="text-gray-500 text-sm">대기 중...</p>
+    </div>
+    
+    <!-- 단계 안내 -->
+    <div class="mt-8 max-w-md text-gray-400 text-xs">
+        <p class="mb-2"><strong>📋 테스트 단계:</strong></p>
+        <ul class="list-disc list-inside space-y-1">
+            <li><span class="text-green-400">✅ 1.1</span> 1인칭 페르소나 프롬프트</li>
+            <li><span class="text-green-400">✅ 1.2</span> CSS Ken Burns 효과</li>
+            <li><span class="text-green-400">✅ 1.3</span> 자막 하이라이팅 (노래방)</li>
+            <li><span class="text-gray-500">🔲 1.4</span> 관리자 설정 UI</li>
+        </ul>
+    </div>
+
+    <script>
+        // 샘플 데이터
+        const samples = {
+            landmark: [
+                { 
+                    id: 'eiffel', 
+                    name: '에펠탑', 
+                    image: 'https://images.unsplash.com/photo-1511739001486-6bfe10ce785f?w=800',
+                    persona: '콧대 높은 파리지앵 아저씨',
+                    script: '봉주르! 나는 에펠탑이야. 사람들이 날 보면 다 감탄하지. 솔직히 말해서, 매년 60톤 페인트 칠하느라 정말 힘들어. 하지만 파리의 상징이 되는 건 뿌듯해. 밤에 반짝반짝 빛나는 내 모습, 예쁘지 않아?'
+                },
+                { 
+                    id: 'colosseum', 
+                    name: '콜로세움', 
+                    image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?w=800',
+                    persona: '은퇴한 검투사',
+                    script: '살베! 나는 콜로세움이야. 옛날엔 5만 명이 나한테 환호했는데, 지금은 셀카만 찍어가네. 하지만 2천 년 동안 여기 서 있으니까, 인생 뭐 있어? 천천히 살자고.'
+                }
+            ],
+            food: [
+                { 
+                    id: 'baguette', 
+                    name: '바게트', 
+                    image: 'https://images.unsplash.com/photo-1549931319-a545dcf3bc73?w=800',
+                    persona: '콧대 높은 프랑스 신사',
+                    script: '무슈, 마담! 절 그냥 빵이라고 부르지 마세요. 전 프랑스의 자존심, 바게트입니다! 겉은 딱딱해 보여도 속은 누구보다 부드러운 남자죠. 날 겨드랑이에 끼고 걷는 로망, 다들 있죠?'
+                },
+                { 
+                    id: 'croissant', 
+                    name: '크루아상', 
+                    image: 'https://images.unsplash.com/photo-1555507036-ab1f4038808a?w=800',
+                    persona: '게으른 아침형 귀족',
+                    script: '아, 안녕하세요. 저는 크루아상이에요. 저는 아침에만 빛나는 스타일이거든요. 버터 27겹의 예술을 느껴보세요. 바삭바삭 소리가 들리시죠? 그게 저의 사랑 고백이에요.'
+                }
+            ],
+            wine: [
+                { 
+                    id: 'champagne', 
+                    name: '샴페인', 
+                    image: 'https://images.unsplash.com/photo-1594372365401-3b5ff14eaaed?w=800',
+                    persona: '파티광 여왕',
+                    script: '팡! 안녕, 나는 샴페인이야! 축하할 일 있어? 없어도 괜찮아, 나랑 놀면 되지! 거품이 톡톡 터지는 소리 들려? 그게 바로 행복의 소리야. 자, 건배!'
+                },
+                { 
+                    id: 'bordeaux', 
+                    name: '보르도 레드', 
+                    image: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=800',
+                    persona: '진지한 철학자',
+                    script: '나는 20년을 기다렸어. 좋은 것엔 시간이 필요하지. 성급하게 마시지 마. 천천히, 향을 음미하고, 인생을 생각해봐. 나와 함께하는 저녁, 잊지 못할 거야.'
+                }
+            ],
+            art: [
+                { 
+                    id: 'monalisa', 
+                    name: '모나리자', 
+                    image: 'https://images.unsplash.com/photo-1423742774270-6884aac775fa?w=800',
+                    persona: '신비로운 미소 뒤 수다쟁이',
+                    script: '봉주르! 다들 내 미소가 신비롭다고 난리인데, 사실 이 미소 유지하느라 입가에 경련 날 지경이에요. 레오나르도 아저씨가 눈썹 그리는 걸 깜빡하신 건지... 내 눈을 바라보면서 소원을 빌어봐요.'
+                },
+                { 
+                    id: 'gogh', 
+                    name: '고흐 자화상', 
+                    image: 'https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?w=800',
+                    persona: '열정적이지만 외로운 영혼',
+                    script: '내 눈 속의 파란 소용돌이가 보이나요? 내 마음은 이렇게 불타오르고 있어요. 붕대 감은 귀는 보지 마세요. 대신 제 붓터치 하나하나에 담긴 제 영혼의 떨림을 느껴주세요.'
+                }
+            ]
+        };
+        
+        let currentCategory = 'landmark';
+        let currentSample = null;
+        let currentEffect = 'zoom-in';
+        let isPlaying = false;
+        let speechSynthesis = window.speechSynthesis;
+        let currentUtterance = null;
+        
+        // 카테고리 선택
+        function selectCategory(category) {
+            currentCategory = category;
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-600');
+                btn.classList.add('bg-gray-700');
+            });
+            document.querySelector(`[data-category="${category}"]`).classList.remove('bg-gray-700');
+            document.querySelector(`[data-category="${category}"]`).classList.add('bg-blue-600');
+            
+            renderSamples();
+        }
+        
+        // 샘플 렌더링
+        function renderSamples() {
+            const container = document.getElementById('sample-selector');
+            const items = samples[currentCategory];
+            
+            container.innerHTML = items.map(item => `
+                <button onclick="selectSample('${item.id}')" 
+                        class="sample-btn px-3 py-1 rounded-full bg-gray-600 text-white text-sm hover:bg-gray-500"
+                        data-sample="${item.id}">
+                    ${item.name}
+                </button>
+            `).join('');
+            
+            // 첫 번째 샘플 자동 선택
+            if (items.length > 0) {
+                selectSample(items[0].id);
+            }
+        }
+        
+        // 샘플 선택
+        function selectSample(sampleId) {
+            const items = samples[currentCategory];
+            currentSample = items.find(item => item.id === sampleId);
+            
+            document.querySelectorAll('.sample-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-500');
+                btn.classList.add('bg-gray-600');
+            });
+            document.querySelector(`[data-sample="${sampleId}"]`)?.classList.remove('bg-gray-600');
+            document.querySelector(`[data-sample="${sampleId}"]`)?.classList.add('bg-blue-500');
+            
+            // 이미지 로드
+            const img = document.getElementById('mainImage');
+            img.src = currentSample.image;
+            img.className = '';
+            
+            // 자막 초기화
+            document.getElementById('subtitleText').innerHTML = `<em>${currentSample.persona}</em><br>재생 버튼을 눌러 시작하세요`;
+            document.getElementById('statusText').textContent = `선택: ${currentSample.name}`;
+        }
+        
+        // 효과 선택
+        function setEffect(effect) {
+            currentEffect = effect;
+            document.querySelectorAll('.effect-btn').forEach(btn => {
+                btn.classList.remove('bg-blue-500');
+                btn.classList.add('bg-gray-700');
+            });
+            document.querySelector(`[data-effect="${effect}"]`).classList.remove('bg-gray-700');
+            document.querySelector(`[data-effect="${effect}"]`).classList.add('bg-blue-500');
+        }
+        
+        // 프레젠테이션 시작
+        function startPresentation() {
+            if (!currentSample) return;
+            if (isPlaying) {
+                stopPresentation();
+                return;
+            }
+            
+            isPlaying = true;
+            const playBtn = document.getElementById('playBtn');
+            playBtn.innerHTML = `
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="6" y="4" width="4" height="16" fill="currentColor"/>
+                    <rect x="14" y="4" width="4" height="16" fill="currentColor"/>
+                </svg>
+            `;
+            
+            // Ken Burns 효과 적용
+            const img = document.getElementById('mainImage');
+            img.className = `ken-burns-${currentEffect}`;
+            
+            // 자막 준비
+            const words = currentSample.script.split(' ');
+            const subtitleEl = document.getElementById('subtitleText');
+            subtitleEl.innerHTML = words.map((word, i) => 
+                `<span class="subtitle-word" data-index="${i}">${word}</span>`
+            ).join(' ');
+            
+            // TTS 시작
+            startTTS(currentSample.script, words);
+            
+            document.getElementById('statusText').textContent = '재생 중...';
+        }
+        
+        // TTS 시작
+        function startTTS(text, words) {
+            speechSynthesis.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ko-KR';
+            utterance.rate = 0.9;
+            utterance.pitch = 1;
+            
+            // 한국어 음성 찾기
+            const voices = speechSynthesis.getVoices();
+            const koreanVoice = voices.find(v => v.lang.includes('ko'));
+            if (koreanVoice) {
+                utterance.voice = koreanVoice;
+            }
+            
+            currentUtterance = utterance;
+            
+            // 단어 하이라이팅 (시뮬레이션)
+            let wordIndex = 0;
+            const avgDuration = (text.length * 80) / words.length; // 대략적인 단어당 시간
+            
+            const highlightInterval = setInterval(() => {
+                if (wordIndex >= words.length || !isPlaying) {
+                    clearInterval(highlightInterval);
+                    return;
+                }
+                
+                document.querySelectorAll('.subtitle-word').forEach((el, i) => {
+                    el.classList.remove('active');
+                    if (i < wordIndex) {
+                        el.classList.add('spoken');
+                    }
+                });
+                
+                const currentWord = document.querySelector(`[data-index="${wordIndex}"]`);
+                if (currentWord) {
+                    currentWord.classList.add('active');
+                }
+                
+                wordIndex++;
+            }, avgDuration);
+            
+            utterance.onend = () => {
+                clearInterval(highlightInterval);
+                stopPresentation();
+            };
+            
+            speechSynthesis.speak(utterance);
+        }
+        
+        // 프레젠테이션 중지
+        function stopPresentation() {
+            isPlaying = false;
+            speechSynthesis.cancel();
+            
+            const playBtn = document.getElementById('playBtn');
+            playBtn.innerHTML = `
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/>
+                </svg>
+            `;
+            
+            const img = document.getElementById('mainImage');
+            img.className = '';
+            
+            document.getElementById('statusText').textContent = '완료';
+        }
+        
+        // 음성 목록 로드
+        speechSynthesis.onvoiceschanged = () => {
+            console.log('Voices loaded:', speechSynthesis.getVoices().length);
+        };
+        
+        // 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            selectCategory('landmark');
+            setEffect('zoom-in');
+        });
+    </script>
+</body>
+</html>
