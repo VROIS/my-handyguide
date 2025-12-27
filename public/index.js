@@ -396,7 +396,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 🌐 서버에서 사용자 선호 언어 로드 (인증 후)
     async function loadUserLanguage() {
         try {
-            const response = await fetch('/api/profile/language');
+            const response = await fetch('/api/profile/language', { credentials: 'include' });
             if (response.ok) {
                 const data = await response.json();
                 userPreferredLanguage = data.language || 'ko';
@@ -422,7 +422,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/profile/language', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ language })
+                body: JSON.stringify({ language }),
+                credentials: 'include'
             });
             if (response.ok) {
                 userPreferredLanguage = language;
@@ -2124,7 +2125,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         try {
-            const response = await fetch('/api/auth/user');
+            const response = await fetch('/api/auth/user', { credentials: 'include' });
             console.log('🟡 Auth response:', response.ok, response.status);
             if (response.ok) {
                 // 로그인되어 있으면 authModal 닫기
@@ -3124,7 +3125,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let locationName = '파리, 프랑스';
             
             try {
-                const userResponse = await fetch('/api/auth/user');
+                const userResponse = await fetch('/api/auth/user', { credentials: 'include' });
                 if (userResponse.ok) {
                     const userData = await userResponse.json();
                     if (userData.firstName) {
@@ -3486,7 +3487,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         try {
             // 1️⃣ 인증 상태 확인
-            const response = await fetch('/api/auth/user');
+            const response = await fetch('/api/auth/user', { credentials: 'include' });
             console.log('🔵 Auth status:', response.ok, response.status);
             
             if (response.ok) {
@@ -5168,7 +5169,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // OAuth 팝업 닫힌 후 인증 상태 확인 및 Featured Gallery 열기
     async function checkAuthAndOpenPendingUrl() {
         try {
-            const response = await fetch('/api/auth/user');
+            const response = await fetch('/api/auth/user', { credentials: 'include' });
             if (response.ok) {
                 console.log('✅ 인증 성공!');
                 // 인증 모달 닫기
