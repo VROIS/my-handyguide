@@ -809,3 +809,173 @@ window.signUpWithBonus = function() {
     const params = referrer ? `?ref=${referrer}` : '';
     window.open(`/${params}`, '_blank');
 };
+
+// ═══════════════════════════════════════════════════════════════
+// 🔄 2025-12-27: 구버전 DB 페이지 지원 (detail-audio, detail-description 등)
+// ═══════════════════════════════════════════════════════════════
+
+function setupLegacyPageSupport() {
+    // 구버전 요소 확인
+    const legacyAudioBtn = document.getElementById('detail-audio');
+    const legacyDescriptionEl = document.getElementById('detail-description');
+    const legacyBackBtn = document.getElementById('detail-back');
+    const legacyTextToggle = document.getElementById('text-toggle');
+    const legacyTextOverlay = document.getElementById('text-overlay');
+    
+    // 신버전 요소가 있으면 구버전 로직 스킵
+    const newAudioBtn = document.getElementById('shareAudioBtn');
+    if (newAudioBtn) {
+        console.log('[Legacy] 신버전 페이지 감지 - 구버전 로직 스킵');
+        return;
+    }
+    
+    if (!legacyAudioBtn && !legacyDescriptionEl) {
+        console.log('[Legacy] 구버전 요소 없음 - 스킵');
+        return;
+    }
+    
+    console.log('[Legacy] 🔄 구버전 DB 페이지 감지! TTS 로직 적용');
+    
+    // 구버전 오디오 버튼 이벤트 덮어쓰기
+    if (legacyAudioBtn) {
+        // 기존 이벤트 제거를 위해 클론 교체
+        const newBtn = legacyAudioBtn.cloneNode(true);
+        legacyAudioBtn.parentNode.replaceChild(newBtn, legacyAudioBtn);
+        
+        newBtn.addEventListener('click', async () => {
+            console.log('[Legacy TTS] 오디오 버튼 클릭');
+            await legacyPlayAudio();
+        });
+        
+        console.log('[Legacy] detail-audio 버튼 이벤트 설정 완료');
+    }
+    
+    // 구버전 텍스트 토글 버튼
+    if (legacyTextToggle && legacyTextOverlay) {
+        const newToggle = legacyTextToggle.cloneNode(true);
+        legacyTextToggle.parentNode.replaceChild(newToggle, legacyTextToggle);
+        
+        newToggle.addEventListener('click', () => {
+            legacyTextOverlay.classList.toggle('hidden');
+        });
+    }
+}
+
+// 구버전 페이지용 TTS 재생 함수
+async function legacyPlayAudio() {
+    const descriptionEl = document.getElementById('detail-description');
+    if (!descriptionEl) {
+        console.warn('[Legacy TTS] detail-description 요소 없음');
+        return;
+    }
+    
+    // 현재 재생 중이면 토글
+    if (window.speechSynthesis.speaking) {
+        if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+            updateLegacyAudioButton('pause');
+        } else {
+            window.speechSynthesis.pause();
+            updateLegacyAudioButton('play');
+        }
+        return;
+    }
+    
+    // 새로 재생 시작
+    window.speechSynthesis.cancel();
+    
+    // 🌐 재번역 실행 후 TTS
+    await retranslateNewContent();
+    
+    // 800ms 추가 대기 (번역 완료 보장)
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // 🌐 font 태그에서 번역된 텍스트 추출
+    let translatedText = '';
+    const fontEl = descriptionEl.querySelector('font');
+    if (fontEl) {
+        translatedText = fontEl.innerText.trim() || fontEl.textContent.trim();
+        console.log('[Legacy TTS] <font> 태그에서 번역 텍스트 추출');
+    } else {
+        translatedText = descriptionEl.innerText.trim() || descriptionEl.textContent.trim();
+    }
+    
+    if (!translatedText) {
+        console.warn('[Legacy TTS] 텍스트 없음');
+        return;
+    }
+    
+    console.log('[Legacy TTS] 텍스트 길이:', translatedText.length);
+    
+    // 🌐 appLanguage 최우선
+    const userLang = localStorage.getItem('appLanguage') || 'ko';
+    const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
+    const langCode = langCodeMap[userLang] || 'ko-KR';
+    
+    console.log('[Legacy TTS] appLanguage:', userLang, '→', langCode);
+    
+    // 음성 선택
+    const allVoices = window.speechSynthesis.getVoices();
+    let targetVoice = null;
+    
+    if (langCode === 'ko-KR') {
+        // ⭐ 한국어 하드코딩
+        const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
+        targetVoice = koVoices.find(v => v.name.includes('Yuna'))
+                   || koVoices.find(v => v.name.includes('Sora'))
+                   || koVoices.find(v => v.name.includes('유나'))
+                   || koVoices.find(v => v.name.includes('소라'))
+                   || koVoices.find(v => v.name.includes('Heami'))
+                   || koVoices[0];
+        console.log('[Legacy TTS] 한국어 음성:', targetVoice?.name || 'default');
+    } else {
+        // 다국어 DB 기반
+        const voiceConfig = getVoicePriorityFromDB(langCode);
+        for (const voiceName of voiceConfig.priorities) {
+            targetVoice = allVoices.find(v => 
+                v.name.includes(voiceName) && !voiceConfig.excludeVoices.some(ex => v.name.includes(ex))
+            );
+            if (targetVoice) break;
+        }
+        if (!targetVoice) {
+            targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
+        }
+        console.log('[Legacy TTS] 다국어 음성:', langCode, targetVoice?.name || 'default');
+    }
+    
+    // TTS 재생
+    const utterance = new SpeechSynthesisUtterance(translatedText);
+    utterance.voice = targetVoice;
+    utterance.lang = langCode;
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
+    
+    utterance.onstart = () => updateLegacyAudioButton('pause');
+    utterance.onend = () => updateLegacyAudioButton('play');
+    utterance.onerror = () => updateLegacyAudioButton('play');
+    
+    window.speechSynthesis.speak(utterance);
+}
+
+function updateLegacyAudioButton(state) {
+    const audioBtn = document.getElementById('detail-audio');
+    if (!audioBtn) return;
+    
+    const playIcon = '<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M4.5 5.653c0-1.426 1.529-2.33 2.779-1.643l11.54 6.648c1.295.746 1.295 2.536 0 3.282L7.279 20.99c-1.25.72-2.779-.218-2.779-1.643V5.653z" clip-rule="evenodd" /></svg>';
+    const pauseIcon = '<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z" clip-rule="evenodd" /></svg>';
+    
+    audioBtn.innerHTML = (state === 'pause') ? pauseIcon : playIcon;
+}
+
+// 🔄 페이지 로드 시 구버전 지원 초기화
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        loadVoiceConfigsFromDB().then(() => {
+            setupLegacyPageSupport();
+        });
+    });
+} else {
+    loadVoiceConfigsFromDB().then(() => {
+        setupLegacyPageSupport();
+    });
+}
