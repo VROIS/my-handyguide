@@ -818,9 +818,6 @@ function setupLegacyPageSupport() {
     // 구버전 요소 확인
     const legacyAudioBtn = document.getElementById('detail-audio');
     const legacyDescriptionEl = document.getElementById('detail-description');
-    const legacyBackBtn = document.getElementById('detail-back');
-    const legacyTextToggle = document.getElementById('text-toggle');
-    const legacyTextOverlay = document.getElementById('text-overlay');
     
     // 신버전 요소가 있으면 구버전 로직 스킵
     const newAudioBtn = document.getElementById('shareAudioBtn');
@@ -836,29 +833,14 @@ function setupLegacyPageSupport() {
     
     console.log('[Legacy] 🔄 구버전 DB 페이지 감지! TTS 로직 적용');
     
-    // 구버전 오디오 버튼 이벤트 덮어쓰기
-    if (legacyAudioBtn) {
-        // 기존 이벤트 제거를 위해 클론 교체
-        const newBtn = legacyAudioBtn.cloneNode(true);
-        legacyAudioBtn.parentNode.replaceChild(newBtn, legacyAudioBtn);
-        
-        newBtn.addEventListener('click', async () => {
-            console.log('[Legacy TTS] 오디오 버튼 클릭');
-            await legacyPlayAudio();
-        });
-        
-        console.log('[Legacy] detail-audio 버튼 이벤트 설정 완료');
-    }
+    // ⭐ 핵심: 전역 playAudio 함수 덮어쓰기 (인라인 스크립트보다 먼저!)
+    // 인라인 스크립트가 playAudio()를 호출하면 이 함수가 실행됨
+    window.playAudio = async function(text, voiceLang) {
+        console.log('[Legacy TTS] ⭐ playAudio 함수 가로채기! 원본:', text?.substring(0, 30));
+        await legacyPlayAudio();
+    };
     
-    // 구버전 텍스트 토글 버튼
-    if (legacyTextToggle && legacyTextOverlay) {
-        const newToggle = legacyTextToggle.cloneNode(true);
-        legacyTextToggle.parentNode.replaceChild(newToggle, legacyTextToggle);
-        
-        newToggle.addEventListener('click', () => {
-            legacyTextOverlay.classList.toggle('hidden');
-        });
-    }
+    console.log('[Legacy] ⭐ 전역 playAudio 함수 덮어쓰기 완료');
 }
 
 // 구버전 페이지용 TTS 재생 함수
