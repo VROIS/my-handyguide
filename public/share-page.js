@@ -319,6 +319,15 @@ async function waitForRetranslation() {
 
 // 공유 페이지 로딩
 document.addEventListener('DOMContentLoaded', async () => {
+    // 🔧 2025-12-27: 구글 번역 스피너 동적 숨김 (기존 DB 페이지 지원)
+    const spinnerHideStyle = document.createElement('style');
+    spinnerHideStyle.textContent = `
+        .goog-te-spinner-pos { display: none !important; }
+        .goog-te-spinner { display: none !important; }
+        .goog-te-spinner-animation { display: none !important; }
+    `;
+    document.head.appendChild(spinnerHideStyle);
+    
     // 번역 감시 초기화
     initTranslationWatcher();
     
