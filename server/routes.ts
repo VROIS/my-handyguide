@@ -1046,6 +1046,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 🎬 드림 스튜디오: 1인칭 페르소나 스크립트 + 음성 생성
+  app.post('/api/dream-studio/generate-persona', async (req, res) => {
+    try {
+      const { imageBase64, language = 'ko', persona } = req.body;
+      
+      if (!imageBase64) {
+        return res.status(400).json({ message: "이미지가 필요합니다" });
+      }
+
+      // 이미지에서 base64 데이터만 추출
+      const base64Data = imageBase64.includes(',') 
+        ? imageBase64.split(',')[1] 
+        : imageBase64;
+
+      // 1. 페르소나 스크립트 생성
+      const { generatePersonaScript, generatePersonaVoice } = await import('./gemini');
+      const script = await generatePersonaScript(base64Data, language, persona);
+      
+      // 2. TTS 음성 생성
+      const audio = await generatePersonaVoice(script.text, script.voiceName, script.mood);
+      
+      res.json({
+        script: script.text,
+        persona: script.persona,
+        mood: script.mood,
+        voiceName: script.voiceName,
+        audio: audio ? {
+          data: audio.audioBase64,
+          mimeType: audio.mimeType
+        } : null
+      });
+    } catch (error) {
+      console.error("페르소나 생성 오류:", error);
+      res.status(500).json({ message: "페르소나 생성 실패" });
+    }
+  });
+
   app.post('/api/share-links', isAuthenticated, async (req: any, res) => {
     try {
       const userId = getUserId(req.user);

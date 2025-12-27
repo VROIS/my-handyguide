@@ -1,6 +1,180 @@
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Modality } from "@google/genai";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+
+// 🎬 드림 스튜디오: 1인칭 페르소나 스크립트 생성
+export interface PersonaScript {
+  text: string;
+  persona: string;
+  mood: string;
+  voiceName: string;
+}
+
+export async function generatePersonaScript(
+  imageBase64: string,
+  language: string = 'ko',
+  persona?: string
+): Promise<PersonaScript> {
+  const languagePrompts: Record<string, { instruction: string; voiceName: string }> = {
+    ko: {
+      instruction: `당신은 이 이미지 속 주인공(음식, 건물, 예술품, 풍경 등)입니다.
+1인칭 시점으로 자신을 소개하고 이야기를 들려주세요.
+15-30초 분량(한국어 80-120자)으로 감정이 담긴 대사를 작성하세요.
+
+예시:
+- 와인: "안녕, 나는 1892년 보르도에서 태어났어. 130년 동안 이 지하 저장고에서..."
+- 에펠탑: "파리의 밤하늘 아래, 나는 매일 수백만 개의 불빛으로 반짝이지..."
+- 초밥: "나는 오늘 아침 츠키지 시장에서 갓 잡힌 참치야..."
+
+JSON 형식으로 응답:
+{
+  "text": "1인칭 대사",
+  "persona": "피사체 정체 (와인병, 에펠탑 등)",
+  "mood": "분위기 (nostalgic, proud, mysterious, cheerful 등)"
+}`,
+      voiceName: 'Kore'
+    },
+    en: {
+      instruction: `You are the subject in this image (food, building, artwork, landmark, etc).
+Introduce yourself in first person and tell your story.
+Write an emotional 15-30 second monologue (80-120 words).
+
+Examples:
+- Wine: "Hello, I was born in Bordeaux in 1892. For 130 years in this cellar..."
+- Eiffel Tower: "Under the Paris night sky, I sparkle with millions of lights..."
+- Sushi: "I'm the freshest tuna from Tsukiji market this morning..."
+
+Respond in JSON:
+{
+  "text": "first person monologue",
+  "persona": "identity (wine bottle, Eiffel Tower, etc)",
+  "mood": "mood (nostalgic, proud, mysterious, cheerful, etc)"
+}`,
+      voiceName: 'Puck'
+    },
+    ja: {
+      instruction: `あなたはこの画像の主人公です（食べ物、建物、芸術品、風景など）。
+一人称で自己紹介し、物語を語ってください。
+15-30秒分（80-120文字）の感情的なモノローグを書いてください。
+
+JSON形式で回答:
+{
+  "text": "一人称のセリフ",
+  "persona": "被写体の正体",
+  "mood": "雰囲気"
+}`,
+      voiceName: 'Aoede'
+    },
+    zh: {
+      instruction: `你是这张图片中的主角（食物、建筑、艺术品、风景等）。
+用第一人称介绍自己并讲述你的故事。
+写一段15-30秒的独白（80-120字）。
+
+以JSON格式回复:
+{
+  "text": "第一人称独白",
+  "persona": "主体身份",
+  "mood": "氛围"
+}`,
+      voiceName: 'Charon'
+    }
+  };
+
+  const langConfig = languagePrompts[language] || languagePrompts.ko;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-05-20",
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object",
+          properties: {
+            text: { type: "string" },
+            persona: { type: "string" },
+            mood: { type: "string" }
+          },
+          required: ["text", "persona", "mood"]
+        }
+      },
+      contents: [
+        {
+          inlineData: {
+            data: imageBase64,
+            mimeType: "image/jpeg"
+          }
+        },
+        langConfig.instruction + (persona ? `\n지정된 페르소나: ${persona}` : '')
+      ]
+    });
+
+    const result = JSON.parse(response.text || '{}');
+    return {
+      ...result,
+      voiceName: langConfig.voiceName
+    };
+  } catch (error) {
+    console.error("페르소나 스크립트 생성 오류:", error);
+    return {
+      text: language === 'ko' ? "안녕하세요, 저는 이 아름다운 장소에서 여러분을 만나게 되어 기쁩니다." : "Hello, I'm delighted to meet you at this beautiful place.",
+      persona: "unknown",
+      mood: "cheerful",
+      voiceName: langConfig.voiceName
+    };
+  }
+}
+
+// 🎤 Gemini 2.5 Flash TTS: 페르소나 음성 생성
+export async function generatePersonaVoice(
+  text: string,
+  voiceName: string = 'Kore',
+  mood: string = 'cheerful'
+): Promise<{ audioBase64: string; mimeType: string } | null> {
+  try {
+    // 감정/분위기를 프롬프트에 포함
+    const moodInstructions: Record<string, string> = {
+      nostalgic: 'Speak with a warm, nostalgic tone, as if reminiscing about cherished memories.',
+      proud: 'Speak with pride and confidence, celebrating your history and significance.',
+      mysterious: 'Speak with an enigmatic, intriguing tone that draws listeners in.',
+      cheerful: 'Speak with a bright, welcoming tone full of enthusiasm.',
+      peaceful: 'Speak with a calm, serene voice that brings tranquility.',
+      dramatic: 'Speak with theatrical intensity and emotional depth.'
+    };
+
+    const moodPrompt = moodInstructions[mood] || moodInstructions.cheerful;
+    const fullPrompt = `${moodPrompt}\n\nSay the following:\n"${text}"`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash-preview-tts",
+      contents: fullPrompt,
+      config: {
+        responseModalities: [Modality.AUDIO],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: {
+              voiceName: voiceName
+            }
+          }
+        }
+      }
+    });
+
+    // 오디오 데이터 추출
+    const candidate = response.candidates?.[0];
+    if (candidate?.content?.parts?.[0]?.inlineData) {
+      const audioData = candidate.content.parts[0].inlineData;
+      return {
+        audioBase64: audioData.data || '',
+        mimeType: audioData.mimeType || 'audio/wav'
+      };
+    }
+
+    return null;
+  } catch (error) {
+    console.error("TTS 음성 생성 오류:", error);
+    return null;
+  }
+}
 
 // 🎬 드림샷 스튜디오 전용 프롬프트 엔진
 export interface DreamShotPrompt {

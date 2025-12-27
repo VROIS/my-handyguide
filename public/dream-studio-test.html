@@ -252,8 +252,7 @@
         let currentSample = null;
         let currentEffect = 'zoom-in';
         let isPlaying = false;
-        let speechSynthesis = window.speechSynthesis;
-        let currentUtterance = null;
+        let currentAudio = null;
         let dbSamples = []; // DB에서 가져온 샘플
         
         // DB에서 샘플 로드
@@ -356,8 +355,25 @@
             document.querySelector(`[data-effect="${effect}"]`).classList.add('bg-blue-500');
         }
         
+        // 이미지를 Base64로 변환
+        async function imageToBase64(imageUrl) {
+            try {
+                const response = await fetch(imageUrl);
+                const blob = await response.blob();
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            } catch (error) {
+                console.error('이미지 변환 오류:', error);
+                return null;
+            }
+        }
+        
         // 프레젠테이션 시작
-        function startPresentation() {
+        async function startPresentation() {
             if (!currentSample) return;
             if (isPlaying) {
                 stopPresentation();
@@ -368,8 +384,8 @@
             const playBtn = document.getElementById('playBtn');
             playBtn.innerHTML = `
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="6" y="4" width="4" height="16" fill="currentColor"/>
-                    <rect x="14" y="4" width="4" height="16" fill="currentColor"/>
+                    <circle cx="12" cy="12" r="10" stroke-width="2"/>
+                    <text x="12" y="16" text-anchor="middle" font-size="10" fill="currentColor">...</text>
                 </svg>
             `;
             
@@ -377,40 +393,191 @@
             const img = document.getElementById('mainImage');
             img.className = `ken-burns-${currentEffect}`;
             
-            // 자막 준비
-            const words = currentSample.script.split(' ');
-            const subtitleEl = document.getElementById('subtitleText');
-            subtitleEl.innerHTML = words.map((word, i) => 
-                `<span class="subtitle-word" data-index="${i}">${word}</span>`
-            ).join(' ');
+            document.getElementById('statusText').textContent = '🤖 AI 페르소나 생성 중...';
+            document.getElementById('subtitleText').innerHTML = '<em>AI가 1인칭 대사를 생성하고 있어요...</em>';
             
-            // TTS 시작
-            startTTS(currentSample.script, words);
-            
-            document.getElementById('statusText').textContent = '재생 중...';
+            try {
+                // 이미지를 base64로 변환
+                const imageBase64 = await imageToBase64(currentSample.image);
+                if (!imageBase64) throw new Error('이미지 변환 실패');
+                
+                // Gemini API로 페르소나 + TTS 생성
+                const response = await fetch('/api/dream-studio/generate-persona', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        imageBase64: imageBase64,
+                        language: 'ko'
+                    })
+                });
+                
+                if (!response.ok) throw new Error('API 오류');
+                
+                const data = await response.json();
+                console.log('페르소나 생성 결과:', data);
+                
+                document.getElementById('statusText').textContent = `🎭 ${data.persona} (${data.mood})`;
+                
+                // 자막 준비
+                const words = data.script.split(' ');
+                const subtitleEl = document.getElementById('subtitleText');
+                subtitleEl.innerHTML = words.map((word, i) => 
+                    `<span class="subtitle-word" data-index="${i}">${word}</span>`
+                ).join(' ');
+                
+                // 버튼을 일시정지로 변경
+                playBtn.innerHTML = `
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="6" y="4" width="4" height="16" fill="currentColor"/>
+                        <rect x="14" y="4" width="4" height="16" fill="currentColor"/>
+                    </svg>
+                `;
+                
+                // Gemini TTS 오디오 재생
+                if (data.audio && data.audio.data) {
+                    playGeminiAudio(data.audio.data, data.audio.mimeType, words);
+                } else {
+                    // TTS 없으면 브라우저 TTS 폴백
+                    console.log('Gemini TTS 없음, 브라우저 TTS 사용');
+                    playBrowserTTS(data.script, words);
+                }
+                
+            } catch (error) {
+                console.error('페르소나 생성 오류:', error);
+                document.getElementById('statusText').textContent = '❌ 생성 실패 - 샘플 TTS 사용';
+                
+                // 폴백: 기존 스크립트로 브라우저 TTS
+                const words = currentSample.script.split(' ');
+                const subtitleEl = document.getElementById('subtitleText');
+                subtitleEl.innerHTML = words.map((word, i) => 
+                    `<span class="subtitle-word" data-index="${i}">${word}</span>`
+                ).join(' ');
+                
+                playBtn.innerHTML = `
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="6" y="4" width="4" height="16" fill="currentColor"/>
+                        <rect x="14" y="4" width="4" height="16" fill="currentColor"/>
+                    </svg>
+                `;
+                
+                playBrowserTTS(currentSample.script, words);
+            }
         }
         
-        // TTS 시작
-        function startTTS(text, words) {
+        // Gemini TTS 오디오 재생 (PCM → WAV)
+        function playGeminiAudio(base64Data, mimeType, words) {
+            try {
+                // PCM 데이터를 WAV로 변환
+                const pcmData = atob(base64Data);
+                const pcmArray = new Uint8Array(pcmData.length);
+                for (let i = 0; i < pcmData.length; i++) {
+                    pcmArray[i] = pcmData.charCodeAt(i);
+                }
+                
+                // WAV 헤더 생성 (24kHz, 16-bit, mono)
+                const sampleRate = 24000;
+                const numChannels = 1;
+                const bitsPerSample = 16;
+                const wavHeader = createWavHeader(pcmArray.length, sampleRate, numChannels, bitsPerSample);
+                
+                // WAV 파일 생성
+                const wavData = new Uint8Array(wavHeader.length + pcmArray.length);
+                wavData.set(wavHeader, 0);
+                wavData.set(pcmArray, wavHeader.length);
+                
+                const blob = new Blob([wavData], { type: 'audio/wav' });
+                const audioUrl = URL.createObjectURL(blob);
+                
+                currentAudio = new Audio(audioUrl);
+                
+                // 단어 하이라이팅
+                let wordIndex = 0;
+                const avgDuration = (currentAudio.duration || 15) * 1000 / words.length;
+                
+                currentAudio.onplay = () => {
+                    const duration = currentAudio.duration * 1000;
+                    const wordDuration = duration / words.length;
+                    
+                    const highlightInterval = setInterval(() => {
+                        if (wordIndex >= words.length || !isPlaying) {
+                            clearInterval(highlightInterval);
+                            return;
+                        }
+                        
+                        document.querySelectorAll('.subtitle-word').forEach((el, i) => {
+                            el.classList.remove('active');
+                            if (i < wordIndex) el.classList.add('spoken');
+                        });
+                        
+                        const currentWord = document.querySelector(`[data-index="${wordIndex}"]`);
+                        if (currentWord) currentWord.classList.add('active');
+                        
+                        wordIndex++;
+                    }, wordDuration || 300);
+                };
+                
+                currentAudio.onended = () => {
+                    stopPresentation();
+                };
+                
+                currentAudio.onerror = (e) => {
+                    console.error('오디오 재생 오류:', e);
+                    playBrowserTTS(words.join(' '), words);
+                };
+                
+                currentAudio.play();
+                document.getElementById('statusText').textContent = '🎙️ Gemini TTS 재생 중...';
+                
+            } catch (error) {
+                console.error('Gemini 오디오 처리 오류:', error);
+                playBrowserTTS(words.join(' '), words);
+            }
+        }
+        
+        // WAV 헤더 생성
+        function createWavHeader(dataLength, sampleRate, numChannels, bitsPerSample) {
+            const header = new ArrayBuffer(44);
+            const view = new DataView(header);
+            
+            const writeString = (offset, str) => {
+                for (let i = 0; i < str.length; i++) {
+                    view.setUint8(offset + i, str.charCodeAt(i));
+                }
+            };
+            
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + dataLength, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * numChannels * bitsPerSample / 8, true);
+            view.setUint16(32, numChannels * bitsPerSample / 8, true);
+            view.setUint16(34, bitsPerSample, true);
+            writeString(36, 'data');
+            view.setUint32(40, dataLength, true);
+            
+            return new Uint8Array(header);
+        }
+        
+        // 브라우저 TTS (폴백)
+        function playBrowserTTS(text, words) {
+            const speechSynthesis = window.speechSynthesis;
             speechSynthesis.cancel();
             
             const utterance = new SpeechSynthesisUtterance(text);
             utterance.lang = 'ko-KR';
             utterance.rate = 0.9;
-            utterance.pitch = 1;
             
-            // 한국어 음성 찾기
             const voices = speechSynthesis.getVoices();
             const koreanVoice = voices.find(v => v.lang.includes('ko'));
-            if (koreanVoice) {
-                utterance.voice = koreanVoice;
-            }
+            if (koreanVoice) utterance.voice = koreanVoice;
             
-            currentUtterance = utterance;
-            
-            // 단어 하이라이팅 (시뮬레이션)
             let wordIndex = 0;
-            const avgDuration = (text.length * 80) / words.length; // 대략적인 단어당 시간
+            const avgDuration = (text.length * 80) / words.length;
             
             const highlightInterval = setInterval(() => {
                 if (wordIndex >= words.length || !isPlaying) {
@@ -420,15 +587,11 @@
                 
                 document.querySelectorAll('.subtitle-word').forEach((el, i) => {
                     el.classList.remove('active');
-                    if (i < wordIndex) {
-                        el.classList.add('spoken');
-                    }
+                    if (i < wordIndex) el.classList.add('spoken');
                 });
                 
                 const currentWord = document.querySelector(`[data-index="${wordIndex}"]`);
-                if (currentWord) {
-                    currentWord.classList.add('active');
-                }
+                if (currentWord) currentWord.classList.add('active');
                 
                 wordIndex++;
             }, avgDuration);
@@ -439,12 +602,18 @@
             };
             
             speechSynthesis.speak(utterance);
+            document.getElementById('statusText').textContent = '🔊 브라우저 TTS 재생 중...';
         }
         
         // 프레젠테이션 중지
         function stopPresentation() {
             isPlaying = false;
-            speechSynthesis.cancel();
+            
+            if (currentAudio) {
+                currentAudio.pause();
+                currentAudio = null;
+            }
+            window.speechSynthesis?.cancel();
             
             const playBtn = document.getElementById('playBtn');
             playBtn.innerHTML = `
@@ -458,11 +627,6 @@
             
             document.getElementById('statusText').textContent = '완료';
         }
-        
-        // 음성 목록 로드
-        speechSynthesis.onvoiceschanged = () => {
-            console.log('Voices loaded:', speechSynthesis.getVoices().length);
-        };
         
         // 초기화
         document.addEventListener('DOMContentLoaded', async () => {
