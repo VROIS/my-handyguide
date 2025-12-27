@@ -998,6 +998,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // 🎬 드림 스튜디오: Featured 가이드 이미지 가져오기 (공개 API)
+  app.get('/api/dream-studio/samples', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const featuredLinks = await storage.getFeaturedShareLinks();
+      
+      const samples: any[] = [];
+      
+      for (const link of featuredLinks.slice(0, 5)) {
+        if (link.guideIds && link.guideIds.length > 0) {
+          const guides = await storage.getGuidesByIds(link.guideIds);
+          for (const guide of guides.slice(0, 3)) {
+            if (guide.imageUrl) {
+              samples.push({
+                id: guide.id,
+                name: guide.locationName || guide.title || '알 수 없는 장소',
+                image: guide.imageUrl,
+                description: guide.description || '',
+                aiContent: guide.aiGeneratedContent || ''
+              });
+            }
+            if (samples.length >= limit) break;
+          }
+        }
+        if (samples.length >= limit) break;
+      }
+      
+      res.json(samples);
+    } catch (error) {
+      console.error("Error fetching dream studio samples:", error);
+      res.status(500).json({ message: "Failed to fetch samples" });
+    }
+  });
+
   app.post('/api/share-links', isAuthenticated, async (req: any, res) => {
     try {
       const userId = getUserId(req.user);

@@ -128,7 +128,8 @@
     
     <!-- 카테고리 선택 -->
     <div class="flex gap-2 mb-4 flex-wrap justify-center">
-        <button onclick="selectCategory('landmark')" class="category-btn px-4 py-2 rounded-full bg-blue-600 text-white text-sm" data-category="landmark">🏛️ 여행지</button>
+        <button onclick="selectCategory('db')" class="category-btn px-4 py-2 rounded-full bg-green-600 text-white text-sm" data-category="db">📂 DB 이미지</button>
+        <button onclick="selectCategory('landmark')" class="category-btn px-4 py-2 rounded-full bg-gray-700 text-white text-sm" data-category="landmark">🏛️ 여행지</button>
         <button onclick="selectCategory('food')" class="category-btn px-4 py-2 rounded-full bg-gray-700 text-white text-sm" data-category="food">🍕 음식</button>
         <button onclick="selectCategory('wine')" class="category-btn px-4 py-2 rounded-full bg-gray-700 text-white text-sm" data-category="wine">🍷 와인</button>
         <button onclick="selectCategory('art')" class="category-btn px-4 py-2 rounded-full bg-gray-700 text-white text-sm" data-category="art">🎨 예술</button>
@@ -247,22 +248,53 @@
             ]
         };
         
-        let currentCategory = 'landmark';
+        let currentCategory = 'db';
         let currentSample = null;
         let currentEffect = 'zoom-in';
         let isPlaying = false;
         let speechSynthesis = window.speechSynthesis;
         let currentUtterance = null;
+        let dbSamples = []; // DB에서 가져온 샘플
+        
+        // DB에서 샘플 로드
+        async function loadDbSamples() {
+            try {
+                document.getElementById('statusText').textContent = 'DB에서 이미지 로딩 중...';
+                const response = await fetch('/api/dream-studio/samples?limit=10');
+                if (response.ok) {
+                    const data = await response.json();
+                    dbSamples = data.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        image: item.image,
+                        persona: '1인칭 페르소나 (AI 생성 예정)',
+                        script: item.aiContent || item.description || '이 장소에 대한 설명이 여기에 표시됩니다. AI가 1인칭으로 재미있게 설명해줄 예정이에요!',
+                        originalDescription: item.description
+                    }));
+                    samples.db = dbSamples;
+                    document.getElementById('statusText').textContent = `DB에서 ${dbSamples.length}개 이미지 로드 완료`;
+                    if (currentCategory === 'db') {
+                        renderSamples();
+                    }
+                } else {
+                    document.getElementById('statusText').textContent = 'DB 로드 실패 - 샘플 데이터 사용';
+                }
+            } catch (error) {
+                console.error('DB 로드 에러:', error);
+                document.getElementById('statusText').textContent = 'DB 연결 실패 - 샘플 데이터 사용';
+            }
+        }
         
         // 카테고리 선택
         function selectCategory(category) {
             currentCategory = category;
             document.querySelectorAll('.category-btn').forEach(btn => {
-                btn.classList.remove('bg-blue-600');
+                btn.classList.remove('bg-blue-600', 'bg-green-600');
                 btn.classList.add('bg-gray-700');
             });
-            document.querySelector(`[data-category="${category}"]`).classList.remove('bg-gray-700');
-            document.querySelector(`[data-category="${category}"]`).classList.add('bg-blue-600');
+            const selectedBtn = document.querySelector(`[data-category="${category}"]`);
+            selectedBtn.classList.remove('bg-gray-700');
+            selectedBtn.classList.add(category === 'db' ? 'bg-green-600' : 'bg-blue-600');
             
             renderSamples();
         }
@@ -270,7 +302,12 @@
         // 샘플 렌더링
         function renderSamples() {
             const container = document.getElementById('sample-selector');
-            const items = samples[currentCategory];
+            const items = samples[currentCategory] || [];
+            
+            if (items.length === 0) {
+                container.innerHTML = '<span class="text-gray-500 text-sm">로딩 중...</span>';
+                return;
+            }
             
             container.innerHTML = items.map(item => `
                 <button onclick="selectSample('${item.id}')" 
@@ -428,9 +465,11 @@
         };
         
         // 초기화
-        document.addEventListener('DOMContentLoaded', () => {
-            selectCategory('landmark');
+        document.addEventListener('DOMContentLoaded', async () => {
+            samples.db = []; // DB 카테고리 초기화
             setEffect('zoom-in');
+            selectCategory('db'); // DB 카테고리 먼저 선택
+            await loadDbSamples(); // DB 이미지 로드
         });
     </script>
 </body>
