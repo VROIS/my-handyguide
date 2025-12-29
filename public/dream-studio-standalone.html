@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎬 드림 스튜디오 테스트 | Google AI Studio용</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        /* 공유 페이지 스타일 */
+        .share-container {
+            max-width: 430px;
+            margin: 0 auto;
+            background: #0f0f23;
+            min-height: 100vh;
+        }
+        
+        .header {
+            padding: 16px;
+            background: rgba(0,0,0,0.3);
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        /* 가이드 상세 뷰 */
+        .guide-detail {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #0f0f23;
+            z-index: 100;
+            overflow-y: auto;
+        }
+        
+        .guide-detail.active { display: block; }
+        
+        .detail-image-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 3/4;
+            overflow: hidden;
+            background: #000;
+        }
+        
+        .detail-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        /* Ken Burns 효과 */
+        @keyframes kenBurnsZoomIn {
+            0% { transform: scale(1) translate(0, 0); }
+            100% { transform: scale(1.3) translate(-5%, -5%); }
+        }
+        @keyframes kenBurnsZoomOut {
+            0% { transform: scale(1.3) translate(-5%, -5%); }
+            100% { transform: scale(1) translate(0, 0); }
+        }
+        @keyframes kenBurnsPanLeft {
+            0% { transform: scale(1.2) translate(10%, 0); }
+            100% { transform: scale(1.2) translate(-10%, 0); }
+        }
+        @keyframes kenBurnsPanRight {
+            0% { transform: scale(1.2) translate(-10%, 0); }
+            100% { transform: scale(1.2) translate(10%, 0); }
+        }
+        
+        .ken-burns-zoom-in { animation: kenBurnsZoomIn 20s ease-in-out forwards; }
+        .ken-burns-zoom-out { animation: kenBurnsZoomOut 20s ease-in-out forwards; }
+        .ken-burns-pan-left { animation: kenBurnsPanLeft 20s ease-in-out forwards; }
+        .ken-burns-pan-right { animation: kenBurnsPanRight 20s ease-in-out forwards; }
+        
+        /* 자막 */
+        .subtitle-overlay {
+            position: absolute;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            text-align: center;
+        }
+        
+        .subtitle-text {
+            background: rgba(0,0,0,0.75);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 16px;
+            line-height: 1.6;
+            display: inline-block;
+            max-width: 100%;
+        }
+        
+        .subtitle-word { transition: color 0.2s, font-weight 0.2s; }
+        .subtitle-word.active { color: #fbbf24; font-weight: bold; }
+        .subtitle-word.spoken { color: #9ca3af; }
+        
+        /* 재생 버튼 */
+        .play-btn {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            background: rgba(255,255,255,0.95);
+            border: none;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+        }
+        
+        .play-btn:hover { background: white; }
+        
+        /* 닫기 버튼 */
+        .close-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 40px;
+            height: 40px;
+            background: rgba(0,0,0,0.5);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 10;
+        }
+        
+        /* 설명 영역 */
+        .detail-content {
+            padding: 20px;
+            background: #0f0f23;
+        }
+        
+        .persona-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+        
+        .description-text {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #e5e5e5;
+        }
+        
+        /* 프롬프트 패널 */
+        .prompt-panel {
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px;
+        }
+        
+        .prompt-panel h3 {
+            color: #fbbf24;
+            margin-bottom: 12px;
+            font-size: 14px;
+        }
+        
+        .prompt-box {
+            background: #0d0d1a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 13px;
+            color: #ccc;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        
+        .copy-btn {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-top: 10px;
+        }
+        
+        .copy-btn:hover { background: #4338ca; }
+        
+        /* 입력 영역 */
+        .input-area {
+            padding: 16px;
+        }
+        
+        .upload-zone {
+            border: 2px dashed #444;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+        
+        .upload-zone:hover { border-color: #667eea; }
+        
+        .upload-zone.has-image {
+            padding: 0;
+            border: none;
+        }
+        
+        .upload-zone img {
+            width: 100%;
+            border-radius: 12px;
+        }
+        
+        textarea {
+            width: 100%;
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            color: white;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 120px;
+            margin-top: 16px;
+        }
+        
+        textarea::placeholder { color: #666; }
+        
+        .test-btn {
+            width: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+        
+        .test-btn:hover { opacity: 0.9; }
+        
+        /* 효과 선택 */
+        .effect-selector {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .effect-btn {
+            padding: 8px 16px;
+            background: #2a2a4a;
+            border: 1px solid #444;
+            border-radius: 20px;
+            color: #ccc;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        
+        .effect-btn.active {
+            background: #4f46e5;
+            border-color: #4f46e5;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="share-container">
+        <!-- 헤더 -->
+        <div class="header">
+            <h1 class="text-xl font-bold">🎬 드림 스튜디오</h1>
+            <p class="text-gray-400 text-sm mt-1">Google AI Studio 테스트용</p>
+        </div>
+        
+        <!-- 메인 컨텐츠 -->
+        <div class="input-area">
+            <!-- 이미지 업로드 -->
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()">
+                <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
+                <div id="uploadPlaceholder">
+                    <div class="text-4xl mb-3">📷</div>
+                    <p class="text-gray-400">이미지를 업로드하세요</p>
+                    <p class="text-gray-500 text-sm mt-1">클릭하거나 드래그</p>
+                </div>
+                <img id="previewImage" src="" alt="" style="display:none">
+            </div>
+            
+            <!-- 프롬프트 복사 -->
+            <div class="prompt-panel">
+                <h3>📋 Google AI Studio에 복사할 프롬프트</h3>
+                <div class="prompt-box" id="promptText">당신은 이 이미지 속 주인공(음식, 건물, 예술품, 풍경, 와인 등)입니다.
+1인칭 시점으로 자신을 소개하고 이야기를 들려주세요.
+15-30초 분량(한국어 80-120자)으로 감정이 담긴 대사를 작성하세요.
+
+예시:
+- 와인: "안녕, 나는 1892년 보르도에서 태어났어. 130년 동안 이 지하 저장고에서..."
+- 에펠탑: "파리의 밤하늘 아래, 나는 매일 수백만 개의 불빛으로 반짝이지..."
+- 초밥: "나는 오늘 아침 츠키지 시장에서 갓 잡힌 참치야..."
+
+다음 형식으로 응답:
+- 페르소나: (피사체 정체)
+- 분위기: (nostalgic, proud, mysterious, cheerful 등)
+- 대사: "1인칭 대사"</div>
+                <button class="copy-btn" onclick="copyPrompt()">📋 프롬프트 복사</button>
+            </div>
+            
+            <!-- AI 응답 붙여넣기 -->
+            <textarea id="aiResponse" placeholder="Google AI Studio 응답을 여기에 붙여넣으세요...
+
+예시:
+- 페르소나: 100년 된 와인병
+- 분위기: nostalgic
+- 대사: &quot;안녕, 나는 1892년 보르도에서 태어난 와인이야. 130년 동안 이 어두운 저장고에서 조용히 숙성되어 왔어.&quot;"></textarea>
+            
+            <!-- Ken Burns 효과 선택 -->
+            <div class="effect-selector">
+                <button class="effect-btn active" data-effect="zoom-in" onclick="selectEffect('zoom-in')">Zoom In</button>
+                <button class="effect-btn" data-effect="zoom-out" onclick="selectEffect('zoom-out')">Zoom Out</button>
+                <button class="effect-btn" data-effect="pan-left" onclick="selectEffect('pan-left')">Pan Left</button>
+                <button class="effect-btn" data-effect="pan-right" onclick="selectEffect('pan-right')">Pan Right</button>
+            </div>
+            
+            <!-- 테스트 버튼 -->
+            <button class="test-btn" onclick="startTest()">▶️ 드림 스튜디오 테스트</button>
+        </div>
+        
+        <!-- TTS 프롬프트 (음성용) -->
+        <div class="prompt-panel">
+            <h3>🎙️ TTS 테스트용 프롬프트 (Gemini 2.5 Flash TTS)</h3>
+            <div class="prompt-box" id="ttsPromptText">따뜻하고 향수 어린 톤으로 말해주세요:
+
+"(여기에 위에서 생성된 대사를 넣으세요)"
+
+Voice: Kore (한국어) / Puck (영어) / Aoede (일본어)</div>
+            <button class="copy-btn" onclick="copyTTSPrompt()">📋 TTS 프롬프트 복사</button>
+        </div>
+        
+        <!-- 안내 -->
+        <div class="p-4 text-gray-500 text-xs">
+            <p class="mb-2"><strong>📋 테스트 방법:</strong></p>
+            <ol class="list-decimal list-inside space-y-1">
+                <li>이미지 업로드</li>
+                <li>프롬프트 복사 → Google AI Studio에 붙여넣기</li>
+                <li>AI 응답을 아래 텍스트 영역에 붙여넣기</li>
+                <li>"드림 스튜디오 테스트" 버튼 클릭</li>
+                <li>Ken Burns 효과 + 브라우저 TTS로 미리보기</li>
+            </ol>
+            <p class="mt-3 text-yellow-500">💡 실제 Gemini TTS는 AI Studio Audio 탭에서 테스트!</p>
+        </div>
+    </div>
+    
+    <!-- 가이드 상세 뷰 (공유 페이지 스타일) -->
+    <div class="guide-detail" id="guideDetail">
+        <div class="detail-image-container">
+            <button class="close-btn" onclick="closeDetail()">✕</button>
+            <img class="detail-image" id="detailImage" src="" alt="">
+            <div class="subtitle-overlay">
+                <div class="subtitle-text" id="subtitleText">재생 버튼을 눌러 시작하세요</div>
+            </div>
+            <button class="play-btn" id="playBtn" onclick="togglePlay()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/>
+                </svg>
+            </button>
+        </div>
+        <div class="detail-content">
+            <div class="persona-badge" id="personaBadge">🎭 페르소나</div>
+            <p class="description-text" id="descriptionText">AI가 생성한 1인칭 대사가 여기에 표시됩니다.</p>
+        </div>
+    </div>
+
+    <script>
+        let uploadedImage = null;
+        let currentEffect = 'zoom-in';
+        let isPlaying = false;
+        let currentScript = '';
+        let currentPersona = '';
+        let currentMood = '';
+        
+        // 이미지 업로드
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                uploadedImage = e.target.result;
+                document.getElementById('previewImage').src = uploadedImage;
+                document.getElementById('previewImage').style.display = 'block';
+                document.getElementById('uploadPlaceholder').style.display = 'none';
+                document.getElementById('uploadZone').classList.add('has-image');
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // 프롬프트 복사
+        function copyPrompt() {
+            const text = document.getElementById('promptText').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('프롬프트가 복사되었습니다! Google AI Studio에 붙여넣으세요.');
+            });
+        }
+        
+        // TTS 프롬프트 복사
+        function copyTTSPrompt() {
+            let text = document.getElementById('ttsPromptText').textContent;
+            if (currentScript) {
+                text = text.replace('(여기에 위에서 생성된 대사를 넣으세요)', currentScript);
+            }
+            navigator.clipboard.writeText(text).then(() => {
+                alert('TTS 프롬프트가 복사되었습니다!');
+            });
+        }
+        
+        // 효과 선택
+        function selectEffect(effect) {
+            currentEffect = effect;
+            document.querySelectorAll('.effect-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelector(`[data-effect="${effect}"]`).classList.add('active');
+        }
+        
+        // AI 응답 파싱
+        function parseAIResponse(text) {
+            const lines = text.split('\n');
+            let persona = '알 수 없음';
+            let mood = 'cheerful';
+            let script = '';
+            
+            for (const line of lines) {
+                if (line.includes('페르소나:') || line.includes('Persona:')) {
+                    persona = line.split(':').slice(1).join(':').trim();
+                } else if (line.includes('분위기:') || line.includes('Mood:')) {
+                    mood = line.split(':').slice(1).join(':').trim().toLowerCase();
+                } else if (line.includes('대사:') || line.includes('Script:')) {
+                    script = line.split(':').slice(1).join(':').trim().replace(/^["']|["']$/g, '');
+                }
+            }
+            
+            // 대사를 찾지 못하면 따옴표 안의 텍스트 찾기
+            if (!script) {
+                const quoteMatch = text.match(/[""]([^""]+)[""]/);
+                if (quoteMatch) script = quoteMatch[1];
+            }
+            
+            // 그래도 없으면 전체 텍스트 사용
+            if (!script) script = text.substring(0, 200);
+            
+            return { persona, mood, script };
+        }
+        
+        // 테스트 시작
+        function startTest() {
+            if (!uploadedImage) {
+                alert('이미지를 먼저 업로드하세요!');
+                return;
+            }
+            
+            const response = document.getElementById('aiResponse').value.trim();
+            if (!response) {
+                alert('Google AI Studio 응답을 붙여넣으세요!');
+                return;
+            }
+            
+            const parsed = parseAIResponse(response);
+            currentPersona = parsed.persona;
+            currentMood = parsed.mood;
+            currentScript = parsed.script;
+            
+            // 상세 뷰 열기
+            document.getElementById('detailImage').src = uploadedImage;
+            document.getElementById('personaBadge').textContent = `🎭 ${currentPersona} (${currentMood})`;
+            document.getElementById('descriptionText').textContent = currentScript;
+            document.getElementById('subtitleText').textContent = '재생 버튼을 눌러 시작하세요';
+            document.getElementById('guideDetail').classList.add('active');
+            
+            // TTS 프롬프트 업데이트
+            updateTTSPrompt();
+        }
+        
+        // TTS 프롬프트 업데이트
+        function updateTTSPrompt() {
+            const moodMap = {
+                'nostalgic': '따뜻하고 향수 어린 톤으로',
+                'proud': '자랑스럽고 당당한 톤으로',
+                'mysterious': '신비롭고 흥미로운 톤으로',
+                'cheerful': '밝고 활기찬 톤으로',
+                'peaceful': '평온하고 차분한 톤으로',
+                'dramatic': '극적이고 감정적인 톤으로'
+            };
+            
+            const moodText = moodMap[currentMood] || moodMap.cheerful;
+            document.getElementById('ttsPromptText').textContent = `${moodText} 말해주세요:
+
+"${currentScript}"
+
+Voice: Kore (한국어) / Puck (영어) / Aoede (일본어)`;
+        }
+        
+        // 상세 뷰 닫기
+        function closeDetail() {
+            stopPlay();
+            document.getElementById('guideDetail').classList.remove('active');
+            document.getElementById('detailImage').className = 'detail-image';
+        }
+        
+        // 재생 토글
+        function togglePlay() {
+            if (isPlaying) {
+                stopPlay();
+            } else {
+                startPlay();
+            }
+        }
+        
+        // 재생 시작
+        function startPlay() {
+            if (!currentScript) return;
+            
+            isPlaying = true;
+            
+            // 버튼 변경
+            document.getElementById('playBtn').innerHTML = `
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="6" y="4" width="4" height="16" fill="currentColor"/>
+                    <rect x="14" y="4" width="4" height="16" fill="currentColor"/>
+                </svg>
+            `;
+            
+            // Ken Burns 효과
+            const img = document.getElementById('detailImage');
+            img.className = `detail-image ken-burns-${currentEffect}`;
+            
+            // 자막 준비
+            const words = currentScript.split(' ');
+            const subtitleEl = document.getElementById('subtitleText');
+            subtitleEl.innerHTML = words.map((word, i) => 
+                `<span class="subtitle-word" data-index="${i}">${word}</span>`
+            ).join(' ');
+            
+            // TTS 시작
+            playTTS(currentScript, words);
+        }
+        
+        // TTS 재생 (브라우저)
+        function playTTS(text, words) {
+            const synth = window.speechSynthesis;
+            synth.cancel();
+            
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = 'ko-KR';
+            utterance.rate = 0.9;
+            
+            const voices = synth.getVoices();
+            const koreanVoice = voices.find(v => v.lang.includes('ko'));
+            if (koreanVoice) utterance.voice = koreanVoice;
+            
+            // 단어 하이라이팅
+            let wordIndex = 0;
+            const avgDuration = (text.length * 80) / words.length;
+            
+            const highlightInterval = setInterval(() => {
+                if (wordIndex >= words.length || !isPlaying) {
+                    clearInterval(highlightInterval);
+                    return;
+                }
+                
+                document.querySelectorAll('.subtitle-word').forEach((el, i) => {
+                    el.classList.remove('active');
+                    if (i < wordIndex) el.classList.add('spoken');
+                });
+                
+                const currentWord = document.querySelector(`[data-index="${wordIndex}"]`);
+                if (currentWord) currentWord.classList.add('active');
+                
+                wordIndex++;
+            }, avgDuration);
+            
+            utterance.onend = () => {
+                clearInterval(highlightInterval);
+                stopPlay();
+            };
+            
+            synth.speak(utterance);
+        }
+        
+        // 재생 중지
+        function stopPlay() {
+            isPlaying = false;
+            window.speechSynthesis.cancel();
+            
+            document.getElementById('playBtn').innerHTML = `
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polygon points="5 3 19 12 5 21 5 3" fill="currentColor"/>
+                </svg>
+            `;
+            
+            document.getElementById('detailImage').className = 'detail-image';
+        }
+        
+        // 음성 로드
+        window.speechSynthesis.onvoiceschanged = () => {
+            console.log('Voices loaded:', window.speechSynthesis.getVoices().length);
+        };
+    </script>
+</body>
+</html>
