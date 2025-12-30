@@ -6,7 +6,7 @@ import { sql, desc } from "drizzle-orm";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupGoogleAuth } from "./googleAuth";
 import { setupKakaoAuth } from "./kakaoAuth";
-import { generateLocationBasedContent, getLocationName, generateShareLinkDescription, generateCinematicPrompt, optimizeAudioScript, type GuideContent, type DreamShotPrompt } from "./gemini";
+import { generateLocationBasedContent, getLocationName, generateShareLinkDescription, generateCinematicPrompt, optimizeAudioScript, analyzeTextAndGenerateScript, analyzeImageAndGenerateScript, generatePersonaVoice, type GuideContent, type DreamShotPrompt, type AnalyzedScript } from "./gemini";
 import { insertGuideSchema, insertShareLinkSchema, insertSharedHtmlPageSchema, creditTransactions, users, notifications, pushSubscriptions, insertNotificationSchema, insertPushSubscriptionSchema, voiceConfigs } from "@shared/schema";
 import webpush from "web-push";
 import { eq, and, or, isNull } from "drizzle-orm";
@@ -3596,6 +3596,224 @@ self.addEventListener('fetch', (event) => {
     } catch (error) {
       console.error('관리자 알림 발송 오류:', error);
       res.status(500).json({ error: '알림 발송에 실패했습니다.' });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════
+  // 🎬 드림 스튜디오 V2: 자동화 워크플로우 (2025-12-30)
+  // ═══════════════════════════════════════════════════════════════
+  // 목적: 텍스트 분석 → 분류 → 20초 대사 → TTS → D-ID 영상 생성
+  // 비용 절감: 기존 가이드 데이터 재활용, 이미지 분석 최소화
+  // ═══════════════════════════════════════════════════════════════
+
+  // 1. 텍스트 분석 + 분류 + 20초 대사 생성 (이미지 분석 불필요)
+  app.post('/api/dream-studio/analyze-text', async (req, res) => {
+    try {
+      const { description, language = 'ko', duration = 20 } = req.body;
+      
+      if (!description) {
+        return res.status(400).json({ error: '설명 텍스트가 필요합니다' });
+      }
+      
+      console.log(`🎬 [드림스튜디오] 텍스트 분석 시작: ${description.substring(0, 50)}...`);
+      const startTime = Date.now();
+      
+      const result = await analyzeTextAndGenerateScript(description, language, duration);
+      
+      console.log(`🎬 [드림스튜디오] 분석 완료: ${Date.now() - startTime}ms`);
+      console.log(`   - 카테고리: ${result.categoryKo} (${result.category})`);
+      console.log(`   - 페르소나: ${result.persona}`);
+      console.log(`   - 분위기: ${result.mood}`);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('텍스트 분석 오류:', error);
+      res.status(500).json({ error: '텍스트 분석 중 오류가 발생했습니다' });
+    }
+  });
+
+  // 2. 이미지 분석 + 분류 + 20초 대사 생성
+  app.post('/api/dream-studio/analyze-image', async (req, res) => {
+    try {
+      const { imageBase64, language = 'ko', duration = 20 } = req.body;
+      
+      if (!imageBase64) {
+        return res.status(400).json({ error: '이미지가 필요합니다' });
+      }
+      
+      console.log(`🎬 [드림스튜디오] 이미지 분석 시작`);
+      const startTime = Date.now();
+      
+      const result = await analyzeImageAndGenerateScript(imageBase64, language, duration);
+      
+      console.log(`🎬 [드림스튜디오] 이미지 분석 완료: ${Date.now() - startTime}ms`);
+      console.log(`   - 카테고리: ${result.categoryKo} (${result.category})`);
+      console.log(`   - 페르소나: ${result.persona}`);
+      
+      res.json(result);
+    } catch (error) {
+      console.error('이미지 분석 오류:', error);
+      res.status(500).json({ error: '이미지 분석 중 오류가 발생했습니다' });
+    }
+  });
+
+  // 3. TTS 음성 생성 (Gemini 2.5 Flash TTS)
+  app.post('/api/dream-studio/generate-tts', async (req, res) => {
+    try {
+      const { script, voiceName = 'Kore', mood = 'cheerful' } = req.body;
+      
+      if (!script) {
+        return res.status(400).json({ error: '대사가 필요합니다' });
+      }
+      
+      console.log(`🎤 [드림스튜디오] TTS 생성 시작: ${script.substring(0, 30)}...`);
+      const startTime = Date.now();
+      
+      const audio = await generatePersonaVoice(script, voiceName, mood);
+      
+      if (!audio) {
+        return res.status(500).json({ error: 'TTS 생성 실패' });
+      }
+      
+      console.log(`🎤 [드림스튜디오] TTS 완료: ${Date.now() - startTime}ms`);
+      
+      res.json({
+        audioBase64: audio.audioBase64,
+        mimeType: audio.mimeType
+      });
+    } catch (error) {
+      console.error('TTS 생성 오류:', error);
+      res.status(500).json({ error: 'TTS 생성 중 오류가 발생했습니다' });
+    }
+  });
+
+  // 4. 통합 파이프라인: 분석 + TTS 동시 생성 (D-ID는 클라이언트에서 호출)
+  app.post('/api/dream-studio/generate-full', async (req, res) => {
+    try {
+      const { 
+        description, 
+        imageBase64,
+        imageUrl,
+        language = 'ko', 
+        duration = 20,
+        generateAudio = true
+      } = req.body;
+      
+      if (!description && !imageBase64) {
+        return res.status(400).json({ error: '설명 또는 이미지가 필요합니다' });
+      }
+      
+      console.log(`🎬 [드림스튜디오] 통합 파이프라인 시작`);
+      const startTime = Date.now();
+      
+      // 1단계: 분석 + 대사 생성
+      let analyzed: AnalyzedScript;
+      if (description) {
+        console.log(`   - 모드: 텍스트 분석 (비용 절감)`);
+        analyzed = await analyzeTextAndGenerateScript(description, language, duration);
+      } else {
+        console.log(`   - 모드: 이미지 분석`);
+        analyzed = await analyzeImageAndGenerateScript(imageBase64, language, duration);
+      }
+      
+      console.log(`   - 분석 완료: ${Date.now() - startTime}ms`);
+      console.log(`   - 카테고리: ${analyzed.categoryKo}`);
+      console.log(`   - 대사 길이: ${analyzed.script.length}자`);
+      
+      // 2단계: TTS 생성 (병렬 처리 가능)
+      let audio = null;
+      if (generateAudio) {
+        const ttsStart = Date.now();
+        audio = await generatePersonaVoice(analyzed.script, analyzed.voiceName, analyzed.mood);
+        console.log(`   - TTS 완료: ${Date.now() - ttsStart}ms`);
+      }
+      
+      const totalTime = Date.now() - startTime;
+      console.log(`🎬 [드림스튜디오] 파이프라인 완료: 총 ${totalTime}ms`);
+      
+      res.json({
+        analysis: analyzed,
+        audio: audio ? {
+          audioBase64: audio.audioBase64,
+          mimeType: audio.mimeType
+        } : null,
+        imageUrl: imageUrl || null,
+        processingTime: totalTime
+      });
+    } catch (error) {
+      console.error('통합 파이프라인 오류:', error);
+      res.status(500).json({ error: '처리 중 오류가 발생했습니다' });
+    }
+  });
+
+  // 5. 가이드 기반 일괄 생성 (여러 가이드 → 공유영상용 데이터)
+  app.post('/api/dream-studio/generate-batch', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req.user);
+      const { guideIds, language = 'ko', duration = 20 } = req.body;
+      
+      if (!guideIds || !Array.isArray(guideIds) || guideIds.length === 0) {
+        return res.status(400).json({ error: '가이드 ID 목록이 필요합니다' });
+      }
+      
+      if (guideIds.length > 6) {
+        return res.status(400).json({ error: '최대 6개까지만 처리 가능합니다' });
+      }
+      
+      console.log(`🎬 [드림스튜디오] 일괄 생성 시작: ${guideIds.length}개`);
+      const startTime = Date.now();
+      
+      const results = [];
+      
+      for (const guideId of guideIds) {
+        try {
+          // 가이드 조회
+          const guide = await storage.getGuide(guideId);
+          if (!guide || guide.userId !== userId) {
+            results.push({ guideId, error: '가이드를 찾을 수 없습니다' });
+            continue;
+          }
+          
+          // 기존 설명이 있으면 텍스트 분석 (비용 절감)
+          const description = guide.aiGeneratedContent || guide.description || '';
+          
+          if (description) {
+            const analyzed = await analyzeTextAndGenerateScript(description, language, duration);
+            const audio = await generatePersonaVoice(analyzed.script, analyzed.voiceName, analyzed.mood);
+            
+            results.push({
+              guideId,
+              title: guide.title,
+              imageUrl: guide.imageUrl,
+              analysis: analyzed,
+              audio: audio ? {
+                audioBase64: audio.audioBase64,
+                mimeType: audio.mimeType
+              } : null
+            });
+          } else if (guide.imageUrl) {
+            // 설명이 없으면 이미지 분석 필요 (추가 비용)
+            // TODO: imageUrl에서 base64 변환 필요
+            results.push({ 
+              guideId, 
+              error: '설명이 없어 이미지 분석이 필요합니다. 개별 처리해주세요.' 
+            });
+          }
+        } catch (err) {
+          console.error(`가이드 ${guideId} 처리 오류:`, err);
+          results.push({ guideId, error: '처리 중 오류 발생' });
+        }
+      }
+      
+      console.log(`🎬 [드림스튜디오] 일괄 생성 완료: ${Date.now() - startTime}ms`);
+      
+      res.json({
+        results,
+        totalTime: Date.now() - startTime
+      });
+    } catch (error) {
+      console.error('일괄 생성 오류:', error);
+      res.status(500).json({ error: '일괄 처리 중 오류가 발생했습니다' });
     }
   });
 

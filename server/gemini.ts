@@ -454,3 +454,174 @@ export async function optimizeAudioScript(
     return originalScript;
   }
 }
+
+// 🎬 드림 스튜디오: 텍스트 분석 + 분류 + 20초 대사 생성 (이미지 분석 불필요)
+export interface AnalyzedScript {
+  category: 'artwork' | 'landmark' | 'food_drink'; // 작품, 유적지, 음식/술
+  categoryKo: string;
+  persona: string;
+  mood: string;
+  script: string;
+  keywords: string[];
+  voiceName: string;
+}
+
+export async function analyzeTextAndGenerateScript(
+  description: string,
+  language: string = 'ko',
+  duration: number = 20
+): Promise<AnalyzedScript> {
+  const charCount = duration <= 8 ? '40-60' : duration <= 15 ? '80-100' : '100-120';
+  
+  const voiceMap: Record<string, string> = {
+    ko: 'Kore',
+    en: 'Puck',
+    ja: 'Aoede',
+    zh: 'Charon'
+  };
+
+  const prompt = `당신은 콘텐츠 분석 전문가입니다.
+다음 설명을 분석하고 1인칭 시점의 ${duration}초 분량(${charCount}자) 대사를 작성하세요.
+
+[분석할 설명]
+"${description.substring(0, 1000)}"
+
+작업:
+1. 카테고리 분류 (artwork: 예술작품/회화/조각, landmark: 건물/유적지/자연명소, food_drink: 음식/와인/술)
+2. 핵심 키워드 3-5개 추출
+3. 페르소나 정의 (예: 100년 된 와인병, 에펠탑, 모나리자 등)
+4. 분위기 선정 (nostalgic, proud, mysterious, cheerful, peaceful, dramatic)
+5. 1인칭 대사 작성 - 주인공이 직접 말하는 형식
+
+JSON 형식으로 응답:
+{
+  "category": "artwork 또는 landmark 또는 food_drink",
+  "categoryKo": "카테고리 한국어명 (작품/유적지/음식및술)",
+  "persona": "피사체 정체",
+  "mood": "분위기",
+  "script": "1인칭 대사 (${charCount}자)",
+  "keywords": ["키워드1", "키워드2", "키워드3"]
+}`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object",
+          properties: {
+            category: { type: "string" },
+            categoryKo: { type: "string" },
+            persona: { type: "string" },
+            mood: { type: "string" },
+            script: { type: "string" },
+            keywords: { type: "array", items: { type: "string" } }
+          },
+          required: ["category", "categoryKo", "persona", "mood", "script", "keywords"]
+        }
+      },
+      contents: prompt
+    });
+
+    const result = JSON.parse(response.text || '{}');
+    return {
+      ...result,
+      voiceName: voiceMap[language] || voiceMap.ko
+    };
+  } catch (error) {
+    console.error("텍스트 분석 및 대사 생성 오류:", error);
+    return {
+      category: 'landmark',
+      categoryKo: '유적지',
+      persona: 'unknown',
+      mood: 'cheerful',
+      script: '안녕하세요, 저는 이 아름다운 장소에서 여러분을 만나게 되어 기쁩니다.',
+      keywords: [],
+      voiceName: voiceMap[language] || voiceMap.ko
+    };
+  }
+}
+
+// 🎬 드림 스튜디오: 이미지 분석 + 분류 + 20초 대사 생성
+export async function analyzeImageAndGenerateScript(
+  imageBase64: string,
+  language: string = 'ko',
+  duration: number = 20
+): Promise<AnalyzedScript> {
+  const charCount = duration <= 8 ? '40-60' : duration <= 15 ? '80-100' : '100-120';
+  
+  const voiceMap: Record<string, string> = {
+    ko: 'Kore',
+    en: 'Puck',
+    ja: 'Aoede',
+    zh: 'Charon'
+  };
+
+  const prompt = `당신은 이미지 분석 전문가입니다.
+이 이미지를 분석하고 1인칭 시점의 ${duration}초 분량(${charCount}자) 대사를 작성하세요.
+
+작업:
+1. 카테고리 분류 (artwork: 예술작품/회화/조각, landmark: 건물/유적지/자연명소, food_drink: 음식/와인/술)
+2. 핵심 키워드 3-5개 추출
+3. 페르소나 정의 (예: 100년 된 와인병, 에펠탑, 모나리자 등)
+4. 분위기 선정 (nostalgic, proud, mysterious, cheerful, peaceful, dramatic)
+5. 1인칭 대사 작성 - 이미지 속 주인공이 직접 말하는 형식
+
+JSON 형식으로 응답:
+{
+  "category": "artwork 또는 landmark 또는 food_drink",
+  "categoryKo": "카테고리 한국어명 (작품/유적지/음식및술)",
+  "persona": "피사체 정체",
+  "mood": "분위기",
+  "script": "1인칭 대사 (${charCount}자)",
+  "keywords": ["키워드1", "키워드2", "키워드3"]
+}`;
+
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: "object",
+          properties: {
+            category: { type: "string" },
+            categoryKo: { type: "string" },
+            persona: { type: "string" },
+            mood: { type: "string" },
+            script: { type: "string" },
+            keywords: { type: "array", items: { type: "string" } }
+          },
+          required: ["category", "categoryKo", "persona", "mood", "script", "keywords"]
+        }
+      },
+      contents: [
+        {
+          inlineData: {
+            data: imageBase64,
+            mimeType: "image/jpeg"
+          }
+        },
+        prompt
+      ]
+    });
+
+    const result = JSON.parse(response.text || '{}');
+    return {
+      ...result,
+      voiceName: voiceMap[language] || voiceMap.ko
+    };
+  } catch (error) {
+    console.error("이미지 분석 및 대사 생성 오류:", error);
+    return {
+      category: 'landmark',
+      categoryKo: '유적지',
+      persona: 'unknown',
+      mood: 'cheerful',
+      script: '안녕하세요, 저는 이 아름다운 장소에서 여러분을 만나게 되어 기쁩니다.',
+      keywords: [],
+      voiceName: voiceMap[language] || voiceMap.ko
+    };
+  }
+}

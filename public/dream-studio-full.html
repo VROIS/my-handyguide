@@ -831,29 +831,86 @@ ${duration}초 분량(한국어 ${charCount}자)으로 감정이 담긴 대사�
             });
         }
         
-        // === 대사 생성 (수동/자동) ===
+        // === 대사 생성 (서버 API 자동 호출) ===
         async function generateScript() {
             const slot = slots[currentSlotIndex];
-            if (!slot.image) {
-                showToast('이미지를 먼저 업로드하세요');
+            if (!slot.image && !slot.description) {
+                showToast('이미지 또는 가이드를 먼저 선택하세요');
                 return;
             }
             
-            const geminiKey = localStorage.getItem('geminiApiKey');
-            if (!geminiKey) {
-                showToast('수동 모드: 프롬프트를 AI Studio에 복사하세요');
-                copyPrompt('gemini');
-                return;
-            }
-            
-            // 자동 생성 (API 키 있을 때)
             updateStepStatus('script', 'processing');
+            showToast('AI 분석 중...');
             
             try {
-                // 여기에 Gemini API 호출 로직 (앱 서버 경유)
-                showToast('자동 생성은 서버 연동 필요. 수동 모드 사용.');
-                updateStepStatus('script', 'pending');
+                const requestBody = {
+                    language: 'ko',
+                    duration: 20,
+                    generateAudio: true
+                };
+                
+                // DB에서 가져온 경우 (설명 있음) → 텍스트 분석만 (비용 절감 90%)
+                if (slot.description) {
+                    requestBody.description = slot.description;
+                    requestBody.imageUrl = slot.imageUrl || null;
+                    console.log('📝 텍스트 분석 모드 (비용 절감)');
+                } else if (slot.image) {
+                    // 새 업로드 이미지 → 이미지 분석 필요
+                    requestBody.imageBase64 = slot.image.replace(/^data:image\/\w+;base64,/, '');
+                    console.log('🖼️ 이미지 분석 모드');
+                }
+                
+                const response = await fetch('/api/dream-studio/generate-full', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (!response.ok) throw new Error('서버 오류');
+                
+                const result = await response.json();
+                
+                // 분석 결과 저장
+                slot.category = result.analysis.category;
+                slot.categoryKo = result.analysis.categoryKo;
+                slot.persona = result.analysis.persona;
+                slot.mood = result.analysis.mood;
+                slot.script = result.analysis.script;
+                slot.keywords = result.analysis.keywords;
+                slot.voiceName = result.analysis.voiceName;
+                
+                // 오디오 저장 (있으면)
+                if (result.audio) {
+                    slot.audioBase64 = result.audio.audioBase64;
+                    slot.audioMimeType = result.audio.mimeType;
+                }
+                
+                // UI 업데이트
+                document.getElementById('generatedScript').value = result.analysis.script;
+                document.getElementById('geminiResponse').innerHTML = `
+                    <div style="padding: 10px; background: #1a1a2e; border-radius: 8px;">
+                        <div style="color: #888; font-size: 12px; margin-bottom: 8px;">
+                            분류: <span style="color: #4ECDC4;">${result.analysis.categoryKo}</span> |
+                            페르소나: <span style="color: #FF6B6B;">${result.analysis.persona}</span> |
+                            분위기: <span style="color: #9B59B6;">${result.analysis.mood}</span>
+                        </div>
+                        <div style="color: #888; font-size: 12px;">
+                            키워드: ${result.analysis.keywords.join(', ')}
+                        </div>
+                        <div style="margin-top: 8px; color: #aaa; font-size: 11px;">
+                            처리시간: ${result.processingTime}ms | TTS: ${result.audio ? '생성됨' : '없음'}
+                        </div>
+                    </div>
+                `;
+                
+                updateStepStatus('script', 'done');
+                if (result.audio) updateStepStatus('tts', 'done');
+                
+                showToast(`분석 완료! ${result.analysis.categoryKo} - ${result.analysis.persona}`);
+                renderSlots();
+                
             } catch (error) {
+                console.error('대사 생성 오류:', error);
                 showToast('에러: ' + error.message);
                 updateStepStatus('script', 'error');
             }
