@@ -886,16 +886,17 @@ ${duration}초 분량(한국어 ${charCount}자)으로 감정이 담긴 대사�
                 }
                 
                 // UI 업데이트
-                document.getElementById('generatedScript').value = result.analysis.script;
+                const keywords = result.analysis.keywords || [];
+                document.getElementById('generatedScript').value = result.analysis.script || '';
                 document.getElementById('geminiResponse').innerHTML = `
                     <div style="padding: 10px; background: #1a1a2e; border-radius: 8px;">
                         <div style="color: #888; font-size: 12px; margin-bottom: 8px;">
-                            분류: <span style="color: #4ECDC4;">${result.analysis.categoryKo}</span> |
-                            페르소나: <span style="color: #FF6B6B;">${result.analysis.persona}</span> |
-                            분위기: <span style="color: #9B59B6;">${result.analysis.mood}</span>
+                            분류: <span style="color: #4ECDC4;">${result.analysis.categoryKo || '미분류'}</span> |
+                            페르소나: <span style="color: #FF6B6B;">${result.analysis.persona || '미정'}</span> |
+                            분위기: <span style="color: #9B59B6;">${result.analysis.mood || '일반'}</span>
                         </div>
                         <div style="color: #888; font-size: 12px;">
-                            키워드: ${result.analysis.keywords.join(', ')}
+                            키워드: ${keywords.length > 0 ? keywords.join(', ') : '없음'}
                         </div>
                         <div style="margin-top: 8px; color: #aaa; font-size: 11px;">
                             처리시간: ${result.processingTime}ms | TTS: ${result.audio ? '생성됨' : '없음'}
