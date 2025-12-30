@@ -393,6 +393,11 @@
         
         <!-- 생성 탭 -->
         <div id="tab-create" class="tab-content active">
+            <!-- 내 가이드 불러오기 버튼 -->
+            <button class="btn btn-secondary" onclick="openGuideSelector()" style="margin-bottom: 12px;">
+                📂 내 가이드에서 불러오기 (비용 절감!)
+            </button>
+            
             <!-- 슬롯 그리드 (6개) -->
             <h3 class="text-sm text-gray-400 mb-2">📂 이미지 슬롯 (최대 6개)</h3>
             <div class="slot-grid" id="slotGrid">
@@ -404,22 +409,27 @@
                 <div class="settings-panel">
                     <h3>🖼️ 슬롯 #<span id="currentSlotNum">1</span> 편집</h3>
                     
+                    <!-- 소스 표시 -->
+                    <div id="sourceIndicator" class="text-xs text-green-400 mb-2" style="display:none;">
+                        ✅ DB에서 불러옴 (이미지 분석 불필요)
+                    </div>
+                    
                     <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()">
                         <input type="file" id="imageInput" accept="image/*" style="display:none">
                         <div id="uploadPlaceholder">
                             <div class="text-3xl mb-2">📷</div>
-                            <p class="text-gray-400 text-sm">이미지 업로드</p>
+                            <p class="text-gray-400 text-sm">이미지 업로드 또는 가이드 선택</p>
                         </div>
                         <img id="previewImage" src="" style="display:none">
                     </div>
                     
                     <div class="input-group">
-                        <label>📝 기존 디스크립션 (선택사항)</label>
+                        <label>📝 기존 디스크립션 <span id="descSource" class="text-green-400"></span></label>
                         <textarea id="originalDesc" placeholder="기존 AI 디스크립션이 있다면 붙여넣기..."></textarea>
                     </div>
                     
                     <button class="btn btn-primary" onclick="generateScript()">
-                        ✨ 20초 대사 생성 (Gemini)
+                        ✨ 20초 대사 생성 (텍스트 축약만 - 비용 절감!)
                     </button>
                 </div>
                 
@@ -563,22 +573,42 @@
     
     <!-- 토스트 -->
     <div class="toast" id="toast"></div>
+    
+    <!-- 가이드 선택 모달 -->
+    <div class="detail-modal" id="guideSelector" style="background: rgba(0,0,0,0.9);">
+        <div style="max-width: 430px; margin: 0 auto; padding: 16px; height: 100%; overflow-y: auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h2 class="text-lg font-bold">📂 내 가이드 선택</h2>
+                <button class="close-btn" onclick="closeGuideSelector()" style="position: static; width: 36px; height: 36px;">✕</button>
+            </div>
+            <p class="text-sm text-gray-400 mb-4">기존 가이드를 선택하면 이미지와 디스크립션이 자동으로 채워집니다.</p>
+            <div id="guideList" class="slot-grid" style="grid-template-columns: repeat(2, 1fr);">
+                <div class="text-center text-gray-500 py-8" style="grid-column: span 2;">
+                    로딩 중...
+                </div>
+            </div>
+        </div>
+    </div>
 
     <script>
         // === 상태 관리 ===
         const slots = Array(6).fill(null).map((_, i) => ({
             id: i + 1,
             image: null,
+            imageUrl: null, // DB에서 가져온 URL (D-ID 직접 전달용)
             imageBase64: null,
             originalDesc: '',
             script: '',
             audioUrl: null,
             videoUrl: null,
+            fromDB: false, // DB에서 가져왔는지 여부 (비용 절감 표시)
+            guideId: null, // 원본 가이드 ID
             status: 'empty' // empty, image, processing, ready
         }));
         
         let currentSlotIndex = 0;
         let generatedVideos = [];
+        let myGuides = []; // DB에서 가져온 가이드 목록
         
         // === 초기화 ===
         function init() {
@@ -622,6 +652,17 @@
             document.getElementById('slotEditor').style.display = 'block';
             document.getElementById('currentSlotNum').textContent = index + 1;
             
+            // DB에서 가져온 경우 표시
+            const sourceIndicator = document.getElementById('sourceIndicator');
+            const descSource = document.getElementById('descSource');
+            if (slot.fromDB) {
+                sourceIndicator.style.display = 'block';
+                descSource.textContent = '(DB에서 자동 로드됨)';
+            } else {
+                sourceIndicator.style.display = 'none';
+                descSource.textContent = '';
+            }
+            
             if (slot.image) {
                 document.getElementById('previewImage').src = slot.image;
                 document.getElementById('previewImage').style.display = 'block';
@@ -637,6 +678,80 @@
             document.getElementById('generatedScript').value = slot.script || '';
             
             updateGeminiPrompt();
+        }
+        
+        // === 가이드 선택 모달 ===
+        async function openGuideSelector() {
+            document.getElementById('guideSelector').classList.add('active');
+            await loadMyGuides();
+        }
+        
+        function closeGuideSelector() {
+            document.getElementById('guideSelector').classList.remove('active');
+        }
+        
+        async function loadMyGuides() {
+            const guideList = document.getElementById('guideList');
+            guideList.innerHTML = '<div class="text-center text-gray-500 py-8" style="grid-column: span 2;">로딩 중...</div>';
+            
+            try {
+                const response = await fetch('/api/guides');
+                if (!response.ok) {
+                    throw new Error('로그인이 필요합니다');
+                }
+                
+                myGuides = await response.json();
+                
+                if (myGuides.length === 0) {
+                    guideList.innerHTML = '<div class="text-center text-gray-500 py-8" style="grid-column: span 2;">저장된 가이드가 없습니다</div>';
+                    return;
+                }
+                
+                guideList.innerHTML = myGuides.map((guide, i) => `
+                    <div class="slot filled" onclick="selectGuide('${guide.id}')" style="cursor: pointer;">
+                        <img src="${guide.imageUrl || '/images/placeholder.png'}" alt="${guide.title || '가이드'}" 
+                             style="width: 100%; height: 100%; object-fit: cover; border-radius: 10px;">
+                        <div class="slot-number" style="background: rgba(102, 126, 234, 0.9);">
+                            ${guide.title ? guide.title.substring(0, 8) : '가이드 ' + (i+1)}
+                        </div>
+                        ${guide.description || guide.aiGeneratedContent ? 
+                            '<div class="slot-status ready">📝</div>' : ''
+                        }
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                console.error('가이드 로드 실패:', error);
+                guideList.innerHTML = `<div class="text-center text-gray-500 py-8" style="grid-column: span 2;">
+                    ${error.message}<br>
+                    <button class="btn btn-secondary" onclick="closeGuideSelector()" style="margin-top: 12px;">닫기</button>
+                </div>`;
+            }
+        }
+        
+        function selectGuide(guideId) {
+            const guide = myGuides.find(g => g.id === guideId);
+            if (!guide) return;
+            
+            // 빈 슬롯 찾기 또는 현재 슬롯 사용
+            let targetIndex = slots.findIndex(s => s.status === 'empty');
+            if (targetIndex === -1) {
+                targetIndex = currentSlotIndex;
+            }
+            
+            // 슬롯에 가이드 데이터 채우기
+            slots[targetIndex].image = guide.imageUrl;
+            slots[targetIndex].imageUrl = guide.imageUrl; // D-ID용 URL
+            slots[targetIndex].originalDesc = guide.aiGeneratedContent || guide.description || '';
+            slots[targetIndex].fromDB = true;
+            slots[targetIndex].guideId = guide.id;
+            slots[targetIndex].status = 'image';
+            
+            closeGuideSelector();
+            renderSlots();
+            selectSlot(targetIndex);
+            
+            showToast(`"${guide.title || '가이드'}" 불러옴 - 이미지 분석 불필요!`);
         }
         
         // === 이미지 업로드 ===
@@ -668,23 +783,42 @@
             const duration = document.getElementById('duration')?.value || 20;
             const charCount = duration === '8' ? '40-60' : duration === '15' ? '80-100' : '100-120';
             
-            let prompt = `당신은 이 이미지 속 주인공(음식, 건물, 예술품, 풍경, 와인 등)입니다.
+            let prompt;
+            
+            // DB에서 가져온 경우: 이미지 분석 불필요, 텍스트만 축약
+            if (slot.fromDB && slot.originalDesc) {
+                prompt = `다음 설명을 바탕으로 1인칭 시점의 ${duration}초 분량(${charCount}자) 대사를 작성하세요.
+주인공이 직접 자신을 소개하는 형식입니다.
+
+[기존 설명]
+"${slot.originalDesc.substring(0, 500)}"
+
+다음 형식으로 응답:
+- 페르소나: (피사체 정체)
+- 분위기: (nostalgic, proud, mysterious, cheerful 등)
+- 대사: "1인칭 대사"
+
+⚠️ 이미지 분석 불필요 - 텍스트만 축약 (비용 절감)`;
+            } else {
+                // 새 이미지: 이미지 분석 필요
+                prompt = `당신은 이 이미지 속 주인공(음식, 건물, 예술품, 풍경, 와인 등)입니다.
 1인칭 시점으로 자신을 소개하고 이야기를 들려주세요.
 ${duration}초 분량(한국어 ${charCount}자)으로 감정이 담긴 대사를 작성하세요.`;
-            
-            if (slot.originalDesc) {
-                prompt += `
+                
+                if (slot.originalDesc) {
+                    prompt += `
 
 기존 설명 참고:
 "${slot.originalDesc.substring(0, 200)}..."`;
-            }
-            
-            prompt += `
+                }
+                
+                prompt += `
 
 다음 형식으로 응답:
 - 페르소나: (피사체 정체)
 - 분위기: (nostalgic, proud, mysterious, cheerful 등)
 - 대사: "1인칭 대사"`;
+            }
             
             document.getElementById('geminiPrompt').textContent = prompt;
         }
@@ -761,8 +895,16 @@ ${duration}초 분량(한국어 ${charCount}자)으로 감정이 담긴 대사�
                 updateStepStatus('tts', 'processing');
                 updateStepStatus('video', 'processing');
                 
+                // DB에서 가져온 경우 URL 직접 사용, 아니면 base64
+                const imageSource = slot.imageUrl || slot.image;
+                const isUrl = slot.imageUrl && slot.imageUrl.startsWith('http');
+                
+                if (isUrl) {
+                    showToast('DB 이미지 URL 직접 사용 (업로드 불필요!)');
+                }
+                
                 // D-ID는 자체 TTS 포함 가능 → 단일 호출로 최적화
-                const videoResult = await generateDIDVideo(slot.image, script, didKey);
+                const videoResult = await generateDIDVideo(imageSource, script, didKey, isUrl);
                 
                 updateStepStatus('tts', 'done');
                 updateStepStatus('video', 'done');
@@ -783,8 +925,33 @@ ${duration}초 분량(한국어 ${charCount}자)으로 감정이 담긴 대사�
         }
         
         // === D-ID API 호출 ===
-        async function generateDIDVideo(imageData, script, apiKey) {
+        async function generateDIDVideo(imageData, script, apiKey, isUrl = false) {
             showToast('D-ID 영상 생성 중... (약 1분 소요)');
+            
+            // 요청 바디 구성
+            const requestBody = {
+                script: {
+                    type: 'text',
+                    input: script,
+                    provider: {
+                        type: 'microsoft',
+                        voice_id: 'ko-KR-SunHiNeural'
+                    }
+                },
+                config: {
+                    stitch: true
+                }
+            };
+            
+            // URL인 경우 source_url, base64인 경우 source_url (D-ID는 둘 다 지원)
+            if (isUrl) {
+                requestBody.source_url = imageData;
+                console.log('D-ID: URL 직접 사용 →', imageData.substring(0, 50) + '...');
+            } else {
+                // base64인 경우 data URL 형식으로
+                requestBody.source_url = imageData.startsWith('data:') ? imageData : `data:image/jpeg;base64,${imageData}`;
+                console.log('D-ID: Base64 업로드');
+            }
             
             // 1. Talk 생성 요청
             const createResponse = await fetch('https://api.d-id.com/talks', {
@@ -793,20 +960,7 @@ ${duration}초 분량(한국어 ${charCount}자)으로 감정이 담긴 대사�
                     'Authorization': `Basic ${apiKey}`,
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    source_url: imageData, // base64 또는 URL
-                    script: {
-                        type: 'text',
-                        input: script,
-                        provider: {
-                            type: 'microsoft',
-                            voice_id: 'ko-KR-SunHiNeural'
-                        }
-                    },
-                    config: {
-                        stitch: true
-                    }
-                })
+                body: JSON.stringify(requestBody)
             });
             
             if (!createResponse.ok) {
