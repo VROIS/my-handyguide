@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎬 드림 스튜디오 | 공유영상 생성기</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { 
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container {
+            max-width: 430px;
+            margin: 0 auto;
+            background: #0f0f23;
+            min-height: 100vh;
+            padding-bottom: 100px;
+        }
+        
+        .header {
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            text-align: center;
+        }
+        
+        .tabs {
+            display: flex;
+            background: #1a1a2e;
+            border-bottom: 1px solid #333;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 14px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            border-bottom-color: #667eea;
+            color: #667eea;
+        }
+        
+        .tab-content { display: none; padding: 16px; }
+        .tab-content.active { display: block; }
+        
+        /* 입력 영역 */
+        .input-group {
+            margin-bottom: 20px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: #aaa;
+        }
+        
+        .input-group input, .input-group textarea {
+            width: 100%;
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            padding: 12px;
+            color: white;
+            font-size: 14px;
+        }
+        
+        .input-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        /* 이미지 업로드 */
+        .upload-zone {
+            border: 2px dashed #444;
+            border-radius: 12px;
+            padding: 30px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 16px;
+        }
+        
+        .upload-zone:hover { border-color: #667eea; }
+        .upload-zone.has-image { padding: 0; border: none; }
+        .upload-zone img { width: 100%; border-radius: 12px; }
+        
+        /* 슬롯 그리드 (6개) */
+        .slot-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin: 16px 0;
+        }
+        
+        .slot {
+            aspect-ratio: 3/4;
+            background: #1a1a2e;
+            border: 2px dashed #333;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .slot.filled {
+            border: none;
+        }
+        
+        .slot img, .slot video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+        
+        .slot-number {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(0,0,0,0.7);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        .slot-status {
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+        
+        .slot-status.ready { background: #22c55e; }
+        .slot-status.processing { background: #f59e0b; }
+        .slot-status.error { background: #ef4444; }
+        
+        /* 버튼 */
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: #2a2a4a;
+            color: #ccc;
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* 프로세스 상태 */
+        .process-status {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+        
+        .process-step {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #333;
+        }
+        
+        .process-step:last-child { border-bottom: none; }
+        
+        .step-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 12px;
+            font-size: 14px;
+        }
+        
+        .step-icon.pending { background: #333; }
+        .step-icon.processing { background: #f59e0b; animation: pulse 1s infinite; }
+        .step-icon.done { background: #22c55e; }
+        .step-icon.error { background: #ef4444; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* 결과 미리보기 */
+        .result-preview {
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 16px 0;
+        }
+        
+        .result-preview video {
+            width: 100%;
+            aspect-ratio: 9/16;
+        }
+        
+        /* 설정 패널 */
+        .settings-panel {
+            background: #1a1a2e;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .settings-panel h3 {
+            margin-bottom: 12px;
+            font-size: 14px;
+            color: #aaa;
+        }
+        
+        /* 프롬프트 복사 영역 */
+        .prompt-box {
+            background: #0d0d1a;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            color: #ccc;
+            white-space: pre-wrap;
+            max-height: 150px;
+            overflow-y: auto;
+            margin-bottom: 8px;
+        }
+        
+        .copy-btn {
+            background: #4f46e5;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        /* 공유영상 갤러리 (공유페이지 스타일) */
+        .share-gallery {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            padding: 16px;
+        }
+        
+        .gallery-item {
+            aspect-ratio: 3/4;
+            background: #1a1a2e;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .gallery-item video, .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .gallery-item .play-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .gallery-item .play-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* 상세 뷰 모달 */
+        .detail-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #000;
+            z-index: 1000;
+        }
+        
+        .detail-modal.active { display: flex; flex-direction: column; }
+        
+        .detail-modal video {
+            flex: 1;
+            width: 100%;
+            object-fit: contain;
+        }
+        
+        .detail-modal .close-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            border-radius: 50%;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        /* API 키 입력 */
+        .api-key-input {
+            display: flex;
+            gap: 8px;
+        }
+        
+        .api-key-input input {
+            flex: 1;
+            font-family: monospace;
+        }
+        
+        /* 알림 */
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            padding: 12px 24px;
+            border-radius: 8px;
+            z-index: 2000;
+            display: none;
+        }
+        
+        .toast.show { display: block; animation: fadeInUp 0.3s; }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+            to { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 헤더 -->
+        <div class="header">
+            <h1 class="text-xl font-bold">🎬 드림 스튜디오</h1>
+            <p class="text-sm opacity-80 mt-1">20초 공유영상 생성기</p>
+        </div>
+        
+        <!-- 탭 -->
+        <div class="tabs">
+            <div class="tab active" data-tab="create" onclick="switchTab('create')">📷 생성</div>
+            <div class="tab" data-tab="gallery" onclick="switchTab('gallery')">🎬 갤러리</div>
+            <div class="tab" data-tab="settings" onclick="switchTab('settings')">⚙️ 설정</div>
+        </div>
+        
+        <!-- 생성 탭 -->
+        <div id="tab-create" class="tab-content active">
+            <!-- 슬롯 그리드 (6개) -->
+            <h3 class="text-sm text-gray-400 mb-2">📂 이미지 슬롯 (최대 6개)</h3>
+            <div class="slot-grid" id="slotGrid">
+                <!-- JS로 생성 -->
+            </div>
+            
+            <!-- 현재 선택된 슬롯 편집 -->
+            <div id="slotEditor" style="display:none;">
+                <div class="settings-panel">
+                    <h3>🖼️ 슬롯 #<span id="currentSlotNum">1</span> 편집</h3>
+                    
+                    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()">
+                        <input type="file" id="imageInput" accept="image/*" style="display:none">
+                        <div id="uploadPlaceholder">
+                            <div class="text-3xl mb-2">📷</div>
+                            <p class="text-gray-400 text-sm">이미지 업로드</p>
+                        </div>
+                        <img id="previewImage" src="" style="display:none">
+                    </div>
+                    
+                    <div class="input-group">
+                        <label>📝 기존 디스크립션 (선택사항)</label>
+                        <textarea id="originalDesc" placeholder="기존 AI 디스크립션이 있다면 붙여넣기..."></textarea>
+                    </div>
+                    
+                    <button class="btn btn-primary" onclick="generateScript()">
+                        ✨ 20초 대사 생성 (Gemini)
+                    </button>
+                </div>
+                
+                <!-- 프롬프트 복사 (Google AI Studio용) -->
+                <div class="settings-panel">
+                    <h3>📋 Google AI Studio 프롬프트</h3>
+                    <div class="prompt-box" id="geminiPrompt">이미지를 업로드하면 프롬프트가 생성됩니다...</div>
+                    <button class="copy-btn" onclick="copyPrompt('gemini')">📋 복사</button>
+                </div>
+                
+                <!-- 생성된 대사 -->
+                <div class="settings-panel">
+                    <h3>🎤 생성된 20초 대사</h3>
+                    <textarea id="generatedScript" placeholder="AI Studio 결과를 붙여넣거나 자동 생성..."></textarea>
+                </div>
+                
+                <!-- 병렬 처리 버튼 -->
+                <button class="btn btn-success" onclick="startParallelProcess()">
+                    🚀 영상 생성 (TTS + D-ID 병렬)
+                </button>
+            </div>
+            
+            <!-- 프로세스 상태 -->
+            <div class="process-status" id="processStatus" style="display:none;">
+                <h3 class="text-sm mb-3">⏳ 처리 중...</h3>
+                <div class="process-step" id="step-script">
+                    <div class="step-icon pending">1</div>
+                    <div>
+                        <div class="font-medium">대사 생성</div>
+                        <div class="text-xs text-gray-500">Gemini 3.0 Flash</div>
+                    </div>
+                </div>
+                <div class="process-step" id="step-tts">
+                    <div class="step-icon pending">2</div>
+                    <div>
+                        <div class="font-medium">음성 생성</div>
+                        <div class="text-xs text-gray-500">Gemini 2.5 TTS</div>
+                    </div>
+                </div>
+                <div class="process-step" id="step-video">
+                    <div class="step-icon pending">3</div>
+                    <div>
+                        <div class="font-medium">영상 생성</div>
+                        <div class="text-xs text-gray-500">D-ID API</div>
+                    </div>
+                </div>
+                <div class="process-step" id="step-merge">
+                    <div class="step-icon pending">4</div>
+                    <div>
+                        <div class="font-medium">합성 완료</div>
+                        <div class="text-xs text-gray-500">최종 MP4</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 전체 공유영상 생성 -->
+            <button class="btn btn-primary" id="generateAllBtn" onclick="generateShareVideo()" disabled>
+                🎬 공유영상 생성 (6개 슬롯)
+            </button>
+        </div>
+        
+        <!-- 갤러리 탭 -->
+        <div id="tab-gallery" class="tab-content">
+            <h3 class="text-sm text-gray-400 p-4 pb-0">🎬 생성된 공유영상</h3>
+            <div class="share-gallery" id="shareGallery">
+                <div class="text-center text-gray-500 py-8" style="grid-column: span 2;">
+                    아직 생성된 영상이 없습니다
+                </div>
+            </div>
+        </div>
+        
+        <!-- 설정 탭 -->
+        <div id="tab-settings" class="tab-content">
+            <div class="settings-panel">
+                <h3>🔑 API 키 설정</h3>
+                
+                <div class="input-group">
+                    <label>D-ID API Key</label>
+                    <div class="api-key-input">
+                        <input type="password" id="didApiKey" placeholder="D-ID API 키 입력...">
+                        <button class="copy-btn" onclick="saveApiKey('did')">저장</button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">
+                        <a href="https://studio.d-id.com/" target="_blank" class="text-blue-400">D-ID Studio</a>에서 발급
+                    </p>
+                </div>
+                
+                <div class="input-group">
+                    <label>Gemini API Key (선택)</label>
+                    <div class="api-key-input">
+                        <input type="password" id="geminiApiKey" placeholder="자동 생성 시 필요...">
+                        <button class="copy-btn" onclick="saveApiKey('gemini')">저장</button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">
+                        수동 복사/붙여넣기 시 불필요
+                    </p>
+                </div>
+            </div>
+            
+            <div class="settings-panel">
+                <h3>📊 영상 설정</h3>
+                
+                <div class="input-group">
+                    <label>해상도</label>
+                    <select id="resolution" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white">
+                        <option value="480p">480p (용량 최적화)</option>
+                        <option value="720p" selected>720p (권장)</option>
+                        <option value="1080p">1080p (고화질)</option>
+                    </select>
+                </div>
+                
+                <div class="input-group">
+                    <label>영상 길이</label>
+                    <select id="duration" class="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white">
+                        <option value="8">8초 (빠른 생성)</option>
+                        <option value="15">15초</option>
+                        <option value="20" selected>20초 (권장)</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="settings-panel">
+                <h3>📋 프롬프트 템플릿</h3>
+                <div class="prompt-box">당신은 이 이미지 속 주인공입니다.
+1인칭 시점으로 자신을 소개하세요.
+20초 분량(100-120자)으로 감정이 담긴 대사를 작성하세요.
+
+형식:
+- 페르소나: (정체)
+- 분위기: (nostalgic/proud/cheerful 등)
+- 대사: "1인칭 대사"</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 상세 뷰 모달 -->
+    <div class="detail-modal" id="detailModal">
+        <button class="close-btn" onclick="closeDetailModal()">✕</button>
+        <video id="detailVideo" controls></video>
+    </div>
+    
+    <!-- 토스트 -->
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // === 상태 관리 ===
+        const slots = Array(6).fill(null).map((_, i) => ({
+            id: i + 1,
+            image: null,
+            imageBase64: null,
+            originalDesc: '',
+            script: '',
+            audioUrl: null,
+            videoUrl: null,
+            status: 'empty' // empty, image, processing, ready
+        }));
+        
+        let currentSlotIndex = 0;
+        let generatedVideos = [];
+        
+        // === 초기화 ===
+        function init() {
+            renderSlots();
+            loadApiKeys();
+            loadGeneratedVideos();
+            
+            document.getElementById('imageInput').addEventListener('change', handleImageUpload);
+        }
+        
+        // === 슬롯 렌더링 ===
+        function renderSlots() {
+            const grid = document.getElementById('slotGrid');
+            grid.innerHTML = slots.map((slot, i) => `
+                <div class="slot ${slot.image ? 'filled' : ''}" onclick="selectSlot(${i})">
+                    ${slot.image 
+                        ? `<img src="${slot.image}" alt="슬롯 ${i+1}">` 
+                        : `<div class="text-2xl text-gray-600">+</div>`
+                    }
+                    <div class="slot-number">${i + 1}</div>
+                    ${slot.status !== 'empty' ? `
+                        <div class="slot-status ${slot.status}">${
+                            slot.status === 'ready' ? '✓' : 
+                            slot.status === 'processing' ? '⏳' : 
+                            slot.status === 'image' ? '📷' : ''
+                        }</div>
+                    ` : ''}
+                </div>
+            `).join('');
+            
+            // 전체 생성 버튼 활성화 체크
+            const readyCount = slots.filter(s => s.status === 'ready').length;
+            document.getElementById('generateAllBtn').disabled = readyCount === 0;
+        }
+        
+        // === 슬롯 선택 ===
+        function selectSlot(index) {
+            currentSlotIndex = index;
+            const slot = slots[index];
+            
+            document.getElementById('slotEditor').style.display = 'block';
+            document.getElementById('currentSlotNum').textContent = index + 1;
+            
+            if (slot.image) {
+                document.getElementById('previewImage').src = slot.image;
+                document.getElementById('previewImage').style.display = 'block';
+                document.getElementById('uploadPlaceholder').style.display = 'none';
+                document.getElementById('uploadZone').classList.add('has-image');
+            } else {
+                document.getElementById('previewImage').style.display = 'none';
+                document.getElementById('uploadPlaceholder').style.display = 'block';
+                document.getElementById('uploadZone').classList.remove('has-image');
+            }
+            
+            document.getElementById('originalDesc').value = slot.originalDesc || '';
+            document.getElementById('generatedScript').value = slot.script || '';
+            
+            updateGeminiPrompt();
+        }
+        
+        // === 이미지 업로드 ===
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const base64 = e.target.result;
+                slots[currentSlotIndex].image = base64;
+                slots[currentSlotIndex].imageBase64 = base64.split(',')[1];
+                slots[currentSlotIndex].status = 'image';
+                
+                document.getElementById('previewImage').src = base64;
+                document.getElementById('previewImage').style.display = 'block';
+                document.getElementById('uploadPlaceholder').style.display = 'none';
+                document.getElementById('uploadZone').classList.add('has-image');
+                
+                renderSlots();
+                updateGeminiPrompt();
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        // === Gemini 프롬프트 업데이트 ===
+        function updateGeminiPrompt() {
+            const slot = slots[currentSlotIndex];
+            const duration = document.getElementById('duration')?.value || 20;
+            const charCount = duration === '8' ? '40-60' : duration === '15' ? '80-100' : '100-120';
+            
+            let prompt = `당신은 이 이미지 속 주인공(음식, 건물, 예술품, 풍경, 와인 등)입니다.
+1인칭 시점으로 자신을 소개하고 이야기를 들려주세요.
+${duration}초 분량(한국어 ${charCount}자)으로 감정이 담긴 대사를 작성하세요.`;
+            
+            if (slot.originalDesc) {
+                prompt += `
+
+기존 설명 참고:
+"${slot.originalDesc.substring(0, 200)}..."`;
+            }
+            
+            prompt += `
+
+다음 형식으로 응답:
+- 페르소나: (피사체 정체)
+- 분위기: (nostalgic, proud, mysterious, cheerful 등)
+- 대사: "1인칭 대사"`;
+            
+            document.getElementById('geminiPrompt').textContent = prompt;
+        }
+        
+        // === 프롬프트 복사 ===
+        function copyPrompt(type) {
+            const text = document.getElementById('geminiPrompt').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                showToast('프롬프트 복사됨! AI Studio에 붙여넣기');
+            });
+        }
+        
+        // === 대사 생성 (수동/자동) ===
+        async function generateScript() {
+            const slot = slots[currentSlotIndex];
+            if (!slot.image) {
+                showToast('이미지를 먼저 업로드하세요');
+                return;
+            }
+            
+            const geminiKey = localStorage.getItem('geminiApiKey');
+            if (!geminiKey) {
+                showToast('수동 모드: 프롬프트를 AI Studio에 복사하세요');
+                copyPrompt('gemini');
+                return;
+            }
+            
+            // 자동 생성 (API 키 있을 때)
+            updateStepStatus('script', 'processing');
+            
+            try {
+                // 여기에 Gemini API 호출 로직 (앱 서버 경유)
+                showToast('자동 생성은 서버 연동 필요. 수동 모드 사용.');
+                updateStepStatus('script', 'pending');
+            } catch (error) {
+                showToast('에러: ' + error.message);
+                updateStepStatus('script', 'error');
+            }
+        }
+        
+        // === 병렬 처리 (TTS + D-ID) ===
+        async function startParallelProcess() {
+            const slot = slots[currentSlotIndex];
+            const script = document.getElementById('generatedScript').value.trim();
+            
+            if (!slot.image) {
+                showToast('이미지를 먼저 업로드하세요');
+                return;
+            }
+            
+            if (!script) {
+                showToast('대사를 먼저 생성하세요');
+                return;
+            }
+            
+            slot.script = script;
+            slot.status = 'processing';
+            renderSlots();
+            
+            document.getElementById('processStatus').style.display = 'block';
+            updateStepStatus('script', 'done');
+            
+            const didKey = localStorage.getItem('didApiKey');
+            
+            if (!didKey) {
+                showToast('D-ID API 키를 설정하세요 (설정 탭)');
+                updateStepStatus('tts', 'error');
+                updateStepStatus('video', 'error');
+                return;
+            }
+            
+            // 병렬 처리 시작
+            try {
+                updateStepStatus('tts', 'processing');
+                updateStepStatus('video', 'processing');
+                
+                // D-ID는 자체 TTS 포함 가능 → 단일 호출로 최적화
+                const videoResult = await generateDIDVideo(slot.image, script, didKey);
+                
+                updateStepStatus('tts', 'done');
+                updateStepStatus('video', 'done');
+                updateStepStatus('merge', 'done');
+                
+                slot.videoUrl = videoResult.url;
+                slot.status = 'ready';
+                renderSlots();
+                
+                showToast('영상 생성 완료!');
+                
+            } catch (error) {
+                showToast('에러: ' + error.message);
+                updateStepStatus('video', 'error');
+                slot.status = 'image';
+                renderSlots();
+            }
+        }
+        
+        // === D-ID API 호출 ===
+        async function generateDIDVideo(imageData, script, apiKey) {
+            showToast('D-ID 영상 생성 중... (약 1분 소요)');
+            
+            // 1. Talk 생성 요청
+            const createResponse = await fetch('https://api.d-id.com/talks', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Basic ${apiKey}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    source_url: imageData, // base64 또는 URL
+                    script: {
+                        type: 'text',
+                        input: script,
+                        provider: {
+                            type: 'microsoft',
+                            voice_id: 'ko-KR-SunHiNeural'
+                        }
+                    },
+                    config: {
+                        stitch: true
+                    }
+                })
+            });
+            
+            if (!createResponse.ok) {
+                const error = await createResponse.json();
+                throw new Error(error.message || 'D-ID 요청 실패');
+            }
+            
+            const createResult = await createResponse.json();
+            const talkId = createResult.id;
+            
+            // 2. 완료 대기 (폴링)
+            let attempts = 0;
+            while (attempts < 60) { // 최대 2분 대기
+                await new Promise(r => setTimeout(r, 2000));
+                
+                const statusResponse = await fetch(`https://api.d-id.com/talks/${talkId}`, {
+                    headers: { 'Authorization': `Basic ${apiKey}` }
+                });
+                
+                const statusResult = await statusResponse.json();
+                
+                if (statusResult.status === 'done') {
+                    return { url: statusResult.result_url };
+                } else if (statusResult.status === 'error') {
+                    throw new Error(statusResult.error?.message || '영상 생성 실패');
+                }
+                
+                attempts++;
+            }
+            
+            throw new Error('시간 초과');
+        }
+        
+        // === 프로세스 상태 업데이트 ===
+        function updateStepStatus(step, status) {
+            const el = document.querySelector(`#step-${step} .step-icon`);
+            if (el) {
+                el.className = `step-icon ${status}`;
+                el.textContent = status === 'done' ? '✓' : status === 'error' ? '✕' : el.textContent;
+            }
+        }
+        
+        // === 전체 공유영상 생성 ===
+        async function generateShareVideo() {
+            const readySlots = slots.filter(s => s.status === 'ready');
+            if (readySlots.length === 0) {
+                showToast('완성된 슬롯이 없습니다');
+                return;
+            }
+            
+            // 갤러리에 추가
+            const shareVideo = {
+                id: Date.now(),
+                createdAt: new Date().toISOString(),
+                slots: readySlots.map(s => ({
+                    image: s.image,
+                    videoUrl: s.videoUrl,
+                    script: s.script
+                }))
+            };
+            
+            generatedVideos.push(shareVideo);
+            localStorage.setItem('dreamStudioVideos', JSON.stringify(generatedVideos));
+            
+            showToast('공유영상 저장 완료!');
+            switchTab('gallery');
+            renderGallery();
+        }
+        
+        // === 갤러리 렌더링 ===
+        function renderGallery() {
+            const gallery = document.getElementById('shareGallery');
+            
+            if (generatedVideos.length === 0) {
+                gallery.innerHTML = `
+                    <div class="text-center text-gray-500 py-8" style="grid-column: span 2;">
+                        아직 생성된 영상이 없습니다
+                    </div>
+                `;
+                return;
+            }
+            
+            gallery.innerHTML = generatedVideos.flatMap(video => 
+                video.slots.map((slot, i) => `
+                    <div class="gallery-item" onclick="openDetailModal('${slot.videoUrl}')">
+                        ${slot.videoUrl 
+                            ? `<video src="${slot.videoUrl}" muted></video>`
+                            : `<img src="${slot.image}" alt="">`
+                        }
+                        <div class="play-overlay">
+                            <div class="play-icon">▶</div>
+                        </div>
+                    </div>
+                `)
+            ).join('');
+        }
+        
+        // === 상세 모달 ===
+        function openDetailModal(videoUrl) {
+            if (!videoUrl) return;
+            document.getElementById('detailVideo').src = videoUrl;
+            document.getElementById('detailModal').classList.add('active');
+        }
+        
+        function closeDetailModal() {
+            document.getElementById('detailVideo').pause();
+            document.getElementById('detailModal').classList.remove('active');
+        }
+        
+        // === 탭 전환 ===
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
+        
+        // === API 키 관리 ===
+        function saveApiKey(type) {
+            const input = document.getElementById(`${type}ApiKey`);
+            localStorage.setItem(`${type}ApiKey`, input.value);
+            showToast(`${type.toUpperCase()} API 키 저장됨`);
+        }
+        
+        function loadApiKeys() {
+            const didKey = localStorage.getItem('didApiKey');
+            const geminiKey = localStorage.getItem('geminiApiKey');
+            
+            if (didKey) document.getElementById('didApiKey').value = didKey;
+            if (geminiKey) document.getElementById('geminiApiKey').value = geminiKey;
+        }
+        
+        function loadGeneratedVideos() {
+            const saved = localStorage.getItem('dreamStudioVideos');
+            if (saved) {
+                generatedVideos = JSON.parse(saved);
+                renderGallery();
+            }
+        }
+        
+        // === 토스트 ===
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+        
+        // === 시작 ===
+        init();
+    </script>
+</body>
+</html>
