@@ -512,17 +512,24 @@
                 // 설명이 있으면 텍스트 분석 (비용 절감), 없으면 이미지 분석
                 if (slot.description) {
                     requestBody.description = slot.description;
-                } else if (slot.imageUrl) {
-                    // 이미지 URL에서 base64 가져오기 (필요시)
-                    const imgResponse = await fetch(slot.imageUrl);
-                    const blob = await imgResponse.blob();
-                    const base64 = await blobToBase64(blob);
-                    requestBody.imageBase64 = base64.replace(/^data:image\/\w+;base64,/, '');
                 }
                 
-                // 영상용 이미지 URL 설정
-                if (slot.imageUrl && slot.imageUrl.startsWith('http')) {
-                    requestBody.imageUrl = slot.imageUrl;
+                // 이미지 URL → base64 변환 (D-ID에 전달)
+                if (slot.imageUrl) {
+                    try {
+                        // 상대 경로를 절대 URL로 변환
+                        const fullImageUrl = slot.imageUrl.startsWith('http') 
+                            ? slot.imageUrl 
+                            : window.location.origin + (slot.imageUrl.startsWith('/') ? '' : '/') + slot.imageUrl;
+                        
+                        const imgResponse = await fetch(fullImageUrl);
+                        const blob = await imgResponse.blob();
+                        const base64 = await blobToBase64(blob);
+                        requestBody.imageBase64 = base64.replace(/^data:image\/\w+;base64,/, '');
+                        console.log('🖼️ 이미지 base64 변환 완료');
+                    } catch (imgError) {
+                        console.error('이미지 로드 실패:', imgError);
+                    }
                 }
                 
                 // Step 2: D-ID 영상 생성
