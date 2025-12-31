@@ -242,7 +242,7 @@ export class ObjectStorageService {
     });
   }
 
-  // Upload buffer to object storage and return public URL
+  // Upload buffer to object storage and return signed URL (temporary public access)
   async uploadBuffer(buffer: Buffer, fileName: string, contentType: string = 'image/jpeg'): Promise<string> {
     const publicPaths = this.getPublicObjectSearchPaths();
     if (publicPaths.length === 0) {
@@ -261,11 +261,13 @@ export class ObjectStorageService {
       resumable: false
     });
     
-    // Make file publicly accessible
-    await file.makePublic();
-    
-    // Return public URL
-    return `https://storage.googleapis.com/${bucketName}/${objectName}`;
+    // Return signed URL (valid for 1 hour) instead of making public
+    return signObjectURL({
+      bucketName,
+      objectName,
+      method: 'GET',
+      ttlSec: 3600 // 1시간 유효
+    });
   }
 }
 
