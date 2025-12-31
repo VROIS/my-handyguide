@@ -241,6 +241,32 @@ export class ObjectStorageService {
       requestedPermission: requestedPermission ?? ObjectPermission.READ,
     });
   }
+
+  // Upload buffer to object storage and return public URL
+  async uploadBuffer(buffer: Buffer, fileName: string, contentType: string = 'image/jpeg'): Promise<string> {
+    const publicPaths = this.getPublicObjectSearchPaths();
+    if (publicPaths.length === 0) {
+      throw new Error('PUBLIC_OBJECT_SEARCH_PATHS not set');
+    }
+    
+    const basePath = publicPaths[0];
+    const fullPath = `${basePath}/${fileName}`;
+    const { bucketName, objectName } = parseObjectPath(fullPath);
+    
+    const bucket = objectStorageClient.bucket(bucketName);
+    const file = bucket.file(objectName);
+    
+    await file.save(buffer, {
+      metadata: { contentType },
+      resumable: false
+    });
+    
+    // Make file publicly accessible
+    await file.makePublic();
+    
+    // Return public URL
+    return `https://storage.googleapis.com/${bucketName}/${objectName}`;
+  }
 }
 
 function parseObjectPath(path: string): {

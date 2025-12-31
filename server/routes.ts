@@ -3854,15 +3854,29 @@ self.addEventListener('fetch', (event) => {
         }
       };
       
-      // 이미지 소스 설정
+      // 이미지 소스 설정 (D-ID는 실제 URL만 허용, base64 직접 전송 불가)
       if (imageUrl && imageUrl.startsWith('http')) {
         requestBody.source_url = imageUrl;
         console.log(`   - 이미지: URL 직접 사용`);
       } else if (imageBase64) {
-        requestBody.source_url = imageBase64.startsWith('data:') 
-          ? imageBase64 
-          : `data:image/jpeg;base64,${imageBase64}`;
-        console.log(`   - 이미지: Base64 업로드`);
+        // base64 이미지를 Object Storage에 업로드 후 URL 사용
+        try {
+          const objectStorageService = new ObjectStorageService();
+          const imageBuffer = Buffer.from(
+            imageBase64.replace(/^data:image\/\w+;base64,/, ''), 
+            'base64'
+          );
+          const fileName = `dream-studio/temp-${Date.now()}.jpg`;
+          const uploadedUrl = await objectStorageService.uploadBuffer(imageBuffer, fileName, 'image/jpeg');
+          requestBody.source_url = uploadedUrl;
+          console.log(`   - 이미지: Object Storage 업로드 완료 → ${uploadedUrl}`);
+        } catch (uploadError) {
+          console.error('이미지 업로드 실패:', uploadError);
+          return res.status(500).json({ 
+            error: '이미지 업로드 실패. D-ID는 실제 URL이 필요합니다.',
+            details: String(uploadError)
+          });
+        }
       }
       
       // D-ID Talks API 호출 - 영상 생성 시작
@@ -4000,13 +4014,29 @@ self.addEventListener('fetch', (event) => {
         }
       };
       
-      // 이미지 소스 설정
+      // 이미지 소스 설정 (D-ID는 실제 URL만 허용)
       if (imageUrl && imageUrl.startsWith('http')) {
         didRequest.source_url = imageUrl;
+        console.log(`   - 이미지: URL 직접 사용`);
       } else if (imageBase64) {
-        didRequest.source_url = imageBase64.startsWith('data:') 
-          ? imageBase64 
-          : `data:image/jpeg;base64,${imageBase64}`;
+        // base64 이미지를 Object Storage에 업로드
+        try {
+          const objectStorageService = new ObjectStorageService();
+          const imageBuffer = Buffer.from(
+            imageBase64.replace(/^data:image\/\w+;base64,/, ''), 
+            'base64'
+          );
+          const fileName = `dream-studio/video-${Date.now()}.jpg`;
+          const uploadedUrl = await objectStorageService.uploadBuffer(imageBuffer, fileName, 'image/jpeg');
+          didRequest.source_url = uploadedUrl;
+          console.log(`   - 이미지: Object Storage 업로드 → ${uploadedUrl}`);
+        } catch (uploadError) {
+          console.error('이미지 업로드 실패:', uploadError);
+          return res.status(500).json({ 
+            error: '이미지 업로드 실패',
+            analysis: analyzed
+          });
+        }
       }
       
       // D-ID API 호출
