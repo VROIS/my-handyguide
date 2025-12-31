@@ -3817,6 +3817,266 @@ self.addEventListener('fetch', (event) => {
     }
   });
 
+  // 6. D-ID 영상 생성 (Talks API)
+  app.post('/api/dream-studio/generate-did-video', async (req, res) => {
+    try {
+      const { imageUrl, imageBase64, script, audioBase64, voiceName = 'ko-KR-SunHiNeural' } = req.body;
+      
+      if (!imageUrl && !imageBase64) {
+        return res.status(400).json({ error: '이미지가 필요합니다' });
+      }
+      
+      if (!script && !audioBase64) {
+        return res.status(400).json({ error: '대사 또는 오디오가 필요합니다' });
+      }
+      
+      const didApiKey = process.env.DID_API_KEY;
+      if (!didApiKey) {
+        return res.status(500).json({ error: 'D-ID API Key가 설정되지 않았습니다' });
+      }
+      
+      console.log(`🎬 [D-ID] 영상 생성 시작`);
+      const startTime = Date.now();
+      
+      // D-ID API 요청 구성
+      const requestBody: any = {
+        config: { stitch: true },
+        script: audioBase64 ? {
+          type: 'audio',
+          audio_url: `data:audio/wav;base64,${audioBase64}`
+        } : {
+          type: 'text',
+          input: script,
+          provider: {
+            type: 'microsoft',
+            voice_id: voiceName
+          }
+        }
+      };
+      
+      // 이미지 소스 설정
+      if (imageUrl && imageUrl.startsWith('http')) {
+        requestBody.source_url = imageUrl;
+        console.log(`   - 이미지: URL 직접 사용`);
+      } else if (imageBase64) {
+        requestBody.source_url = imageBase64.startsWith('data:') 
+          ? imageBase64 
+          : `data:image/jpeg;base64,${imageBase64}`;
+        console.log(`   - 이미지: Base64 업로드`);
+      }
+      
+      // D-ID Talks API 호출 - 영상 생성 시작
+      const createResponse = await fetch('https://api.d-id.com/talks', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${Buffer.from(didApiKey).toString('base64')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+      });
+      
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json();
+        console.error('D-ID 생성 오류:', errorData);
+        return res.status(createResponse.status).json({ 
+          error: 'D-ID 영상 생성 실패', 
+          details: errorData 
+        });
+      }
+      
+      const createResult = await createResponse.json();
+      const talkId = createResult.id;
+      console.log(`   - Talk ID: ${talkId}`);
+      
+      // 영상 생성 완료 대기 (폴링)
+      let videoUrl = null;
+      let attempts = 0;
+      const maxAttempts = 60; // 최대 2분 대기
+      
+      while (!videoUrl && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 2000)); // 2초 대기
+        attempts++;
+        
+        const statusResponse = await fetch(`https://api.d-id.com/talks/${talkId}`, {
+          headers: {
+            'Authorization': `Basic ${Buffer.from(didApiKey).toString('base64')}`
+          }
+        });
+        
+        if (statusResponse.ok) {
+          const statusResult = await statusResponse.json();
+          console.log(`   - 상태 체크 ${attempts}: ${statusResult.status}`);
+          
+          if (statusResult.status === 'done') {
+            videoUrl = statusResult.result_url;
+            break;
+          } else if (statusResult.status === 'error') {
+            return res.status(500).json({ 
+              error: 'D-ID 영상 생성 실패', 
+              details: statusResult.error 
+            });
+          }
+        }
+      }
+      
+      if (!videoUrl) {
+        return res.status(408).json({ error: '영상 생성 시간 초과' });
+      }
+      
+      const totalTime = Date.now() - startTime;
+      console.log(`🎬 [D-ID] 영상 생성 완료: ${totalTime}ms`);
+      console.log(`   - Video URL: ${videoUrl}`);
+      
+      res.json({
+        videoUrl,
+        talkId,
+        processingTime: totalTime
+      });
+      
+    } catch (error) {
+      console.error('D-ID 영상 생성 오류:', error);
+      res.status(500).json({ error: 'D-ID 영상 생성 중 오류가 발생했습니다' });
+    }
+  });
+
+  // 7. 드림 스튜디오 전체 파이프라인 (분석 → TTS → D-ID 영상)
+  app.post('/api/dream-studio/create-video', async (req, res) => {
+    try {
+      const { 
+        description, 
+        imageBase64,
+        imageUrl,
+        language = 'ko', 
+        duration = 20,
+        useDidTts = true // D-ID 내장 TTS 사용 여부
+      } = req.body;
+      
+      if (!description && !imageBase64) {
+        return res.status(400).json({ error: '설명 또는 이미지가 필요합니다' });
+      }
+      
+      if (!imageUrl && !imageBase64) {
+        return res.status(400).json({ error: '영상 생성을 위한 이미지가 필요합니다' });
+      }
+      
+      const didApiKey = process.env.DID_API_KEY;
+      if (!didApiKey) {
+        return res.status(500).json({ error: 'D-ID API Key가 설정되지 않았습니다' });
+      }
+      
+      console.log(`🎬 [드림스튜디오] 전체 파이프라인 시작`);
+      const startTime = Date.now();
+      
+      // 1단계: 분석 + 대사 생성
+      let analyzed: AnalyzedScript;
+      if (description) {
+        console.log(`   - Step 1: 텍스트 분석 (비용 절감)`);
+        analyzed = await analyzeTextAndGenerateScript(description, language, duration);
+      } else {
+        console.log(`   - Step 1: 이미지 분석`);
+        analyzed = await analyzeImageAndGenerateScript(imageBase64!, language, duration);
+      }
+      console.log(`   - 대사 생성 완료: ${analyzed.script.substring(0, 30)}...`);
+      
+      // 2단계: D-ID 영상 생성 (TTS 포함)
+      console.log(`   - Step 2: D-ID 영상 생성`);
+      
+      const voiceMap: Record<string, string> = {
+        ko: 'ko-KR-SunHiNeural',
+        en: 'en-US-JennyNeural',
+        ja: 'ja-JP-NanamiNeural',
+        zh: 'zh-CN-XiaoxiaoNeural'
+      };
+      
+      const didRequest: any = {
+        config: { stitch: true },
+        script: {
+          type: 'text',
+          input: analyzed.script,
+          provider: {
+            type: 'microsoft',
+            voice_id: voiceMap[language] || voiceMap.ko
+          }
+        }
+      };
+      
+      // 이미지 소스 설정
+      if (imageUrl && imageUrl.startsWith('http')) {
+        didRequest.source_url = imageUrl;
+      } else if (imageBase64) {
+        didRequest.source_url = imageBase64.startsWith('data:') 
+          ? imageBase64 
+          : `data:image/jpeg;base64,${imageBase64}`;
+      }
+      
+      // D-ID API 호출
+      const createResponse = await fetch('https://api.d-id.com/talks', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${Buffer.from(didApiKey).toString('base64')}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(didRequest)
+      });
+      
+      if (!createResponse.ok) {
+        const errorData = await createResponse.json();
+        console.error('D-ID 생성 오류:', errorData);
+        return res.status(createResponse.status).json({ 
+          error: 'D-ID 영상 생성 실패', 
+          details: errorData,
+          analysis: analyzed
+        });
+      }
+      
+      const createResult = await createResponse.json();
+      const talkId = createResult.id;
+      
+      // 폴링으로 완료 대기
+      let videoUrl = null;
+      let attempts = 0;
+      
+      while (!videoUrl && attempts < 60) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        attempts++;
+        
+        const statusResponse = await fetch(`https://api.d-id.com/talks/${talkId}`, {
+          headers: {
+            'Authorization': `Basic ${Buffer.from(didApiKey).toString('base64')}`
+          }
+        });
+        
+        if (statusResponse.ok) {
+          const statusResult = await statusResponse.json();
+          if (statusResult.status === 'done') {
+            videoUrl = statusResult.result_url;
+            break;
+          } else if (statusResult.status === 'error') {
+            return res.status(500).json({ 
+              error: 'D-ID 영상 생성 실패', 
+              details: statusResult.error,
+              analysis: analyzed
+            });
+          }
+        }
+      }
+      
+      const totalTime = Date.now() - startTime;
+      console.log(`🎬 [드림스튜디오] 전체 파이프라인 완료: ${totalTime}ms`);
+      
+      res.json({
+        analysis: analyzed,
+        videoUrl,
+        talkId,
+        processingTime: totalTime
+      });
+      
+    } catch (error) {
+      console.error('전체 파이프라인 오류:', error);
+      res.status(500).json({ error: '영상 생성 중 오류가 발생했습니다' });
+    }
+  });
+
   // ═══════════════════════════════════════════════════════════════
   // 💳 프로필 페이지 API 라우트 (2025-11-26)
   // ═══════════════════════════════════════════════════════════════

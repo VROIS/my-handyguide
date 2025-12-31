@@ -913,12 +913,12 @@ ${duration}초 분량(한국어 ${charCount}자)으로 감정이 담긴 대사�
             }
         }
         
-        // === 병렬 처리 (TTS + D-ID) ===
+        // === 영상 생성 (서버 API 호출) ===
         async function startParallelProcess() {
             const slot = slots[currentSlotIndex];
-            const script = document.getElementById('generatedScript').value.trim();
+            const script = document.getElementById('generatedScript')?.value?.trim() || slot.script;
             
-            if (!slot.image) {
+            if (!slot.image && !slot.imageUrl) {
                 showToast('이미지를 먼저 업로드하세요');
                 return;
             }
@@ -935,42 +935,52 @@ ${duration}초 분량(한국어 ${charCount}자)으로 감정이 담긴 대사�
             document.getElementById('processStatus').style.display = 'block';
             updateStepStatus('script', 'done');
             
-            const didKey = localStorage.getItem('didApiKey');
-            
-            if (!didKey) {
-                showToast('D-ID API 키를 설정하세요 (설정 탭)');
-                updateStepStatus('tts', 'error');
-                updateStepStatus('video', 'error');
-                return;
-            }
-            
-            // 병렬 처리 시작
+            // 서버 API로 D-ID 영상 생성 (API 키는 서버에서 관리)
             try {
                 updateStepStatus('tts', 'processing');
                 updateStepStatus('video', 'processing');
+                showToast('D-ID 영상 생성 중... (약 1분 소요)');
                 
-                // DB에서 가져온 경우 URL 직접 사용, 아니면 base64
-                const imageSource = slot.imageUrl || slot.image;
-                const isUrl = slot.imageUrl && slot.imageUrl.startsWith('http');
+                const requestBody = {
+                    script: script,
+                    voiceName: 'ko-KR-SunHiNeural'
+                };
                 
-                if (isUrl) {
-                    showToast('DB 이미지 URL 직접 사용 (업로드 불필요!)');
+                // DB에서 가져온 경우 URL 사용, 아니면 base64
+                if (slot.imageUrl && slot.imageUrl.startsWith('http')) {
+                    requestBody.imageUrl = slot.imageUrl;
+                    console.log('🎬 서버 API: 이미지 URL 사용');
+                } else if (slot.image) {
+                    requestBody.imageBase64 = slot.image.replace(/^data:image\/\w+;base64,/, '');
+                    console.log('🎬 서버 API: Base64 업로드');
                 }
                 
-                // D-ID는 자체 TTS 포함 가능 → 단일 호출로 최적화
-                const videoResult = await generateDIDVideo(imageSource, script, didKey, isUrl);
+                const response = await fetch('/api/dream-studio/generate-did-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
+                });
+                
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'D-ID 영상 생성 실패');
+                }
+                
+                const result = await response.json();
                 
                 updateStepStatus('tts', 'done');
                 updateStepStatus('video', 'done');
                 updateStepStatus('merge', 'done');
                 
-                slot.videoUrl = videoResult.url;
+                slot.videoUrl = result.videoUrl;
                 slot.status = 'ready';
                 renderSlots();
                 
-                showToast('영상 생성 완료!');
+                console.log('✅ 영상 생성 완료:', result);
+                showToast(`영상 생성 완료! (${Math.round(result.processingTime/1000)}초)`);
                 
             } catch (error) {
+                console.error('영상 생성 오류:', error);
                 showToast('에러: ' + error.message);
                 updateStepStatus('video', 'error');
                 slot.status = 'image';
@@ -978,74 +988,87 @@ ${duration}초 분량(한국어 ${charCount}자)으로 감정이 담긴 대사�
             }
         }
         
-        // === D-ID API 호출 ===
-        async function generateDIDVideo(imageData, script, apiKey, isUrl = false) {
-            showToast('D-ID 영상 생성 중... (약 1분 소요)');
+        // === 원클릭 전체 생성 (분석 → D-ID 영상) ===
+        async function createVideoOneClick() {
+            const slot = slots[currentSlotIndex];
             
-            // 요청 바디 구성
-            const requestBody = {
-                script: {
-                    type: 'text',
-                    input: script,
-                    provider: {
-                        type: 'microsoft',
-                        voice_id: 'ko-KR-SunHiNeural'
-                    }
-                },
-                config: {
-                    stitch: true
-                }
-            };
-            
-            // URL인 경우 source_url, base64인 경우 source_url (D-ID는 둘 다 지원)
-            if (isUrl) {
-                requestBody.source_url = imageData;
-                console.log('D-ID: URL 직접 사용 →', imageData.substring(0, 50) + '...');
-            } else {
-                // base64인 경우 data URL 형식으로
-                requestBody.source_url = imageData.startsWith('data:') ? imageData : `data:image/jpeg;base64,${imageData}`;
-                console.log('D-ID: Base64 업로드');
+            if (!slot.image && !slot.imageUrl && !slot.description) {
+                showToast('이미지 또는 가이드를 먼저 선택하세요');
+                return;
             }
             
-            // 1. Talk 생성 요청
-            const createResponse = await fetch('https://api.d-id.com/talks', {
-                method: 'POST',
-                headers: {
-                    'Authorization': `Basic ${apiKey}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify(requestBody)
-            });
+            slot.status = 'processing';
+            renderSlots();
+            document.getElementById('processStatus').style.display = 'block';
             
-            if (!createResponse.ok) {
-                const error = await createResponse.json();
-                throw new Error(error.message || 'D-ID 요청 실패');
-            }
+            updateStepStatus('script', 'processing');
+            showToast('🎬 원클릭 영상 생성 시작...');
             
-            const createResult = await createResponse.json();
-            const talkId = createResult.id;
-            
-            // 2. 완료 대기 (폴링)
-            let attempts = 0;
-            while (attempts < 60) { // 최대 2분 대기
-                await new Promise(r => setTimeout(r, 2000));
+            try {
+                const requestBody = {
+                    language: 'ko',
+                    duration: 20
+                };
                 
-                const statusResponse = await fetch(`https://api.d-id.com/talks/${talkId}`, {
-                    headers: { 'Authorization': `Basic ${apiKey}` }
+                // 설명이 있으면 텍스트 분석 (비용 절감)
+                if (slot.description) {
+                    requestBody.description = slot.description;
+                    console.log('📝 텍스트 분석 모드');
+                } else if (slot.image) {
+                    requestBody.imageBase64 = slot.image.replace(/^data:image\/\w+;base64,/, '');
+                    console.log('🖼️ 이미지 분석 모드');
+                }
+                
+                // 영상용 이미지
+                if (slot.imageUrl && slot.imageUrl.startsWith('http')) {
+                    requestBody.imageUrl = slot.imageUrl;
+                } else if (slot.image) {
+                    requestBody.imageBase64 = slot.image.replace(/^data:image\/\w+;base64,/, '');
+                }
+                
+                const response = await fetch('/api/dream-studio/create-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestBody)
                 });
                 
-                const statusResult = await statusResponse.json();
-                
-                if (statusResult.status === 'done') {
-                    return { url: statusResult.result_url };
-                } else if (statusResult.status === 'error') {
-                    throw new Error(statusResult.error?.message || '영상 생성 실패');
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || '영상 생성 실패');
                 }
                 
-                attempts++;
+                const result = await response.json();
+                
+                // 결과 저장
+                slot.category = result.analysis.category;
+                slot.categoryKo = result.analysis.categoryKo;
+                slot.persona = result.analysis.persona;
+                slot.mood = result.analysis.mood;
+                slot.script = result.analysis.script;
+                slot.videoUrl = result.videoUrl;
+                slot.status = 'ready';
+                
+                // UI 업데이트
+                const scriptEl = document.getElementById('generatedScript');
+                if (scriptEl) scriptEl.value = result.analysis.script;
+                
+                updateStepStatus('script', 'done');
+                updateStepStatus('tts', 'done');
+                updateStepStatus('video', 'done');
+                updateStepStatus('merge', 'done');
+                
+                renderSlots();
+                
+                console.log('✅ 원클릭 영상 생성 완료:', result);
+                showToast(`🎬 완료! ${result.analysis.categoryKo} - ${Math.round(result.processingTime/1000)}초`);
+                
+            } catch (error) {
+                console.error('원클릭 생성 오류:', error);
+                showToast('에러: ' + error.message);
+                updateStepStatus('script', 'error');
+                slot.status = 'image';
+                renderSlots();
             }
-            
-            throw new Error('시간 초과');
         }
         
         // === 프로세스 상태 업데이트 ===
