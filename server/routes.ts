@@ -4097,38 +4097,9 @@ self.addEventListener('fetch', (event) => {
         return publicUrl;
       }
       
-      if (analyzed.useOriginalImage && finalImageBase64) {
-        // 🎨 artwork 모드: 원본 이미지 사용 (작품 속 인물이 직접 말함)
-        console.log(`   - 🎨 아트워크 모드: 원본 이미지 → source_url 변환`);
-        
-        try {
-          const sharp = (await import('sharp')).default;
-          
-          // base64에서 이미지 버퍼로 변환
-          const cleanBase64 = finalImageBase64.replace(/^data:image\/\w+;base64,/, '');
-          const imgBuffer = Buffer.from(cleanBase64, 'base64');
-          
-          // D-ID용 이미지 압축 (최대 640x640, JPEG 85% - 얼굴 인식 위해 품질 높임)
-          const compressedBuffer = await sharp(imgBuffer)
-            .resize(640, 640, { fit: 'inside', withoutEnlargement: true })
-            .jpeg({ quality: 85 })
-            .toBuffer();
-          
-          console.log(`   - 이미지 압축: ${Math.round(imgBuffer.length / 1024)}KB → ${Math.round(compressedBuffer.length / 1024)}KB`);
-          
-          // 임시 파일로 저장하고 공개 URL 생성
-          const imageUrl = await saveImageForDID(compressedBuffer, 'artwork');
-          didRequest.source_url = imageUrl;
-          
-        } catch (compError) {
-          console.error('이미지 처리 실패:', compError);
-          // 실패 시 아바타 URL 사용
-          didRequest.source_url = `${baseUrl}${guide.avatarPath}`;
-        }
-        
-      } else if (finalImageBase64 && !analyzed.useOriginalImage) {
-        // 🏛️ landmark/food 모드: 배경 + 아바타 합성
-        console.log(`   - 🏛️ 가이드 모드: 배경 + 아바타 합성 → source_url 변환`);
+      // 🎨 모든 이미지: 배경 + 아바타 합성 (D-ID 얼굴 인식 보장)
+      if (finalImageBase64) {
+        console.log(`   - 🎨 통합 모드: 배경 + 아바타 합성 → source_url 변환`);
         
         try {
           const sharp = (await import('sharp')).default;
