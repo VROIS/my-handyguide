@@ -4360,6 +4360,9 @@ document.addEventListener('DOMContentLoaded', () => {
     async function showAdminSettingsPage() {
         pauseCamera();
         
+        // 페이지 먼저 표시 (API 호출 전)
+        showPage(adminSettingsPage);
+        
         // 서버 세션 확인
         try {
             const response = await fetch('/api/admin/featured');
@@ -4409,7 +4412,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         populatePromptTextareas();
-        showPage(adminSettingsPage);
     }
 
     // ═══════════════════════════════════════════════════════════════
