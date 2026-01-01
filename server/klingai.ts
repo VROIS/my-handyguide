@@ -9,6 +9,7 @@ interface KlingVideoRequest {
   duration?: '5' | '10';
   mode?: 'std' | 'pro';
   modelName?: string;
+  sound?: boolean;  // Native audio 활성화 (Kling 2.6+)
 }
 
 interface KlingTaskResponse {
@@ -106,7 +107,7 @@ async function klingGet(endpoint: string): Promise<any> {
 }
 
 export async function createImageToVideoTask(options: KlingVideoRequest): Promise<KlingTaskResponse> {
-  const { imageBase64, imageUrl, prompt, duration = '5', mode = 'pro', modelName = 'kling-v2-6' } = options;
+  const { imageBase64, imageUrl, prompt, duration = '5', mode = 'pro', modelName = 'kling-v2-6', sound = true } = options;
 
   if (!imageBase64 && !imageUrl) {
     throw new Error('Either imageBase64 or imageUrl is required');
@@ -119,6 +120,11 @@ export async function createImageToVideoTask(options: KlingVideoRequest): Promis
     prompt
   };
 
+  // Native Audio 활성화 (Kling 2.6+)
+  if (sound) {
+    body.sound = true;
+  }
+
   if (imageBase64) {
     const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
     body.image = cleanBase64;
@@ -126,7 +132,7 @@ export async function createImageToVideoTask(options: KlingVideoRequest): Promis
     body.image = imageUrl;
   }
 
-  console.log(`🎬 [Kling.ai] 영상 생성 요청: model=${modelName}, mode=${mode}, duration=${duration}s`);
+  console.log(`🎬 [Kling.ai] 영상 생성 요청: model=${modelName}, mode=${mode}, duration=${duration}s, sound=${sound}`);
   
   const result = await klingRequest('/v1/videos/image2video', body);
   
