@@ -3953,7 +3953,7 @@ self.addEventListener('fetch', (event) => {
     }
   });
 
-  // 7. 드림 스튜디오 전체 파이프라인 (분석 → TTS → D-ID 영상) - 아바타 기반
+  // 7. 드림 스튜디오 전체 파이프라인 (분석 → TTS → D-ID 영상) - 분류별 처리
   app.post('/api/dream-studio/create-video', async (req, res) => {
     try {
       const { 
@@ -3982,7 +3982,7 @@ self.addEventListener('fetch', (event) => {
       const { GUIDE_TEMPLATES } = await import('./klingai');
       const guide = GUIDE_TEMPLATES[guideType as keyof typeof GUIDE_TEMPLATES] || GUIDE_TEMPLATES.young_female;
       
-      // 1단계: 분석 + 대사 생성
+      // 1단계: 분석 + 대사 생성 (Gemini가 분류 결정)
       let analyzed: AnalyzedScript;
       if (description) {
         console.log(`   - Step 1: 텍스트 분석 (비용 절감)`);
@@ -3993,6 +3993,8 @@ self.addEventListener('fetch', (event) => {
       }
       console.log(`   - 대사 생성 완료: ${analyzed.script.substring(0, 30)}...`);
       console.log(`   - 카테고리: ${analyzed.category} (${analyzed.categoryKo})`);
+      console.log(`   - 원본 이미지 사용: ${analyzed.useOriginalImage}`);
+      console.log(`   - 영상 프롬프트: ${analyzed.videoPrompt}`);
       
       // 2단계: D-ID 영상 생성 (TTS 포함)
       console.log(`   - Step 2: D-ID 영상 생성`);
@@ -4041,12 +4043,82 @@ self.addEventListener('fetch', (event) => {
         }
       };
       
-      // 아바타 이미지 URL 설정 (D-ID는 실제 URL만 허용)
+      // ═══════════════════════════════════════════════════════════════
+      // 분류별 이미지 처리 로직
+      // ═══════════════════════════════════════════════════════════════
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const host = req.headers.host;
-      const avatarUrl = `${protocol}://${host}${guide.avatarPath}`;
-      didRequest.source_url = avatarUrl;
-      console.log(`   - 아바타 이미지: ${avatarUrl}`);
+      
+      if (analyzed.useOriginalImage && imageBase64) {
+        // 🎨 artwork 모드: 원본 이미지 사용 (작품 속 인물이 직접 말함)
+        console.log(`   - 🎨 아트워크 모드: 원본 이미지 사용`);
+        
+        // base64에서 data:image/... 접두사 제거
+        const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+        didRequest.source_base64 = cleanBase64;
+        
+      } else if (imageBase64 && !analyzed.useOriginalImage) {
+        // 🏛️ landmark/food 모드: 배경 + 아바타 합성
+        console.log(`   - 🏛️ 가이드 모드: 배경 + 아바타 합성`);
+        
+        try {
+          const sharp = (await import('sharp')).default;
+          const path = await import('path');
+          const fs = await import('fs/promises');
+          
+          // 배경 이미지 (원본)
+          const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+          const bgBuffer = Buffer.from(cleanBase64, 'base64');
+          
+          // 아바타 이미지 로드
+          const avatarPath = path.join(process.cwd(), 'public', guide.avatarPath.replace(/^\//, ''));
+          const avatarBuffer = await fs.readFile(avatarPath);
+          
+          // 배경 크기 확인 (D-ID 최대 1024x1024 권장)
+          const bgMeta = await sharp(bgBuffer).metadata();
+          const targetWidth = Math.min(bgMeta.width || 1024, 1024);
+          const targetHeight = Math.min(bgMeta.height || 1024, 1024);
+          
+          // 아바타 크기 조정 (화면의 40% 높이)
+          const avatarHeight = Math.round(targetHeight * 0.45);
+          const resizedAvatar = await sharp(avatarBuffer)
+            .resize({ height: avatarHeight, fit: 'inside' })
+            .toBuffer();
+          
+          const avatarMeta = await sharp(resizedAvatar).metadata();
+          const avatarWidth = avatarMeta.width || 200;
+          
+          // 배경 리사이즈 + 아바타 합성 (하단 중앙)
+          const compositeX = Math.round((targetWidth - avatarWidth) / 2);
+          const compositeY = targetHeight - avatarHeight; // 하단에 배치
+          
+          const compositeImage = await sharp(bgBuffer)
+            .resize(targetWidth, targetHeight, { fit: 'cover' })
+            .composite([{
+              input: resizedAvatar,
+              left: compositeX,
+              top: compositeY
+            }])
+            .jpeg({ quality: 90 })
+            .toBuffer();
+          
+          const compositeBase64 = compositeImage.toString('base64');
+          didRequest.source_base64 = compositeBase64;
+          console.log(`   - 합성 이미지 생성 완료: ${targetWidth}x${targetHeight}`);
+          
+        } catch (compError) {
+          console.error('이미지 합성 실패, 아바타만 사용:', compError);
+          // 합성 실패 시 아바타만 사용
+          const avatarUrl = `${protocol}://${host}${guide.avatarPath}`;
+          didRequest.source_url = avatarUrl;
+        }
+        
+      } else {
+        // 이미지 없으면 아바타만 사용
+        const avatarUrl = `${protocol}://${host}${guide.avatarPath}`;
+        didRequest.source_url = avatarUrl;
+        console.log(`   - 아바타 이미지: ${avatarUrl}`);
+      }
       
       // D-ID API 호출
       const createResponse = await fetch('https://api.d-id.com/talks', {
