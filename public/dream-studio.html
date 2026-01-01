@@ -821,8 +821,9 @@
         // 상세보기에서 영상 생성
         function generateFromDetail() {
             if (currentGuideIndex === null) return;
+            const guideIndex = currentGuideIndex; // 값 저장 후 모달 닫기
             closeGuideDetail();
-            startVideoGeneration(currentGuideIndex);
+            startVideoGeneration(guideIndex);
         }
         
         async function startVideoGeneration(guideIndex) {
