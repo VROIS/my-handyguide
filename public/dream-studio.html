@@ -418,6 +418,148 @@
             from { opacity: 0; transform: translateX(-50%) translateY(20px); }
             to { opacity: 1; transform: translateX(-50%) translateY(0); }
         }
+        
+        /* 가이드 상세보기 모달 */
+        .guide-detail-modal {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            display: none;
+            overflow-y: auto;
+        }
+        
+        .guide-detail-modal.show { display: block; }
+        
+        .guide-detail-content {
+            max-width: 430px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: #FFFEFA;
+            position: relative;
+        }
+        
+        .guide-detail-header {
+            position: sticky;
+            top: 0;
+            background: #FFFEFA;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .guide-detail-close {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+        
+        .guide-detail-header-title {
+            flex: 1;
+            text-align: center;
+            font-size: 16px;
+            font-weight: 600;
+            margin-right: 40px;
+        }
+        
+        .guide-detail-image {
+            width: 100%;
+            aspect-ratio: 4/3;
+            object-fit: cover;
+        }
+        
+        .guide-detail-body {
+            padding: 20px;
+        }
+        
+        .guide-detail-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        
+        .guide-detail-meta {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: #888;
+        }
+        
+        .guide-detail-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .guide-detail-section {
+            margin-bottom: 20px;
+        }
+        
+        .guide-detail-section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #4285F4;
+            margin-bottom: 8px;
+        }
+        
+        .guide-detail-desc {
+            font-size: 15px;
+            line-height: 1.6;
+            color: #555;
+            white-space: pre-wrap;
+        }
+        
+        .guide-detail-actions {
+            position: sticky;
+            bottom: 0;
+            background: #FFFEFA;
+            padding: 16px 20px;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 12px;
+        }
+        
+        .guide-detail-btn {
+            flex: 1;
+            padding: 14px;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-family: 'MaruBuri', sans-serif;
+        }
+        
+        .guide-detail-btn.primary {
+            background: #4285F4;
+            color: white;
+            border: none;
+        }
+        
+        .guide-detail-btn.primary:hover {
+            background: #3367D6;
+        }
+        
+        .guide-detail-btn.secondary {
+            background: white;
+            color: #666;
+            border: 1px solid #ddd;
+        }
+        
+        .guide-detail-btn.secondary:hover {
+            background: #f5f5f5;
+        }
     </style>
 </head>
 <body>
@@ -484,6 +626,59 @@
     </div>
     
     <div class="toast" id="toast"></div>
+    
+    <!-- 가이드 상세보기 모달 -->
+    <div class="guide-detail-modal" id="guideDetailModal">
+        <div class="guide-detail-content">
+            <div class="guide-detail-header">
+                <div class="guide-detail-close" onclick="closeGuideDetail()" data-testid="guide-detail-close">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </div>
+                <div class="guide-detail-header-title">가이드 상세</div>
+            </div>
+            
+            <img class="guide-detail-image" id="guideDetailImage" src="" alt="">
+            
+            <div class="guide-detail-body">
+                <div class="guide-detail-title" id="guideDetailTitle"></div>
+                
+                <div class="guide-detail-meta">
+                    <div class="guide-detail-meta-item" id="guideDetailLocation">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span></span>
+                    </div>
+                    <div class="guide-detail-meta-item" id="guideDetailDate">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                        <span></span>
+                    </div>
+                </div>
+                
+                <div class="guide-detail-section">
+                    <div class="guide-detail-section-title">AI 생성 설명</div>
+                    <div class="guide-detail-desc" id="guideDetailDesc"></div>
+                </div>
+            </div>
+            
+            <div class="guide-detail-actions">
+                <button class="guide-detail-btn secondary" onclick="closeGuideDetail()" data-testid="guide-detail-cancel">
+                    취소
+                </button>
+                <button class="guide-detail-btn primary" onclick="generateFromDetail()" data-testid="guide-detail-generate">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    영상 생성
+                </button>
+            </div>
+        </div>
+    </div>
 
     <script>
         const GUIDE_AVATARS = [
@@ -497,6 +692,7 @@
         let myGuides = [];
         let savedVideos = JSON.parse(localStorage.getItem('dreamStudioVideos') || '[]');
         let currentVideoSlotIndex = null;
+        let currentGuideIndex = null; // 상세보기용
         
         const slots = Array(6).fill(null).map((_, i) => ({
             id: i + 1,
@@ -547,7 +743,7 @@
                 }
                 
                 list.innerHTML = myGuides.map((guide, i) => `
-                    <div class="guide-item" onclick="startVideoGeneration(${i})" data-testid="guide-item-${i}">
+                    <div class="guide-item" onclick="openGuideDetail(${i})" data-testid="guide-item-${i}">
                         <img class="guide-item-thumb" src="${guide.imageUrl || '/images/placeholder.png'}" alt="">
                         <div class="guide-item-info">
                             <div class="guide-item-title">${guide.title || guide.locationName || '제목 없음'}</div>
@@ -593,6 +789,40 @@
                     </div>
                 </div>
             `).join('');
+        }
+        
+        // 가이드 상세보기 열기
+        function openGuideDetail(guideIndex) {
+            const guide = myGuides[guideIndex];
+            if (!guide) return;
+            
+            currentGuideIndex = guideIndex;
+            
+            document.getElementById('guideDetailImage').src = guide.imageUrl || '/images/placeholder.png';
+            document.getElementById('guideDetailTitle').textContent = guide.title || guide.locationName || '제목 없음';
+            document.getElementById('guideDetailLocation').querySelector('span').textContent = guide.locationName || '위치 정보 없음';
+            
+            const createdAt = guide.createdAt ? new Date(guide.createdAt).toLocaleDateString('ko-KR') : '날짜 정보 없음';
+            document.getElementById('guideDetailDate').querySelector('span').textContent = createdAt;
+            
+            document.getElementById('guideDetailDesc').textContent = guide.aiGeneratedContent || guide.description || '설명이 없습니다.';
+            
+            document.getElementById('guideDetailModal').classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        // 가이드 상세보기 닫기
+        function closeGuideDetail() {
+            document.getElementById('guideDetailModal').classList.remove('show');
+            document.body.style.overflow = '';
+            currentGuideIndex = null;
+        }
+        
+        // 상세보기에서 영상 생성
+        function generateFromDetail() {
+            if (currentGuideIndex === null) return;
+            closeGuideDetail();
+            startVideoGeneration(currentGuideIndex);
         }
         
         async function startVideoGeneration(guideIndex) {
