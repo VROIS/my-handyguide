@@ -493,6 +493,11 @@ export async function analyzeTextAndGenerateScript(
 4. 분위기 선정 (nostalgic, proud, mysterious, cheerful, peaceful, dramatic)
 5. 1인칭 대사 작성 - 주인공이 직접 말하는 형식
 
+⚠️ 중요: 대사에서 다음 단어는 반드시 피하세요 (AI 영상 생성 정책 위반):
+- 혁명, 전쟁, 폭력, 무기, 총, 칼, 피, 죽음, 살인
+- 정치적 갈등, 시위, 폭동, 테러
+- 대신 예술적 가치, 역사적 의미, 아름다움, 감동에 집중하세요
+
 JSON 형식으로 응답:
 {
   "category": "artwork 또는 landmark 또는 food_drink",
@@ -567,6 +572,11 @@ export async function analyzeImageAndGenerateScript(
 3. 페르소나 정의 (예: 100년 된 와인병, 에펠탑, 모나리자 등)
 4. 분위기 선정 (nostalgic, proud, mysterious, cheerful, peaceful, dramatic)
 5. 1인칭 대사 작성 - 이미지 속 주인공이 직접 말하는 형식
+
+⚠️ 중요: 대사에서 다음 단어는 반드시 피하세요 (AI 영상 생성 정책 위반):
+- 혁명, 전쟁, 폭력, 무기, 총, 칼, 피, 죽음, 살인
+- 정치적 갈등, 시위, 폭동, 테러
+- 대신 예술적 가치, 역사적 의미, 아름다움, 감동에 집중하세요
 
 JSON 형식으로 응답:
 {
