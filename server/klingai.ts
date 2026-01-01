@@ -42,8 +42,8 @@ interface KlingTaskResult {
 }
 
 function generateJWT(): string {
-  const accessKey = process.env.KLING_ACCESS_KEY;
-  const secretKey = process.env.KLING_SECRET_KEY;
+  const accessKey = process.env.KLING_ACCESS_KEY?.trim();
+  const secretKey = process.env.KLING_SECRET_KEY?.trim();
 
   if (!accessKey || !secretKey) {
     throw new Error('KLING_ACCESS_KEY or KLING_SECRET_KEY not set');
