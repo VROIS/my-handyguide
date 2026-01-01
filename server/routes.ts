@@ -4108,6 +4108,117 @@ self.addEventListener('fetch', (event) => {
   });
 
   // ═══════════════════════════════════════════════════════════════
+  // 🎬 드림 스튜디오 v2 - Kling.ai 기반 (2024-12-31)
+  // ═══════════════════════════════════════════════════════════════
+  
+  app.get('/api/dream-studio/v2/guides', async (req, res) => {
+    const { GUIDE_TEMPLATES } = await import('./klingai');
+    const guides = Object.entries(GUIDE_TEMPLATES).map(([key, value]: [string, any]) => ({
+      id: key,
+      ...value
+    }));
+    res.json(guides);
+  });
+
+  app.post('/api/dream-studio/v2/create-video', async (req, res) => {
+    try {
+      const { 
+        description, 
+        imageBase64,
+        imageUrl,
+        guideType = 'young_female',
+        language = 'ko', 
+        duration = '5'
+      } = req.body;
+      
+      if (!imageUrl && !imageBase64) {
+        return res.status(400).json({ error: '영상 생성을 위한 이미지가 필요합니다' });
+      }
+      
+      const klingAccessKey = process.env.KLING_ACCESS_KEY;
+      const klingSecretKey = process.env.KLING_SECRET_KEY;
+      
+      if (!klingAccessKey || !klingSecretKey) {
+        return res.status(500).json({ error: 'Kling.ai API Key가 설정되지 않았습니다' });
+      }
+      
+      console.log(`🎬 [드림스튜디오 v2] Kling.ai 파이프라인 시작`);
+      const startTime = Date.now();
+      
+      const { generateVideo, GUIDE_TEMPLATES } = await import('./klingai');
+      
+      // 1단계: 분석 + 대사 생성 (기존 DB description 활용)
+      let analyzed: AnalyzedScript;
+      if (description) {
+        console.log(`   - Step 1: 텍스트 분석 (비용 절감)`);
+        analyzed = await analyzeTextAndGenerateScript(description, language, parseInt(duration) * 4);
+      } else {
+        console.log(`   - Step 1: 이미지 분석`);
+        analyzed = await analyzeImageAndGenerateScript(imageBase64!, language, parseInt(duration) * 4);
+      }
+      console.log(`   - 대사 생성 완료: ${analyzed.script.substring(0, 30)}...`);
+      
+      // 2단계: 가이드 템플릿 선택
+      const guide = GUIDE_TEMPLATES[guideType as keyof typeof GUIDE_TEMPLATES] || GUIDE_TEMPLATES.young_female;
+      console.log(`   - Step 2: 가이드 선택 - ${guide.name}`);
+      
+      // 3단계: 프롬프트 조합
+      const finalPrompt = `${guide.promptTemplate} The scene shows: ${analyzed.script.substring(0, 100)}`;
+      console.log(`   - Step 3: 프롬프트 조합 완료`);
+      
+      // 4단계: Kling.ai 영상 생성
+      console.log(`   - Step 4: Kling.ai 영상 생성 (${duration}초)`);
+      
+      let videoUrl: string;
+      try {
+        videoUrl = await generateVideo({
+          imageBase64: imageBase64,
+          imageUrl: imageUrl,
+          prompt: finalPrompt,
+          duration: duration as '5' | '10',
+          mode: 'std'
+        });
+      } catch (klingError: any) {
+        console.error('Kling.ai 오류:', klingError);
+        return res.status(500).json({ 
+          error: 'Kling.ai 영상 생성 실패',
+          details: klingError.message,
+          analysis: analyzed
+        });
+      }
+      
+      const totalTime = Date.now() - startTime;
+      console.log(`🎬 [드림스튜디오 v2] 파이프라인 완료: ${totalTime}ms`);
+      
+      res.json({
+        analysis: analyzed,
+        videoUrl,
+        guide: {
+          id: guideType,
+          name: guide.name,
+          emoji: guide.emoji
+        },
+        processingTime: totalTime
+      });
+      
+    } catch (error) {
+      console.error('Kling.ai 파이프라인 오류:', error);
+      res.status(500).json({ error: '영상 생성 중 오류가 발생했습니다' });
+    }
+  });
+
+  // Kling.ai 태스크 상태 확인
+  app.get('/api/dream-studio/v2/task/:taskId', async (req, res) => {
+    try {
+      const { getTaskResult } = await import('./klingai');
+      const result = await getTaskResult(req.params.taskId);
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ═══════════════════════════════════════════════════════════════
   // 💳 프로필 페이지 API 라우트 (2025-11-26)
   // ═══════════════════════════════════════════════════════════════
   // 목적: 프로필 페이지, 크레딧, 결제 관련 API
