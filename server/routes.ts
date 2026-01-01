@@ -4053,9 +4053,13 @@ self.addEventListener('fetch', (event) => {
         // 🎨 artwork 모드: 원본 이미지 사용 (작품 속 인물이 직접 말함)
         console.log(`   - 🎨 아트워크 모드: 원본 이미지 사용`);
         
-        // base64에서 data:image/... 접두사 제거
-        const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
-        didRequest.source_base64 = cleanBase64;
+        // D-ID는 data URI 형식을 지원
+        if (imageBase64.startsWith('data:image/')) {
+          didRequest.source_base64 = imageBase64;
+        } else {
+          didRequest.source_base64 = `data:image/jpeg;base64,${imageBase64}`;
+        }
+        console.log(`   - 이미지 크기: ${Math.round(imageBase64.length / 1024)}KB`);
         
       } else if (imageBase64 && !analyzed.useOriginalImage) {
         // 🏛️ landmark/food 모드: 배경 + 아바타 합성
@@ -4099,12 +4103,12 @@ self.addEventListener('fetch', (event) => {
               left: compositeX,
               top: compositeY
             }])
-            .jpeg({ quality: 90 })
+            .png()
             .toBuffer();
           
           const compositeBase64 = compositeImage.toString('base64');
-          didRequest.source_base64 = compositeBase64;
-          console.log(`   - 합성 이미지 생성 완료: ${targetWidth}x${targetHeight}`);
+          didRequest.source_base64 = `data:image/png;base64,${compositeBase64}`;
+          console.log(`   - 합성 이미지 생성 완료: ${targetWidth}x${targetHeight}, size: ${Math.round(compositeBase64.length / 1024)}KB`);
           
         } catch (compError) {
           console.error('이미지 합성 실패, 아바타만 사용:', compError);
