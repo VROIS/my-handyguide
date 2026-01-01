@@ -4059,8 +4059,8 @@ self.addEventListener('fetch', (event) => {
       const selectedVoice = langVoices[guideType] || langVoices.young_female;
       console.log(`   - TTS 음성: ${selectedVoice}`);
       
+      // D-ID 공식 API 형식 (source_url 사용 - source_base64는 무시됨!)
       const didRequest: any = {
-        config: { stitch: true },
         script: {
           type: 'text',
           input: analyzed.script,
@@ -4068,18 +4068,38 @@ self.addEventListener('fetch', (event) => {
             type: 'microsoft',
             voice_id: selectedVoice
           }
+        },
+        config: {
+          stitch: true,
+          fluent: true,
+          result_format: 'mp4'
         }
       };
       
       // ═══════════════════════════════════════════════════════════════
-      // 분류별 이미지 처리 로직
+      // 분류별 이미지 처리 로직 (source_url 사용!)
       // ═══════════════════════════════════════════════════════════════
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const host = req.headers.host;
+      const baseUrl = `${protocol}://${host}`;
+      
+      // 이미지를 임시 파일로 저장하는 헬퍼 함수
+      async function saveImageForDID(imageBuffer: Buffer, prefix: string): Promise<string> {
+        const path = await import('path');
+        const fs = await import('fs/promises');
+        
+        const filename = `${prefix}-${Date.now()}.jpg`;
+        const filepath = path.join(process.cwd(), 'public', 'temp-did', filename);
+        await fs.writeFile(filepath, imageBuffer);
+        
+        const publicUrl = `${baseUrl}/temp-did/${filename}`;
+        console.log(`   - 임시 이미지 저장: ${publicUrl}`);
+        return publicUrl;
+      }
       
       if (analyzed.useOriginalImage && finalImageBase64) {
         // 🎨 artwork 모드: 원본 이미지 사용 (작품 속 인물이 직접 말함)
-        console.log(`   - 🎨 아트워크 모드: 원본 이미지 사용`);
+        console.log(`   - 🎨 아트워크 모드: 원본 이미지 → source_url 변환`);
         
         try {
           const sharp = (await import('sharp')).default;
@@ -4088,29 +4108,27 @@ self.addEventListener('fetch', (event) => {
           const cleanBase64 = finalImageBase64.replace(/^data:image\/\w+;base64,/, '');
           const imgBuffer = Buffer.from(cleanBase64, 'base64');
           
-          // D-ID용 이미지 압축 (최대 640x640, JPEG 75%)
+          // D-ID용 이미지 압축 (최대 640x640, JPEG 85% - 얼굴 인식 위해 품질 높임)
           const compressedBuffer = await sharp(imgBuffer)
             .resize(640, 640, { fit: 'inside', withoutEnlargement: true })
-            .jpeg({ quality: 75 })
+            .jpeg({ quality: 85 })
             .toBuffer();
           
-          const compressedBase64 = compressedBuffer.toString('base64');
-          didRequest.source_base64 = `data:image/jpeg;base64,${compressedBase64}`;
-          console.log(`   - 이미지 압축: ${Math.round(cleanBase64.length / 1024)}KB → ${Math.round(compressedBase64.length / 1024)}KB`);
+          console.log(`   - 이미지 압축: ${Math.round(imgBuffer.length / 1024)}KB → ${Math.round(compressedBuffer.length / 1024)}KB`);
+          
+          // 임시 파일로 저장하고 공개 URL 생성
+          const imageUrl = await saveImageForDID(compressedBuffer, 'artwork');
+          didRequest.source_url = imageUrl;
           
         } catch (compError) {
-          console.error('이미지 압축 실패:', compError);
-          // 압축 실패 시 원본 사용
-          if (finalImageBase64.startsWith('data:image/')) {
-            didRequest.source_base64 = finalImageBase64;
-          } else {
-            didRequest.source_base64 = `data:image/jpeg;base64,${finalImageBase64}`;
-          }
+          console.error('이미지 처리 실패:', compError);
+          // 실패 시 아바타 URL 사용
+          didRequest.source_url = `${baseUrl}${guide.avatarPath}`;
         }
         
       } else if (finalImageBase64 && !analyzed.useOriginalImage) {
         // 🏛️ landmark/food 모드: 배경 + 아바타 합성
-        console.log(`   - 🏛️ 가이드 모드: 배경 + 아바타 합성`);
+        console.log(`   - 🏛️ 가이드 모드: 배경 + 아바타 합성 → source_url 변환`);
         
         try {
           const sharp = (await import('sharp')).default;
@@ -4125,7 +4143,7 @@ self.addEventListener('fetch', (event) => {
           const avatarPath = path.join(process.cwd(), 'public', guide.avatarPath.replace(/^\//, ''));
           const avatarBuffer = await fs.readFile(avatarPath);
           
-          // D-ID용 최적 크기 (640x640, 작은 용량)
+          // D-ID용 최적 크기 (640x640)
           const targetSize = 640;
           
           // 아바타 크기 조정 (화면의 45% 높이)
@@ -4139,7 +4157,7 @@ self.addEventListener('fetch', (event) => {
           
           // 배경 리사이즈 + 아바타 합성 (하단 중앙)
           const compositeX = Math.round((targetSize - avatarWidth) / 2);
-          const compositeY = targetSize - avatarHeight; // 하단에 배치
+          const compositeY = targetSize - avatarHeight;
           
           const compositeImage = await sharp(bgBuffer)
             .resize(targetSize, targetSize, { fit: 'cover' })
@@ -4148,38 +4166,31 @@ self.addEventListener('fetch', (event) => {
               left: compositeX,
               top: compositeY
             }])
-            .jpeg({ quality: 75 })  // JPEG 75%로 압축
+            .jpeg({ quality: 85 })
             .toBuffer();
           
-          const compositeBase64 = compositeImage.toString('base64');
-          didRequest.source_base64 = `data:image/jpeg;base64,${compositeBase64}`;
-          console.log(`   - 합성 이미지 생성 완료: ${targetSize}x${targetSize}, size: ${Math.round(compositeBase64.length / 1024)}KB`);
+          console.log(`   - 합성 이미지: ${targetSize}x${targetSize}, ${Math.round(compositeImage.length / 1024)}KB`);
+          
+          // 임시 파일로 저장하고 공개 URL 생성
+          const imageUrl = await saveImageForDID(compositeImage, 'guide');
+          didRequest.source_url = imageUrl;
           
         } catch (compError) {
           console.error('이미지 합성 실패, 아바타만 사용:', compError);
-          // 합성 실패 시 아바타만 사용
-          const avatarUrl = `${protocol}://${host}${guide.avatarPath}`;
-          didRequest.source_url = avatarUrl;
+          didRequest.source_url = `${baseUrl}${guide.avatarPath}`;
         }
         
       } else {
         // 이미지 없으면 아바타만 사용
-        const avatarUrl = `${protocol}://${host}${guide.avatarPath}`;
-        didRequest.source_url = avatarUrl;
-        console.log(`   - 아바타 이미지: ${avatarUrl}`);
+        didRequest.source_url = `${baseUrl}${guide.avatarPath}`;
+        console.log(`   - 아바타 이미지: ${didRequest.source_url}`);
       }
       
       // D-ID API 호출 전 디버깅 로그
       console.log(`   - D-ID 요청 확인:`);
-      console.log(`     * source_base64 설정됨: ${!!didRequest.source_base64}`);
-      console.log(`     * source_url 설정됨: ${!!didRequest.source_url}`);
-      if (didRequest.source_base64) {
-        console.log(`     * source_base64 크기: ${Math.round(didRequest.source_base64.length / 1024)}KB`);
-        console.log(`     * source_base64 prefix: ${didRequest.source_base64.substring(0, 30)}...`);
-      }
-      if (didRequest.source_url) {
-        console.log(`     * source_url: ${didRequest.source_url}`);
-      }
+      console.log(`     * source_url: ${didRequest.source_url}`);
+      console.log(`     * script.input: ${analyzed.script.substring(0, 50)}...`);
+      console.log(`     * config: ${JSON.stringify(didRequest.config)}`)
       
       // D-ID API 호출
       const createResponse = await fetch('https://api.d-id.com/talks', {
