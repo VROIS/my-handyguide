@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-const KLING_API_BASE = 'https://api-singapore.klingai.com';
+const KLING_API_BASE = 'https://api.klingai.com';
 
 interface KlingVideoRequest {
   imageBase64?: string;
