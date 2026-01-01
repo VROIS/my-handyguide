@@ -106,7 +106,7 @@ async function klingGet(endpoint: string): Promise<any> {
 }
 
 export async function createImageToVideoTask(options: KlingVideoRequest): Promise<KlingTaskResponse> {
-  const { imageBase64, imageUrl, prompt, duration = '5', mode = 'std', modelName = 'kling-v2-6' } = options;
+  const { imageBase64, imageUrl, prompt, duration = '5', mode = 'std', modelName = 'kling-v1-6' } = options;
 
   if (!imageBase64 && !imageUrl) {
     throw new Error('Either imageBase64 or imageUrl is required');
