@@ -7,7 +7,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupGoogleAuth } from "./googleAuth";
 import { setupKakaoAuth } from "./kakaoAuth";
 import { generateLocationBasedContent, getLocationName, generateShareLinkDescription, generateCinematicPrompt, optimizeAudioScript, analyzeTextAndGenerateScript, analyzeImageAndGenerateScript, generatePersonaVoice, type GuideContent, type DreamShotPrompt, type AnalyzedScript } from "./gemini";
-import { insertGuideSchema, insertShareLinkSchema, insertSharedHtmlPageSchema, creditTransactions, users, notifications, pushSubscriptions, insertNotificationSchema, insertPushSubscriptionSchema, voiceConfigs } from "@shared/schema";
+import { insertGuideSchema, insertShareLinkSchema, insertSharedHtmlPageSchema, creditTransactions, users, notifications, pushSubscriptions, insertNotificationSchema, insertPushSubscriptionSchema, voiceConfigs, dreamStudioVideos } from "@shared/schema";
 import webpush from "web-push";
 import { eq, and, or, isNull } from "drizzle-orm";
 import { GoogleGenAI } from "@google/genai";
@@ -4222,6 +4222,29 @@ self.addEventListener('fetch', (event) => {
       const totalTime = Date.now() - startTime;
       console.log(`🎬 [드림스튜디오] 전체 파이프라인 완료: ${totalTime}ms`);
       
+      // DB에 영상 메타데이터 저장
+      if (videoUrl) {
+        try {
+          const userId = req.user?.id || null;
+          await db.insert(dreamStudioVideos).values({
+            userId,
+            talkId,
+            guideType,
+            language,
+            description: description || null,
+            script: analyzed.script,
+            videoUrl,
+            duration: parseInt(duration),
+            status: 'completed',
+            processingTime: totalTime
+          });
+          console.log(`   - DB 저장 완료 (userId: ${userId || 'anonymous'})`);
+        } catch (dbError) {
+          console.error('DB 저장 실패:', dbError);
+          // DB 저장 실패해도 영상은 반환
+        }
+      }
+      
       res.json({
         analysis: analyzed,
         videoUrl,
@@ -4372,6 +4395,29 @@ self.addEventListener('fetch', (event) => {
       
       const totalTime = Date.now() - startTime;
       console.log(`🎬 [드림스튜디오 v2] 파이프라인 완료: ${totalTime}ms`);
+      
+      // DB에 영상 메타데이터 저장
+      if (videoUrl) {
+        try {
+          const userId = req.user?.id || null;
+          await db.insert(dreamStudioVideos).values({
+            userId,
+            talkId: null, // Kling.ai는 talkId 없음
+            guideType,
+            language,
+            description: description || null,
+            script: analyzed.script,
+            videoUrl,
+            duration: parseInt(duration),
+            status: 'completed',
+            processingTime: totalTime
+          });
+          console.log(`   - DB 저장 완료 (userId: ${userId || 'anonymous'})`);
+        } catch (dbError) {
+          console.error('DB 저장 실패:', dbError);
+          // DB 저장 실패해도 영상은 반환
+        }
+      }
       
       res.json({
         analysis: analyzed,
