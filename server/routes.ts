@@ -4111,13 +4111,26 @@ self.addEventListener('fetch', (event) => {
   // 🎬 드림 스튜디오 v2 - Kling.ai 기반 (2024-12-31)
   // ═══════════════════════════════════════════════════════════════
   
-  app.get('/api/dream-studio/v2/guides', async (req, res) => {
+  // 아바타 가이드 템플릿 목록
+  app.get('/api/dream-studio/v2/guide-templates', async (req, res) => {
     const { GUIDE_TEMPLATES } = await import('./klingai');
     const guides = Object.entries(GUIDE_TEMPLATES).map(([key, value]: [string, any]) => ({
       id: key,
       ...value
     }));
     res.json(guides);
+  });
+
+  // 전체 가이드 목록 (드림스튜디오 전용 - 인증 없이)
+  app.get('/api/dream-studio/v2/guides', async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 100;
+      const result = await storage.searchGuides({ limit, offset: 0 });
+      res.json({ success: true, guides: result.guides, total: result.total });
+    } catch (error) {
+      console.error('드림스튜디오 가이드 목록 오류:', error);
+      res.status(500).json({ success: false, error: '가이드 목록 로드 실패' });
+    }
   });
 
   app.post('/api/dream-studio/v2/create-video', async (req, res) => {

@@ -535,12 +535,8 @@
         async function loadMyGuides() {
             const list = document.getElementById('guideList');
             try {
-                // 관리자용 전체 가이드 목록 API 사용
-                const response = await fetch('/api/admin/guides?limit=100');
-                if (response.status === 401 || response.status === 403) {
-                    list.innerHTML = '<div class="empty-state">관리자 인증이 필요합니다<br><a href="/admin-dashboard.html" style="color:#4285F4">관리자 대시보드로 이동</a></div>';
-                    return;
-                }
+                // 드림스튜디오 전용 전체 가이드 목록 API
+                const response = await fetch('/api/dream-studio/v2/guides?limit=100');
                 if (!response.ok) throw new Error('Failed');
                 const result = await response.json();
                 myGuides = result.guides || [];
