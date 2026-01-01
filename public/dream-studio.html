@@ -643,9 +643,9 @@
                     }
                 }
                 
-                updateOverlay(slotIndex, '영상 생성 중...');
+                updateOverlay(slotIndex, 'D-ID 영상 생성 중...');
                 
-                const response = await fetch('/api/dream-studio/v2/create-video', {
+                const response = await fetch('/api/dream-studio/create-video', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(requestBody)

@@ -3953,24 +3953,20 @@ self.addEventListener('fetch', (event) => {
     }
   });
 
-  // 7. 드림 스튜디오 전체 파이프라인 (분석 → TTS → D-ID 영상)
+  // 7. 드림 스튜디오 전체 파이프라인 (분석 → TTS → D-ID 영상) - 아바타 기반
   app.post('/api/dream-studio/create-video', async (req, res) => {
     try {
       const { 
         description, 
         imageBase64,
         imageUrl,
+        guideType = 'young_female',  // 아바타 타입
         language = 'ko', 
-        duration = '10',
-        useDidTts = true // D-ID 내장 TTS 사용 여부
+        duration = '10'
       } = req.body;
       
       if (!description && !imageBase64) {
         return res.status(400).json({ error: '설명 또는 이미지가 필요합니다' });
-      }
-      
-      if (!imageUrl && !imageBase64) {
-        return res.status(400).json({ error: '영상 생성을 위한 이미지가 필요합니다' });
       }
       
       const didApiKey = process.env.DID_API_KEY;
@@ -3978,29 +3974,60 @@ self.addEventListener('fetch', (event) => {
         return res.status(500).json({ error: 'D-ID API Key가 설정되지 않았습니다' });
       }
       
-      console.log(`🎬 [드림스튜디오] 전체 파이프라인 시작`);
+      console.log(`🎬 [드림스튜디오 D-ID] 전체 파이프라인 시작`);
+      console.log(`   - 아바타: ${guideType}`);
       const startTime = Date.now();
+      
+      // 아바타 템플릿 (Kling에서 재사용)
+      const { GUIDE_TEMPLATES } = await import('./klingai');
+      const guide = GUIDE_TEMPLATES[guideType as keyof typeof GUIDE_TEMPLATES] || GUIDE_TEMPLATES.young_female;
       
       // 1단계: 분석 + 대사 생성
       let analyzed: AnalyzedScript;
       if (description) {
         console.log(`   - Step 1: 텍스트 분석 (비용 절감)`);
-        analyzed = await analyzeTextAndGenerateScript(description, language, duration);
+        analyzed = await analyzeTextAndGenerateScript(description, language, parseInt(duration) * 4);
       } else {
         console.log(`   - Step 1: 이미지 분석`);
-        analyzed = await analyzeImageAndGenerateScript(imageBase64!, language, duration);
+        analyzed = await analyzeImageAndGenerateScript(imageBase64!, language, parseInt(duration) * 4);
       }
       console.log(`   - 대사 생성 완료: ${analyzed.script.substring(0, 30)}...`);
+      console.log(`   - 카테고리: ${analyzed.category} (${analyzed.categoryKo})`);
       
       // 2단계: D-ID 영상 생성 (TTS 포함)
       console.log(`   - Step 2: D-ID 영상 생성`);
       
-      const voiceMap: Record<string, string> = {
-        ko: 'ko-KR-SunHiNeural',
-        en: 'en-US-JennyNeural',
-        ja: 'ja-JP-NanamiNeural',
-        zh: 'zh-CN-XiaoxiaoNeural'
+      // 한국어 TTS 음성 선택 (가이드 타입에 따라)
+      const voiceMap: Record<string, Record<string, string>> = {
+        ko: {
+          young_female: 'ko-KR-SunHiNeural',    // 젊은 여성
+          young_male: 'ko-KR-InJoonNeural',     // 젊은 남성  
+          senior_female: 'ko-KR-SoonBokNeural', // 중년 여성
+          senior_male: 'ko-KR-BongJinNeural'    // 중년 남성
+        },
+        en: {
+          young_female: 'en-US-JennyNeural',
+          young_male: 'en-US-GuyNeural',
+          senior_female: 'en-US-AriaNeural',
+          senior_male: 'en-US-DavisNeural'
+        },
+        ja: {
+          young_female: 'ja-JP-NanamiNeural',
+          young_male: 'ja-JP-KeitaNeural',
+          senior_female: 'ja-JP-ShioriNeural',
+          senior_male: 'ja-JP-KeitaNeural'
+        },
+        zh: {
+          young_female: 'zh-CN-XiaoxiaoNeural',
+          young_male: 'zh-CN-YunxiNeural',
+          senior_female: 'zh-CN-XiaoyiNeural',
+          senior_male: 'zh-CN-YunyangNeural'
+        }
       };
+      
+      const langVoices = voiceMap[language] || voiceMap.ko;
+      const selectedVoice = langVoices[guideType] || langVoices.young_female;
+      console.log(`   - TTS 음성: ${selectedVoice}`);
       
       const didRequest: any = {
         config: { stitch: true },
@@ -4009,35 +4036,17 @@ self.addEventListener('fetch', (event) => {
           input: analyzed.script,
           provider: {
             type: 'microsoft',
-            voice_id: voiceMap[language] || voiceMap.ko
+            voice_id: selectedVoice
           }
         }
       };
       
-      // 이미지 소스 설정 (D-ID는 실제 URL만 허용)
-      if (imageUrl && imageUrl.startsWith('http')) {
-        didRequest.source_url = imageUrl;
-        console.log(`   - 이미지: URL 직접 사용`);
-      } else if (imageBase64) {
-        // base64 이미지를 Object Storage에 업로드
-        try {
-          const objectStorageService = new ObjectStorageService();
-          const imageBuffer = Buffer.from(
-            imageBase64.replace(/^data:image\/\w+;base64,/, ''), 
-            'base64'
-          );
-          const fileName = `dream-studio/video-${Date.now()}.jpg`;
-          const uploadedUrl = await objectStorageService.uploadBuffer(imageBuffer, fileName, 'image/jpeg');
-          didRequest.source_url = uploadedUrl;
-          console.log(`   - 이미지: Object Storage 업로드 → ${uploadedUrl}`);
-        } catch (uploadError) {
-          console.error('이미지 업로드 실패:', uploadError);
-          return res.status(500).json({ 
-            error: '이미지 업로드 실패',
-            analysis: analyzed
-          });
-        }
-      }
+      // 아바타 이미지 URL 설정 (D-ID는 실제 URL만 허용)
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers.host;
+      const avatarUrl = `${protocol}://${host}${guide.avatarPath}`;
+      didRequest.source_url = avatarUrl;
+      console.log(`   - 아바타 이미지: ${avatarUrl}`);
       
       // D-ID API 호출
       const createResponse = await fetch('https://api.d-id.com/talks', {
