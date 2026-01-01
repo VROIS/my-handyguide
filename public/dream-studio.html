@@ -639,14 +639,9 @@
                 if (slot.imageUrl) {
                     if (slot.imageUrl.startsWith('data:')) {
                         requestBody.imageBase64 = slot.imageUrl.replace(/^data:image\/\w+;base64,/, '');
-                    } else if (slot.imageUrl.startsWith('http')) {
-                        requestBody.imageUrl = slot.imageUrl;
                     } else {
-                        const fullUrl = window.location.origin + (slot.imageUrl.startsWith('/') ? '' : '/') + slot.imageUrl;
-                        const response = await fetch(fullUrl);
-                        const blob = await response.blob();
-                        const base64 = await blobToBase64(blob);
-                        requestBody.imageBase64 = base64.replace(/^data:image\/\w+;base64,/, '');
+                        // 모든 URL (http, 상대경로)은 그대로 전달 → 백엔드에서 처리
+                        requestBody.imageUrl = slot.imageUrl;
                     }
                 }
                 
