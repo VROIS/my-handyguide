@@ -4158,34 +4158,46 @@ self.addEventListener('fetch', (event) => {
       }
       console.log(`   - 대사 생성 완료: ${analyzed.script.substring(0, 30)}...`);
       
-      // 2단계: 가이드 템플릿 선택
+      // 2단계: 카테고리 기반 분기 (artwork vs landmark/food_drink)
+      const isArtwork = analyzed.category === 'artwork';
+      console.log(`   - Step 2: 카테고리 분류 - ${analyzed.category} (${analyzed.categoryKo})`);
+      
+      // 2.5단계: 가이드 템플릿 선택 (landmark/food_drink일 때만)
       const guide = GUIDE_TEMPLATES[guideType as keyof typeof GUIDE_TEMPLATES] || GUIDE_TEMPLATES.young_female;
-      console.log(`   - Step 2: 가이드 선택 - ${guide.name}`);
       
-      // 2.5단계: 아바타 이미지 로드 (캐릭터 영상 생성용)
-      const avatarPath = path.join(process.cwd(), 'public', guide.avatarPath);
-      let avatarBase64: string | undefined;
-      try {
-        const avatarBuffer = fs.readFileSync(avatarPath);
-        avatarBase64 = avatarBuffer.toString('base64');
-        console.log(`   - Step 2.5: 아바타 이미지 로드 완료`);
-      } catch (avatarError) {
-        console.warn(`   - 아바타 로드 실패, 원본 이미지 사용: ${avatarError}`);
+      let finalImageBase64 = imageBase64;
+      let finalImageUrl = imageUrl;
+      let finalPrompt: string;
+      
+      if (isArtwork) {
+        // 예술품/조각: 원본 이미지가 살아 움직이는 애니메이션
+        console.log(`   - Step 2.5: 🎨 예술품 모드 - 원본 이미지 사용`);
+        finalPrompt = `This artwork comes to life with subtle, magical animation. The sculpture/painting gently moves, breathes, and expresses emotion as if awakening. Cinematic lighting, ethereal atmosphere, smooth gentle movements. The artwork speaks: "${analyzed.script}"`;
+      } else {
+        // 유적지/음식: 가이드 캐릭터가 설명
+        console.log(`   - Step 2.5: 🎭 가이드 모드 - ${guide.name} 아바타 사용`);
+        const avatarPath = path.join(process.cwd(), 'public', guide.avatarPath);
+        try {
+          const avatarBuffer = fs.readFileSync(avatarPath);
+          finalImageBase64 = avatarBuffer.toString('base64');
+          finalImageUrl = undefined;
+          console.log(`   - 아바타 이미지 로드 완료`);
+        } catch (avatarError) {
+          console.warn(`   - 아바타 로드 실패, 원본 이미지 사용: ${avatarError}`);
+        }
+        const audioPrompt = (guide as any).audioTemplate?.replace('${script}', analyzed.script) || '';
+        finalPrompt = `${guide.promptTemplate} ${audioPrompt}`;
       }
+      console.log(`   - Step 3: 프롬프트 조합 완료`);
       
-      // 3단계: 프롬프트 조합 (Native Audio 포함)
-      const audioPrompt = (guide as any).audioTemplate?.replace('${script}', analyzed.script) || '';
-      const finalPrompt = `${guide.promptTemplate} ${audioPrompt}`;
-      console.log(`   - Step 3: 프롬프트 조합 완료 (Native Audio 포함)`);
-      
-      // 4단계: Kling.ai 영상 생성 (아바타 이미지 사용, pro 모드)
-      console.log(`   - Step 4: Kling.ai 영상 생성 (${duration}초, pro 모드)`);
+      // 4단계: Kling.ai 영상 생성 (pro 모드)
+      console.log(`   - Step 4: Kling.ai 영상 생성 (${duration}초, pro 모드, ${isArtwork ? '예술품' : '가이드'})`);
       
       let videoUrl: string;
       try {
         videoUrl = await generateVideo({
-          imageBase64: avatarBase64 || imageBase64,
-          imageUrl: avatarBase64 ? undefined : imageUrl,
+          imageBase64: finalImageBase64,
+          imageUrl: finalImageUrl,
           prompt: finalPrompt,
           duration: duration as '5' | '10',
           mode: 'pro'
@@ -4205,7 +4217,8 @@ self.addEventListener('fetch', (event) => {
       res.json({
         analysis: analyzed,
         videoUrl,
-        guide: {
+        mode: isArtwork ? 'artwork' : 'guide',
+        guide: isArtwork ? null : {
           id: guideType,
           name: guide.name,
           emoji: guide.emoji
