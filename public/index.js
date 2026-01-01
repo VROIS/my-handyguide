@@ -2014,13 +2014,6 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('📁 Direct archive access detected');
             showArchivePage();
         }
-        
-        // 🎬 드림 스튜디오에서 복귀 (#adminSettings) 처리
-        if (window.location.hash === '#adminSettings') {
-            console.log('⚙️ Admin settings return detected');
-            showAdminSettingsPage();
-            window.history.replaceState({}, '', window.location.pathname);
-        }
         // The landing page animation will handle showing the features page initially.
         
         if (recognition) {
@@ -4929,7 +4922,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // 🎬 드림 스튜디오 버튼 - 드림 스튜디오 페이지로 이동
     document.getElementById('adminDreamStudioBtn')?.addEventListener('click', () => {
-        window.location.href = './dream-studio.html?from=admin';
+        window.location.href = './dream-studio.html';
     });
     
     // ═══════════════════════════════════════════════════════════════

@@ -1019,12 +1019,7 @@
         }
         
         function handleBack() {
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('from') === 'admin') {
-                window.location.href = './index.html#adminSettings';
-            } else {
-                history.back();
-            }
+            history.back();
         }
         
         init();
