@@ -117,13 +117,10 @@ export async function createImageToVideoTask(options: KlingVideoRequest): Promis
     model_name: modelName,
     mode,
     duration,
-    prompt
+    prompt,
+    // Native Audio 활성화 (Kling 2.6+) - 문자열 "on" 형식
+    sound: sound ? 'on' : 'off'
   };
-
-  // Native Audio 활성화 (Kling 2.6+)
-  if (sound) {
-    body.sound = true;
-  }
 
   if (imageBase64) {
     const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
