@@ -535,13 +535,15 @@
         async function loadMyGuides() {
             const list = document.getElementById('guideList');
             try {
-                const response = await fetch('/api/guides');
-                if (response.status === 401) {
-                    list.innerHTML = '<div class="empty-state">로그인이 필요합니다<br><a href="/" style="color:#4285F4">메인으로 이동</a></div>';
+                // 관리자용 전체 가이드 목록 API 사용
+                const response = await fetch('/api/admin/guides?limit=100');
+                if (response.status === 401 || response.status === 403) {
+                    list.innerHTML = '<div class="empty-state">관리자 인증이 필요합니다<br><a href="/admin-dashboard.html" style="color:#4285F4">관리자 대시보드로 이동</a></div>';
                     return;
                 }
                 if (!response.ok) throw new Error('Failed');
-                myGuides = await response.json();
+                const result = await response.json();
+                myGuides = result.guides || [];
                 
                 if (myGuides.length === 0) {
                     list.innerHTML = '<div class="empty-state">생성된 가이드가 없습니다</div>';
@@ -552,7 +554,7 @@
                     <div class="guide-item" onclick="startVideoGeneration(${i})" data-testid="guide-item-${i}">
                         <img class="guide-item-thumb" src="${guide.imageUrl || '/images/placeholder.png'}" alt="">
                         <div class="guide-item-info">
-                            <div class="guide-item-title">${guide.title || '제목 없음'}</div>
+                            <div class="guide-item-title">${guide.title || guide.locationName || '제목 없음'}</div>
                             <div class="guide-item-desc">${(guide.aiGeneratedContent || guide.description || '').substring(0, 60)}...</div>
                         </div>
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="#ccc" stroke-width="2">
