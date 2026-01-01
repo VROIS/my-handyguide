@@ -78,6 +78,19 @@ export function generateShareHtmlV2(data: SharePageData): string {
     <link rel="stylesheet" href="/shared-template/v2.css">
 </head>
 <body>
+    <!-- 🔧 2026-01-01: 안드로이드 카카오톡/인앱 브라우저 → Chrome 자동 리다이렉트 -->
+    <script>
+        (function() {
+            var ua = navigator.userAgent.toLowerCase();
+            var isInApp = ua.indexOf('kakaotalk') > -1 || ua.indexOf('naver') > -1 || ua.indexOf('instagram') > -1 || ua.indexOf('fb') > -1 || ua.indexOf('facebook') > -1;
+            if (isInApp && /android/i.test(ua)) {
+                var currentUrl = location.href;
+                var url = currentUrl.replace(/^https?:\\/\\//, '');
+                location.href = 'intent://' + url + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(currentUrl) + ';end';
+            }
+        })();
+    </script>
+    
     <!-- 헤더 (메타데이터) -->
     <div class="header">
         <h1>${title}</h1>
@@ -375,6 +388,19 @@ export function generateShareHtml(data: SharePageData): string {
     </style>
 </head>
 <body>
+    <!-- 🔧 2026-01-01: 안드로이드 카카오톡/인앱 브라우저 → Chrome 자동 리다이렉트 -->
+    <script>
+        (function() {
+            var ua = navigator.userAgent.toLowerCase();
+            var isInApp = ua.indexOf('kakaotalk') > -1 || ua.indexOf('naver') > -1 || ua.indexOf('instagram') > -1 || ua.indexOf('fb') > -1 || ua.indexOf('facebook') > -1;
+            if (isInApp && /android/i.test(ua)) {
+                var currentUrl = location.href;
+                var url = currentUrl.replace(/^https?:\\/\\//, '');
+                location.href = 'intent://' + url + '#Intent;scheme=https;package=com.android.chrome;S.browser_fallback_url=' + encodeURIComponent(currentUrl) + ';end';
+            }
+        })();
+    </script>
+    
     <!-- ✕ 페이지 닫기 버튼 (모든 공유페이지에서 표시) -->
     <button id="closeWindowBtn" onclick="handleSmartClose()" title="페이지 닫기" style="position: fixed; top: 1rem; right: 1rem; z-index: 1000; width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); border-radius: 50%; color: #4285F4; cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); border: none;">
         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">

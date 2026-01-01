@@ -7,15 +7,8 @@
     <title>손안에 가이드</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234285F4'><path d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/></svg>">
     <meta name="theme-color" content="#FFFEFA"/>
-    <script>
-        // iOS에서는 manifest 로드하지 않음 (PWA standalone 모드 방지)
-        if (!/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-            var link = document.createElement('link');
-            link.rel = 'manifest';
-            link.href = '/assets/manifest-DY-Vpcez.json';
-            document.head.appendChild(link);
-        }
-    </script>
+    <!-- 🚫 2026-01-01: PWA manifest 로딩 완전 제거 (모든 기기에서 PWA 비활성화) -->
+    <!-- 홈 화면 아이콘은 썸네일 이미지 역할만, 클릭 시 브라우저에서 랜딩 페이지 열림 -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- 📍 EXIF GPS 추출 라이브러리 (2025-10-26 콘텐츠 신뢰성 최적화) -->
     <script src="https://cdn.jsdelivr.net/npm/exifr@7/dist/full.umd.js"></script>
