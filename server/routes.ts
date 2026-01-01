@@ -3609,7 +3609,7 @@ self.addEventListener('fetch', (event) => {
   // 1. 텍스트 분석 + 분류 + 20초 대사 생성 (이미지 분석 불필요)
   app.post('/api/dream-studio/analyze-text', async (req, res) => {
     try {
-      const { description, language = 'ko', duration = 20 } = req.body;
+      const { description, language = 'ko', duration = '10' } = req.body;
       
       if (!description) {
         return res.status(400).json({ error: '설명 텍스트가 필요합니다' });
@@ -3635,7 +3635,7 @@ self.addEventListener('fetch', (event) => {
   // 2. 이미지 분석 + 분류 + 20초 대사 생성
   app.post('/api/dream-studio/analyze-image', async (req, res) => {
     try {
-      const { imageBase64, language = 'ko', duration = 20 } = req.body;
+      const { imageBase64, language = 'ko', duration = '10' } = req.body;
       
       if (!imageBase64) {
         return res.status(400).json({ error: '이미지가 필요합니다' });
@@ -3695,7 +3695,7 @@ self.addEventListener('fetch', (event) => {
         imageBase64,
         imageUrl,
         language = 'ko', 
-        duration = 20,
+        duration = '10',
         generateAudio = true
       } = req.body;
       
@@ -3750,7 +3750,7 @@ self.addEventListener('fetch', (event) => {
   app.post('/api/dream-studio/generate-batch', isAuthenticated, async (req: any, res) => {
     try {
       const userId = getUserId(req.user);
-      const { guideIds, language = 'ko', duration = 20 } = req.body;
+      const { guideIds, language = 'ko', duration = '10' } = req.body;
       
       if (!guideIds || !Array.isArray(guideIds) || guideIds.length === 0) {
         return res.status(400).json({ error: '가이드 ID 목록이 필요합니다' });
@@ -3961,7 +3961,7 @@ self.addEventListener('fetch', (event) => {
         imageBase64,
         imageUrl,
         language = 'ko', 
-        duration = 20,
+        duration = '10',
         useDidTts = true // D-ID 내장 TTS 사용 여부
       } = req.body;
       
