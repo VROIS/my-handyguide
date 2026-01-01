@@ -4235,12 +4235,16 @@ self.addEventListener('fetch', (event) => {
             videoUrl = statusResult.result_url;
             break;
           } else if (statusResult.status === 'error') {
+            console.error('D-ID 폴링 오류 상세:', JSON.stringify(statusResult, null, 2));
             return res.status(500).json({ 
               error: 'D-ID 영상 생성 실패', 
-              details: statusResult.error,
+              details: statusResult.error || statusResult,
               analysis: analyzed
             });
           }
+        } else {
+          const errorText = await statusResponse.text();
+          console.error(`D-ID 폴링 실패 (${statusResponse.status}):`, errorText);
         }
       }
       
