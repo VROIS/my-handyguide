@@ -4162,9 +4162,10 @@ self.addEventListener('fetch', (event) => {
       const guide = GUIDE_TEMPLATES[guideType as keyof typeof GUIDE_TEMPLATES] || GUIDE_TEMPLATES.young_female;
       console.log(`   - Step 2: 가이드 선택 - ${guide.name}`);
       
-      // 3단계: 프롬프트 조합
-      const finalPrompt = `${guide.promptTemplate} The scene shows: ${analyzed.script.substring(0, 100)}`;
-      console.log(`   - Step 3: 프롬프트 조합 완료`);
+      // 3단계: 프롬프트 조합 (Native Audio 포함)
+      const audioPrompt = (guide as any).audioTemplate?.replace('${script}', analyzed.script) || '';
+      const finalPrompt = `${guide.promptTemplate} ${audioPrompt}`;
+      console.log(`   - Step 3: 프롬프트 조합 완료 (Native Audio 포함)`);
       
       // 4단계: Kling.ai 영상 생성
       console.log(`   - Step 4: Kling.ai 영상 생성 (${duration}초)`);

@@ -192,28 +192,36 @@ export const GUIDE_TEMPLATES = {
     emoji: "👩",
     age: "20-30대 여성",
     avatarPath: "/avatars/young_female.png",
-    promptTemplate: `A friendly Korean woman in her late 20s appears, stylishly dressed. She excitedly points at the scene, takes out her phone to show photo angles, makes heart signs with her hands, and speaks cheerfully to the camera.`
+    category: "자연/유적",
+    promptTemplate: `A friendly 20-30s Korean female guide appears in the corner, pointing at the scenic background with excitement.`,
+    audioTemplate: `[Native Audio] Generate a cheerful Korean female voice saying: "\${script}" with birds chirping and wind sounds.`
   },
   young_male: {
     name: "열정적인 탐험가", 
     emoji: "👨",
     age: "20-30대 남성",
     avatarPath: "/avatars/young_male.png",
-    promptTemplate: `A charismatic Korean man in his late 20s wearing casual streetwear appears. He picks up food with chopsticks, takes a satisfying bite, shows thumbs up with excitement, and gestures invitingly toward the viewer.`
+    category: "음식/술",
+    promptTemplate: `A 20-30s Korean male guide sits at the table, picking up the food with chopsticks and taking a big bite with a happy face.`,
+    audioTemplate: `[Native Audio] Generate a high-energy Korean male voice saying: "\${script}" with sizzling food sounds and restaurant background noise.`
   },
   senior_male: {
     name: "신뢰받는 스마트 집사",
     emoji: "👔", 
     age: "40-50대 남성",
     avatarPath: "/avatars/senior_male.png",
-    promptTemplate: `A distinguished Korean man in his late 40s wearing a neat suit appears. He confidently lifts a glass for a toast, nods respectfully, and gestures toward details with professional hand movements.`
+    category: "음식/술",
+    promptTemplate: `A trustworthy 40-50s Korean male guide in a neat suit lifts a glass toward the camera for a toast.`,
+    audioTemplate: `[Native Audio] Generate a warm, deep Korean male voice saying: "\${script}" with the sound of glasses clinking.`
   },
   senior_female: {
     name: "우아한 예술 도슨트",
     emoji: "👩‍🏫",
     age: "40-50대 여성", 
     avatarPath: "/avatars/senior_female.png",
-    promptTemplate: `An elegant Korean woman in her late 40s in sophisticated attire appears. She gracefully points at artwork details, tilts her head thoughtfully, and gestures softly with refined hand movements.`
+    category: "유적/역사",
+    promptTemplate: `An elegant 40-50s Korean female curator points at architectural details of the ruin with professional gestures.`,
+    audioTemplate: `[Native Audio] Generate a calm, sophisticated Korean female voice saying: "\${script}" with subtle, epic background music.`
   }
 };
 
