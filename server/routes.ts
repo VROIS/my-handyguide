@@ -4020,6 +4020,7 @@ self.addEventListener('fetch', (event) => {
       }
       console.log(`   - 대사 생성 완료: ${analyzed.script.substring(0, 30)}...`);
       console.log(`   - 카테고리: ${analyzed.category} (${analyzed.categoryKo})`);
+      console.log(`   - 🎯 주인공: ${analyzed.protagonist}`);
       console.log(`   - 원본 이미지 사용: ${analyzed.useOriginalImage}`);
       console.log(`   - 영상 프롬프트: ${analyzed.videoPrompt}`);
       
@@ -4166,6 +4167,18 @@ self.addEventListener('fetch', (event) => {
         const avatarUrl = `${protocol}://${host}${guide.avatarPath}`;
         didRequest.source_url = avatarUrl;
         console.log(`   - 아바타 이미지: ${avatarUrl}`);
+      }
+      
+      // D-ID API 호출 전 디버깅 로그
+      console.log(`   - D-ID 요청 확인:`);
+      console.log(`     * source_base64 설정됨: ${!!didRequest.source_base64}`);
+      console.log(`     * source_url 설정됨: ${!!didRequest.source_url}`);
+      if (didRequest.source_base64) {
+        console.log(`     * source_base64 크기: ${Math.round(didRequest.source_base64.length / 1024)}KB`);
+        console.log(`     * source_base64 prefix: ${didRequest.source_base64.substring(0, 30)}...`);
+      }
+      if (didRequest.source_url) {
+        console.log(`     * source_url: ${didRequest.source_url}`);
       }
       
       // D-ID API 호출

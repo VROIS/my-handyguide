@@ -460,6 +460,7 @@ export interface AnalyzedScript {
   category: 'artwork' | 'landmark' | 'food_drink'; // 작품, 유적지, 음식/술
   categoryKo: string;
   persona: string;
+  protagonist: string; // 영상에서 말하는 주인공 (artwork: 피사체, landmark/food: 가이드)
   mood: string;
   script: string;
   keywords: string[];
@@ -491,14 +492,15 @@ export async function analyzeTextAndGenerateScript(
 ═══════════════════════════════════════
 📌 카테고리 분류 기준 (반드시 준수):
 ═══════════════════════════════════════
-- artwork: 그림, 회화, 조각, 예술작품, 박물관 전시품, 미술관 작품
-  → 작품 자체 또는 작품 속 인물이 주인공 (원본 이미지 사용)
+- artwork: 그림, 회화, 조각상, 예술작품, 박물관 전시품, 미술관 작품, 동상, 석상, 스핑크스, 피라미드 벽화
+  → 🎯 주인공: 작품 자체 또는 작품 속 인물/피사체 (원본 이미지 사용)
+  → 예: 스핑크스 → "스핑크스 석상", 모나리자 → "모나리자", 다비드상 → "다비드 석상"
   
 - landmark: 건물, 유적지, 자연명소, 도시풍경, 관광지, 거리
-  → 가이드 아바타가 배경 앞에서 설명
+  → 🎯 주인공: 여행 가이드 (아바타가 배경 앞에서 설명)
 
 - food_drink: 음식, 와인, 술, 카페, 레스토랑, 요리
-  → 가이드 아바타가 배경 앞에서 설명
+  → 🎯 주인공: 여행 가이드 (아바타가 배경 앞에서 설명)
 
 ═══════════════════════════════════════
 📌 작업 순서:
@@ -506,9 +508,10 @@ export async function analyzeTextAndGenerateScript(
 1. 위 기준으로 카테고리 분류
 2. 핵심 키워드 3-5개 추출
 3. 페르소나 정의 (예: 모나리자, 에펠탑, 100년 된 와인 등)
-4. 분위기 선정 (nostalgic, proud, mysterious, cheerful, peaceful, dramatic)
-5. 1인칭 한국어 대사 작성 - 주인공이 직접 말하는 형식
-6. 영상 제작 프롬프트 작성 (영어로)
+4. 🎯 주인공(protagonist) 명시: artwork면 피사체 명칭, 그 외면 "여행 가이드"
+5. 분위기 선정 (nostalgic, proud, mysterious, cheerful, peaceful, dramatic)
+6. 1인칭 한국어 대사 작성 - 주인공이 직접 말하는 형식
+7. 영상 제작 프롬프트 작성 (영어로)
 
 ⚠️ 중요: 대사는 반드시 한국어로 작성하세요!
 ⚠️ 금지 단어 (AI 정책 위반): 혁명, 전쟁, 폭력, 무기, 총, 칼, 피, 죽음, 살인, 시위, 폭동, 테러
@@ -518,6 +521,7 @@ JSON 형식으로 응답:
   "category": "artwork 또는 landmark 또는 food_drink",
   "categoryKo": "작품/유적지/음식및술",
   "persona": "피사체 정체 (한국어)",
+  "protagonist": "영상에서 말하는 주인공 - artwork면 피사체명(예: 스핑크스 석상), 그 외면 여행 가이드",
   "mood": "분위기",
   "script": "한국어 1인칭 대사 (${charCount}자)",
   "keywords": ["키워드1", "키워드2", "키워드3"],
@@ -536,13 +540,14 @@ JSON 형식으로 응답:
             category: { type: "string" },
             categoryKo: { type: "string" },
             persona: { type: "string" },
+            protagonist: { type: "string" },
             mood: { type: "string" },
             script: { type: "string" },
             keywords: { type: "array", items: { type: "string" } },
             videoPrompt: { type: "string" },
             useOriginalImage: { type: "boolean" }
           },
-          required: ["category", "categoryKo", "persona", "mood", "script", "keywords", "videoPrompt", "useOriginalImage"]
+          required: ["category", "categoryKo", "persona", "protagonist", "mood", "script", "keywords", "videoPrompt", "useOriginalImage"]
         }
       },
       contents: prompt
@@ -552,6 +557,7 @@ JSON 형식으로 응답:
     const isArtwork = result.category === 'artwork';
     return {
       ...result,
+      protagonist: result.protagonist || (isArtwork ? result.persona : '여행 가이드'),
       voiceName: voiceMap[language] || voiceMap.ko,
       useOriginalImage: isArtwork, // artwork면 원본 이미지 사용
       videoPrompt: result.videoPrompt || (isArtwork 
@@ -564,6 +570,7 @@ JSON 형식으로 응답:
       category: 'landmark',
       categoryKo: '유적지',
       persona: 'unknown',
+      protagonist: '여행 가이드',
       mood: 'cheerful',
       script: '안녕하세요, 저는 이 아름다운 장소에서 여러분을 만나게 되어 기쁩니다.',
       keywords: [],
@@ -595,15 +602,15 @@ export async function analyzeImageAndGenerateScript(
 ═══════════════════════════════════════
 📌 카테고리 분류 기준 (반드시 준수):
 ═══════════════════════════════════════
-- artwork: 그림, 회화, 조각, 예술작품, 박물관 전시품, 미술관 작품, 초상화
-  → 작품 자체 또는 작품 속 인물이 주인공 (원본 이미지 사용)
-  → 예: 모나리자, 진주 귀걸이를 한 소녀, 별이 빛나는 밤 등
+- artwork: 그림, 회화, 조각상, 예술작품, 박물관 전시품, 미술관 작품, 초상화, 동상, 석상, 스핑크스
+  → 🎯 주인공: 작품 자체 또는 작품 속 인물/피사체 (원본 이미지 사용)
+  → 예: 스핑크스 → "스핑크스 석상", 모나리자 → "모나리자", 다비드상 → "다비드 석상"
   
 - landmark: 건물, 유적지, 자연명소, 도시풍경, 관광지, 거리, 다리
-  → 가이드 아바타가 배경 앞에서 설명
+  → 🎯 주인공: 여행 가이드 (아바타가 배경 앞에서 설명)
 
 - food_drink: 음식, 와인, 술, 카페, 레스토랑, 요리, 디저트
-  → 가이드 아바타가 배경 앞에서 설명
+  → 🎯 주인공: 여행 가이드 (아바타가 배경 앞에서 설명)
 
 ═══════════════════════════════════════
 📌 작업 순서:
@@ -611,9 +618,10 @@ export async function analyzeImageAndGenerateScript(
 1. 이미지를 보고 위 기준으로 카테고리 분류
 2. 핵심 키워드 3-5개 추출
 3. 페르소나 정의 (이미지 속 주인공)
-4. 분위기 선정 (nostalgic, proud, mysterious, cheerful, peaceful, dramatic)
-5. 1인칭 한국어 대사 작성 - 주인공이 직접 말하는 형식
-6. 영상 제작 프롬프트 작성 (영어로)
+4. 🎯 주인공(protagonist) 명시: artwork면 피사체 명칭, 그 외면 "여행 가이드"
+5. 분위기 선정 (nostalgic, proud, mysterious, cheerful, peaceful, dramatic)
+6. 1인칭 한국어 대사 작성 - 주인공이 직접 말하는 형식
+7. 영상 제작 프롬프트 작성 (영어로)
 
 ⚠️ 중요: 대사는 반드시 한국어로 작성하세요!
 ⚠️ 금지 단어 (AI 정책 위반): 혁명, 전쟁, 폭력, 무기, 총, 칼, 피, 죽음, 살인, 시위, 폭동, 테러
@@ -623,6 +631,7 @@ JSON 형식으로 응답:
   "category": "artwork 또는 landmark 또는 food_drink",
   "categoryKo": "작품/유적지/음식및술",
   "persona": "피사체 정체 (한국어)",
+  "protagonist": "영상에서 말하는 주인공 - artwork면 피사체명(예: 스핑크스 석상), 그 외면 여행 가이드",
   "mood": "분위기",
   "script": "한국어 1인칭 대사 (${charCount}자)",
   "keywords": ["키워드1", "키워드2", "키워드3"],
@@ -641,13 +650,14 @@ JSON 형식으로 응답:
             category: { type: "string" },
             categoryKo: { type: "string" },
             persona: { type: "string" },
+            protagonist: { type: "string" },
             mood: { type: "string" },
             script: { type: "string" },
             keywords: { type: "array", items: { type: "string" } },
             videoPrompt: { type: "string" },
             useOriginalImage: { type: "boolean" }
           },
-          required: ["category", "categoryKo", "persona", "mood", "script", "keywords", "videoPrompt", "useOriginalImage"]
+          required: ["category", "categoryKo", "persona", "protagonist", "mood", "script", "keywords", "videoPrompt", "useOriginalImage"]
         }
       },
       contents: [
@@ -665,6 +675,7 @@ JSON 형식으로 응답:
     const isArtwork = result.category === 'artwork';
     return {
       ...result,
+      protagonist: result.protagonist || (isArtwork ? result.persona : '여행 가이드'),
       voiceName: voiceMap[language] || voiceMap.ko,
       useOriginalImage: isArtwork,
       videoPrompt: result.videoPrompt || (isArtwork 
@@ -677,6 +688,7 @@ JSON 형식으로 응답:
       category: 'landmark',
       categoryKo: '유적지',
       persona: 'unknown',
+      protagonist: '여행 가이드',
       mood: 'cheerful',
       script: '안녕하세요, 저는 이 아름다운 장소에서 여러분을 만나게 되어 기쁩니다.',
       keywords: [],
