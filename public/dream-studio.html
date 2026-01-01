@@ -536,6 +536,10 @@
             const list = document.getElementById('guideList');
             try {
                 const response = await fetch('/api/guides');
+                if (response.status === 401) {
+                    list.innerHTML = '<div class="empty-state">로그인이 필요합니다<br><a href="/" style="color:#4285F4">메인으로 이동</a></div>';
+                    return;
+                }
                 if (!response.ok) throw new Error('Failed');
                 myGuides = await response.json();
                 

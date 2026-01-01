@@ -10,8 +10,8 @@ const urlsToCache = [
   // '/index.js',
   // '/share.html',
   // '/share-page.js',
-  // 캐시할 다른 에셋(CSS, 이미지 등)을 추가합니다.
-  'https://hangeul.pstatic.net/maruburi/maruburi.css'
+  // 🔧 2026-01-01: 외부 폰트 CORS 에러로 제거
+  // 'https://hangeul.pstatic.net/maruburi/maruburi.css'
 ];
 
 self.addEventListener('install', event => {
