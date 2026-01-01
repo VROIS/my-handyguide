@@ -4173,8 +4173,8 @@ self.addEventListener('fetch', (event) => {
         // 예술품/조각: 원본 이미지가 살아 움직이는 애니메이션
         console.log(`   - Step 2.5: 🎨 예술품 모드 - 원본 이미지 사용`);
         
-        // imageUrl만 있고 imageBase64가 없으면 다운로드해서 변환
-        if (!imageBase64 && imageUrl) {
+        // imageUrl만 있고 imageBase64가 없거나 빈 문자열이면 다운로드해서 변환
+        if ((!imageBase64 || imageBase64.length < 100) && imageUrl) {
           try {
             const response = await fetch(imageUrl);
             const arrayBuffer = await response.arrayBuffer();
