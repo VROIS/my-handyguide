@@ -3965,8 +3965,33 @@ self.addEventListener('fetch', (event) => {
         duration = '10'
       } = req.body;
       
-      if (!description && !imageBase64) {
+      if (!description && !imageBase64 && !imageUrl) {
         return res.status(400).json({ error: '설명 또는 이미지가 필요합니다' });
+      }
+      
+      // imageUrl이 있으면 다운로드해서 base64로 변환
+      let finalImageBase64 = imageBase64;
+      if (!finalImageBase64 && imageUrl) {
+        try {
+          const protocol = req.headers['x-forwarded-proto'] || 'https';
+          const host = req.headers.host;
+          
+          // 상대 경로면 절대 경로로 변환
+          let fullUrl = imageUrl;
+          if (imageUrl.startsWith('/')) {
+            fullUrl = `${protocol}://${host}${imageUrl}`;
+          }
+          
+          console.log(`   - 이미지 다운로드: ${fullUrl}`);
+          const imgResponse = await fetch(fullUrl);
+          if (imgResponse.ok) {
+            const imgBuffer = await imgResponse.arrayBuffer();
+            finalImageBase64 = Buffer.from(imgBuffer).toString('base64');
+            console.log(`   - 다운로드 완료: ${Math.round(finalImageBase64.length / 1024)}KB`);
+          }
+        } catch (dlError) {
+          console.error('이미지 다운로드 실패:', dlError);
+        }
       }
       
       const didApiKey = process.env.DID_API_KEY;
@@ -3987,9 +4012,11 @@ self.addEventListener('fetch', (event) => {
       if (description) {
         console.log(`   - Step 1: 텍스트 분석 (비용 절감)`);
         analyzed = await analyzeTextAndGenerateScript(description, language, parseInt(duration) * 4);
-      } else {
+      } else if (finalImageBase64) {
         console.log(`   - Step 1: 이미지 분석`);
-        analyzed = await analyzeImageAndGenerateScript(imageBase64!, language, parseInt(duration) * 4);
+        analyzed = await analyzeImageAndGenerateScript(finalImageBase64, language, parseInt(duration) * 4);
+      } else {
+        return res.status(400).json({ error: '이미지 또는 설명이 필요합니다' });
       }
       console.log(`   - 대사 생성 완료: ${analyzed.script.substring(0, 30)}...`);
       console.log(`   - 카테고리: ${analyzed.category} (${analyzed.categoryKo})`);
@@ -4049,19 +4076,38 @@ self.addEventListener('fetch', (event) => {
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const host = req.headers.host;
       
-      if (analyzed.useOriginalImage && imageBase64) {
+      if (analyzed.useOriginalImage && finalImageBase64) {
         // 🎨 artwork 모드: 원본 이미지 사용 (작품 속 인물이 직접 말함)
         console.log(`   - 🎨 아트워크 모드: 원본 이미지 사용`);
         
-        // D-ID는 data URI 형식을 지원
-        if (imageBase64.startsWith('data:image/')) {
-          didRequest.source_base64 = imageBase64;
-        } else {
-          didRequest.source_base64 = `data:image/jpeg;base64,${imageBase64}`;
+        try {
+          const sharp = (await import('sharp')).default;
+          
+          // base64에서 이미지 버퍼로 변환
+          const cleanBase64 = finalImageBase64.replace(/^data:image\/\w+;base64,/, '');
+          const imgBuffer = Buffer.from(cleanBase64, 'base64');
+          
+          // D-ID용 이미지 압축 (최대 640x640, JPEG 75%)
+          const compressedBuffer = await sharp(imgBuffer)
+            .resize(640, 640, { fit: 'inside', withoutEnlargement: true })
+            .jpeg({ quality: 75 })
+            .toBuffer();
+          
+          const compressedBase64 = compressedBuffer.toString('base64');
+          didRequest.source_base64 = `data:image/jpeg;base64,${compressedBase64}`;
+          console.log(`   - 이미지 압축: ${Math.round(cleanBase64.length / 1024)}KB → ${Math.round(compressedBase64.length / 1024)}KB`);
+          
+        } catch (compError) {
+          console.error('이미지 압축 실패:', compError);
+          // 압축 실패 시 원본 사용
+          if (finalImageBase64.startsWith('data:image/')) {
+            didRequest.source_base64 = finalImageBase64;
+          } else {
+            didRequest.source_base64 = `data:image/jpeg;base64,${finalImageBase64}`;
+          }
         }
-        console.log(`   - 이미지 크기: ${Math.round(imageBase64.length / 1024)}KB`);
         
-      } else if (imageBase64 && !analyzed.useOriginalImage) {
+      } else if (finalImageBase64 && !analyzed.useOriginalImage) {
         // 🏛️ landmark/food 모드: 배경 + 아바타 합성
         console.log(`   - 🏛️ 가이드 모드: 배경 + 아바타 합성`);
         
@@ -4071,20 +4117,18 @@ self.addEventListener('fetch', (event) => {
           const fs = await import('fs/promises');
           
           // 배경 이미지 (원본)
-          const cleanBase64 = imageBase64.replace(/^data:image\/\w+;base64,/, '');
+          const cleanBase64 = finalImageBase64.replace(/^data:image\/\w+;base64,/, '');
           const bgBuffer = Buffer.from(cleanBase64, 'base64');
           
           // 아바타 이미지 로드
           const avatarPath = path.join(process.cwd(), 'public', guide.avatarPath.replace(/^\//, ''));
           const avatarBuffer = await fs.readFile(avatarPath);
           
-          // 배경 크기 확인 (D-ID 최대 1024x1024 권장)
-          const bgMeta = await sharp(bgBuffer).metadata();
-          const targetWidth = Math.min(bgMeta.width || 1024, 1024);
-          const targetHeight = Math.min(bgMeta.height || 1024, 1024);
+          // D-ID용 최적 크기 (640x640, 작은 용량)
+          const targetSize = 640;
           
-          // 아바타 크기 조정 (화면의 40% 높이)
-          const avatarHeight = Math.round(targetHeight * 0.45);
+          // 아바타 크기 조정 (화면의 45% 높이)
+          const avatarHeight = Math.round(targetSize * 0.45);
           const resizedAvatar = await sharp(avatarBuffer)
             .resize({ height: avatarHeight, fit: 'inside' })
             .toBuffer();
@@ -4093,22 +4137,22 @@ self.addEventListener('fetch', (event) => {
           const avatarWidth = avatarMeta.width || 200;
           
           // 배경 리사이즈 + 아바타 합성 (하단 중앙)
-          const compositeX = Math.round((targetWidth - avatarWidth) / 2);
-          const compositeY = targetHeight - avatarHeight; // 하단에 배치
+          const compositeX = Math.round((targetSize - avatarWidth) / 2);
+          const compositeY = targetSize - avatarHeight; // 하단에 배치
           
           const compositeImage = await sharp(bgBuffer)
-            .resize(targetWidth, targetHeight, { fit: 'cover' })
+            .resize(targetSize, targetSize, { fit: 'cover' })
             .composite([{
               input: resizedAvatar,
               left: compositeX,
               top: compositeY
             }])
-            .png()
+            .jpeg({ quality: 75 })  // JPEG 75%로 압축
             .toBuffer();
           
           const compositeBase64 = compositeImage.toString('base64');
-          didRequest.source_base64 = `data:image/png;base64,${compositeBase64}`;
-          console.log(`   - 합성 이미지 생성 완료: ${targetWidth}x${targetHeight}, size: ${Math.round(compositeBase64.length / 1024)}KB`);
+          didRequest.source_base64 = `data:image/jpeg;base64,${compositeBase64}`;
+          console.log(`   - 합성 이미지 생성 완료: ${targetSize}x${targetSize}, size: ${Math.round(compositeBase64.length / 1024)}KB`);
           
         } catch (compError) {
           console.error('이미지 합성 실패, 아바타만 사용:', compError);
