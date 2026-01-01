@@ -464,6 +464,8 @@ export interface AnalyzedScript {
   script: string;
   keywords: string[];
   voiceName: string;
+  videoPrompt: string; // 영상 제작용 프롬프트 (D-ID/Kling용)
+  useOriginalImage: boolean; // artwork일 때 true - 원본 이미지 사용
 }
 
 export async function analyzeTextAndGenerateScript(
@@ -480,32 +482,47 @@ export async function analyzeTextAndGenerateScript(
     zh: 'Charon'
   };
 
-  const prompt = `당신은 콘텐츠 분석 전문가입니다.
-다음 설명을 분석하고 1인칭 시점의 ${duration}초 분량(${charCount}자) 대사를 작성하세요.
+  const prompt = `당신은 콘텐츠 분석 및 AI 영상 제작 전문가입니다.
+다음 설명을 분석하고 1인칭 시점의 ${duration}초 분량(${charCount}자) 한국어 대사를 작성하세요.
 
 [분석할 설명]
 "${description.substring(0, 1000)}"
 
-작업:
-1. 카테고리 분류 (artwork: 예술작품/회화/조각, landmark: 건물/유적지/자연명소, food_drink: 음식/와인/술)
-2. 핵심 키워드 3-5개 추출
-3. 페르소나 정의 (예: 100년 된 와인병, 에펠탑, 모나리자 등)
-4. 분위기 선정 (nostalgic, proud, mysterious, cheerful, peaceful, dramatic)
-5. 1인칭 대사 작성 - 주인공이 직접 말하는 형식
+═══════════════════════════════════════
+📌 카테고리 분류 기준 (반드시 준수):
+═══════════════════════════════════════
+- artwork: 그림, 회화, 조각, 예술작품, 박물관 전시품, 미술관 작품
+  → 작품 자체 또는 작품 속 인물이 주인공 (원본 이미지 사용)
+  
+- landmark: 건물, 유적지, 자연명소, 도시풍경, 관광지, 거리
+  → 가이드 아바타가 배경 앞에서 설명
 
-⚠️ 중요: 대사에서 다음 단어는 반드시 피하세요 (AI 영상 생성 정책 위반):
-- 혁명, 전쟁, 폭력, 무기, 총, 칼, 피, 죽음, 살인
-- 정치적 갈등, 시위, 폭동, 테러
-- 대신 예술적 가치, 역사적 의미, 아름다움, 감동에 집중하세요
+- food_drink: 음식, 와인, 술, 카페, 레스토랑, 요리
+  → 가이드 아바타가 배경 앞에서 설명
+
+═══════════════════════════════════════
+📌 작업 순서:
+═══════════════════════════════════════
+1. 위 기준으로 카테고리 분류
+2. 핵심 키워드 3-5개 추출
+3. 페르소나 정의 (예: 모나리자, 에펠탑, 100년 된 와인 등)
+4. 분위기 선정 (nostalgic, proud, mysterious, cheerful, peaceful, dramatic)
+5. 1인칭 한국어 대사 작성 - 주인공이 직접 말하는 형식
+6. 영상 제작 프롬프트 작성 (영어로)
+
+⚠️ 중요: 대사는 반드시 한국어로 작성하세요!
+⚠️ 금지 단어 (AI 정책 위반): 혁명, 전쟁, 폭력, 무기, 총, 칼, 피, 죽음, 살인, 시위, 폭동, 테러
 
 JSON 형식으로 응답:
 {
   "category": "artwork 또는 landmark 또는 food_drink",
-  "categoryKo": "카테고리 한국어명 (작품/유적지/음식및술)",
-  "persona": "피사체 정체",
+  "categoryKo": "작품/유적지/음식및술",
+  "persona": "피사체 정체 (한국어)",
   "mood": "분위기",
-  "script": "1인칭 대사 (${charCount}자)",
-  "keywords": ["키워드1", "키워드2", "키워드3"]
+  "script": "한국어 1인칭 대사 (${charCount}자)",
+  "keywords": ["키워드1", "키워드2", "키워드3"],
+  "videoPrompt": "영어 영상 프롬프트: artwork면 'The [persona] speaks with gentle expression, subtle movements' / 그 외면 'Tour guide explains with friendly gestures in front of the background'",
+  "useOriginalImage": true/false (artwork면 true, 그 외면 false)
 }`;
 
   try {
@@ -521,18 +538,25 @@ JSON 형식으로 응답:
             persona: { type: "string" },
             mood: { type: "string" },
             script: { type: "string" },
-            keywords: { type: "array", items: { type: "string" } }
+            keywords: { type: "array", items: { type: "string" } },
+            videoPrompt: { type: "string" },
+            useOriginalImage: { type: "boolean" }
           },
-          required: ["category", "categoryKo", "persona", "mood", "script", "keywords"]
+          required: ["category", "categoryKo", "persona", "mood", "script", "keywords", "videoPrompt", "useOriginalImage"]
         }
       },
       contents: prompt
     });
 
     const result = JSON.parse(response.text || '{}');
+    const isArtwork = result.category === 'artwork';
     return {
       ...result,
-      voiceName: voiceMap[language] || voiceMap.ko
+      voiceName: voiceMap[language] || voiceMap.ko,
+      useOriginalImage: isArtwork, // artwork면 원본 이미지 사용
+      videoPrompt: result.videoPrompt || (isArtwork 
+        ? 'The subject speaks with gentle expression and subtle movements'
+        : 'Tour guide explains with friendly gestures in front of the scenic background')
     };
   } catch (error) {
     console.error("텍스트 분석 및 대사 생성 오류:", error);
@@ -543,7 +567,9 @@ JSON 형식으로 응답:
       mood: 'cheerful',
       script: '안녕하세요, 저는 이 아름다운 장소에서 여러분을 만나게 되어 기쁩니다.',
       keywords: [],
-      voiceName: voiceMap[language] || voiceMap.ko
+      voiceName: voiceMap[language] || voiceMap.ko,
+      videoPrompt: 'Tour guide explains with friendly gestures',
+      useOriginalImage: false
     };
   }
 }
@@ -563,29 +589,45 @@ export async function analyzeImageAndGenerateScript(
     zh: 'Charon'
   };
 
-  const prompt = `당신은 이미지 분석 전문가입니다.
-이 이미지를 분석하고 1인칭 시점의 ${duration}초 분량(${charCount}자) 대사를 작성하세요.
+  const prompt = `당신은 이미지 분석 및 AI 영상 제작 전문가입니다.
+이 이미지를 분석하고 1인칭 시점의 ${duration}초 분량(${charCount}자) 한국어 대사를 작성하세요.
 
-작업:
-1. 카테고리 분류 (artwork: 예술작품/회화/조각, landmark: 건물/유적지/자연명소, food_drink: 음식/와인/술)
+═══════════════════════════════════════
+📌 카테고리 분류 기준 (반드시 준수):
+═══════════════════════════════════════
+- artwork: 그림, 회화, 조각, 예술작품, 박물관 전시품, 미술관 작품, 초상화
+  → 작품 자체 또는 작품 속 인물이 주인공 (원본 이미지 사용)
+  → 예: 모나리자, 진주 귀걸이를 한 소녀, 별이 빛나는 밤 등
+  
+- landmark: 건물, 유적지, 자연명소, 도시풍경, 관광지, 거리, 다리
+  → 가이드 아바타가 배경 앞에서 설명
+
+- food_drink: 음식, 와인, 술, 카페, 레스토랑, 요리, 디저트
+  → 가이드 아바타가 배경 앞에서 설명
+
+═══════════════════════════════════════
+📌 작업 순서:
+═══════════════════════════════════════
+1. 이미지를 보고 위 기준으로 카테고리 분류
 2. 핵심 키워드 3-5개 추출
-3. 페르소나 정의 (예: 100년 된 와인병, 에펠탑, 모나리자 등)
+3. 페르소나 정의 (이미지 속 주인공)
 4. 분위기 선정 (nostalgic, proud, mysterious, cheerful, peaceful, dramatic)
-5. 1인칭 대사 작성 - 이미지 속 주인공이 직접 말하는 형식
+5. 1인칭 한국어 대사 작성 - 주인공이 직접 말하는 형식
+6. 영상 제작 프롬프트 작성 (영어로)
 
-⚠️ 중요: 대사에서 다음 단어는 반드시 피하세요 (AI 영상 생성 정책 위반):
-- 혁명, 전쟁, 폭력, 무기, 총, 칼, 피, 죽음, 살인
-- 정치적 갈등, 시위, 폭동, 테러
-- 대신 예술적 가치, 역사적 의미, 아름다움, 감동에 집중하세요
+⚠️ 중요: 대사는 반드시 한국어로 작성하세요!
+⚠️ 금지 단어 (AI 정책 위반): 혁명, 전쟁, 폭력, 무기, 총, 칼, 피, 죽음, 살인, 시위, 폭동, 테러
 
 JSON 형식으로 응답:
 {
   "category": "artwork 또는 landmark 또는 food_drink",
-  "categoryKo": "카테고리 한국어명 (작품/유적지/음식및술)",
-  "persona": "피사체 정체",
+  "categoryKo": "작품/유적지/음식및술",
+  "persona": "피사체 정체 (한국어)",
   "mood": "분위기",
-  "script": "1인칭 대사 (${charCount}자)",
-  "keywords": ["키워드1", "키워드2", "키워드3"]
+  "script": "한국어 1인칭 대사 (${charCount}자)",
+  "keywords": ["키워드1", "키워드2", "키워드3"],
+  "videoPrompt": "영어 영상 프롬프트: artwork면 'The [persona] speaks with gentle expression, subtle movements' / 그 외면 'Tour guide explains with friendly gestures in front of the background'",
+  "useOriginalImage": true/false (artwork면 true, 그 외면 false)
 }`;
 
   try {
@@ -601,9 +643,11 @@ JSON 형식으로 응답:
             persona: { type: "string" },
             mood: { type: "string" },
             script: { type: "string" },
-            keywords: { type: "array", items: { type: "string" } }
+            keywords: { type: "array", items: { type: "string" } },
+            videoPrompt: { type: "string" },
+            useOriginalImage: { type: "boolean" }
           },
-          required: ["category", "categoryKo", "persona", "mood", "script", "keywords"]
+          required: ["category", "categoryKo", "persona", "mood", "script", "keywords", "videoPrompt", "useOriginalImage"]
         }
       },
       contents: [
@@ -618,9 +662,14 @@ JSON 형식으로 응답:
     });
 
     const result = JSON.parse(response.text || '{}');
+    const isArtwork = result.category === 'artwork';
     return {
       ...result,
-      voiceName: voiceMap[language] || voiceMap.ko
+      voiceName: voiceMap[language] || voiceMap.ko,
+      useOriginalImage: isArtwork,
+      videoPrompt: result.videoPrompt || (isArtwork 
+        ? 'The subject speaks with gentle expression and subtle movements'
+        : 'Tour guide explains with friendly gestures in front of the scenic background')
     };
   } catch (error) {
     console.error("이미지 분석 및 대사 생성 오류:", error);
@@ -631,7 +680,9 @@ JSON 형식으로 응답:
       mood: 'cheerful',
       script: '안녕하세요, 저는 이 아름다운 장소에서 여러분을 만나게 되어 기쁩니다.',
       keywords: [],
-      voiceName: voiceMap[language] || voiceMap.ko
+      voiceName: voiceMap[language] || voiceMap.ko,
+      videoPrompt: 'Tour guide explains with friendly gestures',
+      useOriginalImage: false
     };
   }
 }
