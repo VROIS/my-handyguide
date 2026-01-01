@@ -4172,6 +4172,20 @@ self.addEventListener('fetch', (event) => {
       if (isArtwork) {
         // 예술품/조각: 원본 이미지가 살아 움직이는 애니메이션
         console.log(`   - Step 2.5: 🎨 예술품 모드 - 원본 이미지 사용`);
+        
+        // imageUrl만 있고 imageBase64가 없으면 다운로드해서 변환
+        if (!imageBase64 && imageUrl) {
+          try {
+            const response = await fetch(imageUrl);
+            const arrayBuffer = await response.arrayBuffer();
+            finalImageBase64 = Buffer.from(arrayBuffer).toString('base64');
+            finalImageUrl = undefined;
+            console.log(`   - 이미지 URL에서 base64 변환 완료`);
+          } catch (fetchError) {
+            console.warn(`   - 이미지 다운로드 실패, URL 그대로 사용: ${fetchError}`);
+          }
+        }
+        
         finalPrompt = `This artwork comes to life with subtle, magical animation. The sculpture/painting gently moves, breathes, and expresses emotion as if awakening. Cinematic lighting, ethereal atmosphere, smooth gentle movements. The artwork speaks: "${analyzed.script}"`;
       } else {
         // 유적지/음식: 가이드 캐릭터가 설명
