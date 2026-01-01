@@ -417,3 +417,48 @@ export const insertPromptSchema = createInsertSchema(prompts).omit({
 // Types for prompts
 export type InsertPrompt = z.infer<typeof insertPromptSchema>;
 export type Prompt = typeof prompts.$inferSelect;
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 🎬 드림 스튜디오 영상 테이블 (Dream Studio Videos Table)
+// ═══════════════════════════════════════════════════════════════════════════════
+// 
+// 목적: D-ID API로 생성된 영상 메타데이터 저장
+// 
+// 핵심 기능:
+// 1. 사용자가 생성한 영상 기록 보관
+// 2. D-ID talkId로 영상 추적
+// 3. 비용 추적 및 분석
+// 
+// 사용 시나리오:
+// - 영상 생성 완료 시 자동 저장
+// - 사용자 영상 히스토리 조회 (추후)
+// - 비용/사용량 분석
+// 
+// 최근 변경: 2026-01-01 - 드림 스튜디오 영상 저장 테이블 추가
+// ═══════════════════════════════════════════════════════════════════════════════
+export const dreamStudioVideos = pgTable("dream_studio_videos", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").references(() => users.id, { onDelete: 'set null' }),
+  talkId: varchar("talk_id"), // D-ID talk ID
+  guideType: varchar("guide_type").default('young_female'), // 아바타 타입
+  language: varchar("language").default('ko'),
+  description: text("description"), // 원본 설명 텍스트
+  script: text("script"), // 생성된 대사
+  videoUrl: text("video_url"), // D-ID 영상 URL
+  thumbnailUrl: text("thumbnail_url"), // 썸네일 URL (있으면)
+  duration: integer("duration"), // 영상 길이 (초)
+  status: varchar("status").default('completed'), // 'pending' | 'processing' | 'completed' | 'failed'
+  processingTime: integer("processing_time"), // 생성 소요 시간 (ms)
+  errorMessage: text("error_message"), // 실패 시 에러 메시지
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Insert schema for dream studio videos
+export const insertDreamStudioVideoSchema = createInsertSchema(dreamStudioVideos).omit({
+  id: true,
+  createdAt: true,
+});
+
+// Types for dream studio videos
+export type InsertDreamStudioVideo = z.infer<typeof insertDreamStudioVideoSchema>;
+export type DreamStudioVideo = typeof dreamStudioVideos.$inferSelect;
