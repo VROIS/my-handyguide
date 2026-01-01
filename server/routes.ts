@@ -4206,6 +4206,7 @@ self.addEventListener('fetch', (event) => {
       
       // 4단계: Kling.ai 영상 생성 (pro 모드)
       console.log(`   - Step 4: Kling.ai 영상 생성 (${duration}초, pro 모드, ${isArtwork ? '예술품' : '가이드'})`);
+      console.log(`   - 이미지 정보: base64 길이=${finalImageBase64?.length || 0}, url=${finalImageUrl ? '있음' : '없음'}`);
       
       let videoUrl: string;
       try {
