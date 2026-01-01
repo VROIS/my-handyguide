@@ -4920,9 +4920,9 @@ document.addEventListener('DOMContentLoaded', () => {
     settingsBackBtn?.addEventListener('click', showArchivePage);
     adminSettingsBackBtn?.addEventListener('click', showSettingsPage);
     
-    // 🎬 드림 스튜디오 버튼 - 드림 스튜디오 페이지로 이동
+    // 🎬 드림 스튜디오 버튼 - 새 탭으로 열기
     document.getElementById('adminDreamStudioBtn')?.addEventListener('click', () => {
-        window.location.href = './dream-studio.html';
+        window.open('./dream-studio.html', '_blank');
     });
     
     // ═══════════════════════════════════════════════════════════════
