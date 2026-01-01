@@ -4162,22 +4162,33 @@ self.addEventListener('fetch', (event) => {
       const guide = GUIDE_TEMPLATES[guideType as keyof typeof GUIDE_TEMPLATES] || GUIDE_TEMPLATES.young_female;
       console.log(`   - Step 2: 가이드 선택 - ${guide.name}`);
       
+      // 2.5단계: 아바타 이미지 로드 (캐릭터 영상 생성용)
+      const avatarPath = path.join(process.cwd(), 'public', guide.avatarPath);
+      let avatarBase64: string | undefined;
+      try {
+        const avatarBuffer = fs.readFileSync(avatarPath);
+        avatarBase64 = avatarBuffer.toString('base64');
+        console.log(`   - Step 2.5: 아바타 이미지 로드 완료`);
+      } catch (avatarError) {
+        console.warn(`   - 아바타 로드 실패, 원본 이미지 사용: ${avatarError}`);
+      }
+      
       // 3단계: 프롬프트 조합 (Native Audio 포함)
       const audioPrompt = (guide as any).audioTemplate?.replace('${script}', analyzed.script) || '';
       const finalPrompt = `${guide.promptTemplate} ${audioPrompt}`;
       console.log(`   - Step 3: 프롬프트 조합 완료 (Native Audio 포함)`);
       
-      // 4단계: Kling.ai 영상 생성
-      console.log(`   - Step 4: Kling.ai 영상 생성 (${duration}초)`);
+      // 4단계: Kling.ai 영상 생성 (아바타 이미지 사용, pro 모드)
+      console.log(`   - Step 4: Kling.ai 영상 생성 (${duration}초, pro 모드)`);
       
       let videoUrl: string;
       try {
         videoUrl = await generateVideo({
-          imageBase64: imageBase64,
-          imageUrl: imageUrl,
+          imageBase64: avatarBase64 || imageBase64,
+          imageUrl: avatarBase64 ? undefined : imageUrl,
           prompt: finalPrompt,
           duration: duration as '5' | '10',
-          mode: 'std'
+          mode: 'pro'
         });
       } catch (klingError: any) {
         console.error('Kling.ai 오류:', klingError);

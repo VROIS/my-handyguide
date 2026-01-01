@@ -303,6 +303,38 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 1010;
+        }
+        
+        .modal .save-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 16px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            z-index: 1005;
+        }
+        
+        .modal .save-btn {
+            padding: 12px 24px;
+            background: #4285F4;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .modal .save-btn:hover {
+            background: #3367D6;
         }
         
         .tabs {
@@ -433,12 +465,20 @@
     </div>
     
     <div class="modal" id="videoModal">
-        <button class="close-btn" onclick="closeModal()">
+        <button class="close-btn" onclick="closeModal()" data-testid="modal-close-btn">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
         </button>
         <video id="modalVideo" controls></video>
+        <div class="save-bar">
+            <button class="save-btn" onclick="saveCurrentVideo()" data-testid="save-video-btn">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                저장하기
+            </button>
+        </div>
     </div>
     
     <div class="toast" id="toast"></div>
@@ -454,6 +494,7 @@
         let selectedGuide = 'young_female';
         let myGuides = [];
         let savedVideos = JSON.parse(localStorage.getItem('dreamStudioVideos') || '[]');
+        let currentVideoSlotIndex = null;
         
         const slots = Array(6).fill(null).map((_, i) => ({
             id: i + 1,
@@ -658,8 +699,16 @@
             const slot = slots[index];
             if (!slot.videoUrl) return;
             
+            currentVideoSlotIndex = index;
             document.getElementById('modalVideo').src = slot.videoUrl;
             document.getElementById('videoModal').classList.add('active');
+        }
+        
+        function saveCurrentVideo() {
+            if (currentVideoSlotIndex !== null) {
+                saveVideo(currentVideoSlotIndex);
+                closeModal();
+            }
         }
         
         function closeModal() {
