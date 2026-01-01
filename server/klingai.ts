@@ -116,7 +116,8 @@ export async function createImageToVideoTask(options: KlingVideoRequest): Promis
     model_name: modelName,
     mode,
     duration,
-    prompt
+    prompt,
+    sound: true  // Native Audio 활성화 (음성, 배경음, 효과음)
   };
 
   if (imageBase64) {
