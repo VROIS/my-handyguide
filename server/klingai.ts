@@ -1,6 +1,6 @@
-import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 
-const KLING_API_BASE = 'https://api.klingai.com';
+const KLING_API_BASE = 'https://api-singapore.klingai.com';
 
 interface KlingVideoRequest {
   imageBase64?: string;
@@ -49,11 +49,6 @@ function generateJWT(): string {
     throw new Error('KLING_ACCESS_KEY or KLING_SECRET_KEY not set');
   }
 
-  const header = {
-    alg: 'HS256',
-    typ: 'JWT'
-  };
-
   const now = Math.floor(Date.now() / 1000);
   const payload = {
     iss: accessKey,
@@ -61,15 +56,15 @@ function generateJWT(): string {
     nbf: now - 5
   };
 
-  const base64Header = Buffer.from(JSON.stringify(header)).toString('base64url');
-  const base64Payload = Buffer.from(JSON.stringify(payload)).toString('base64url');
-  
-  const signature = crypto
-    .createHmac('sha256', secretKey)
-    .update(`${base64Header}.${base64Payload}`)
-    .digest('base64url');
+  const token = jwt.sign(payload, secretKey, {
+    algorithm: 'HS256',
+    header: {
+      alg: 'HS256',
+      typ: 'JWT'
+    }
+  });
 
-  return `${base64Header}.${base64Payload}.${signature}`;
+  return token;
 }
 
 async function klingRequest(endpoint: string, body: any): Promise<any> {
