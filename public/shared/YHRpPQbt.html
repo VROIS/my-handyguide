@@ -46,10 +46,12 @@
                 if (window.__ttsTargetLang) {
                     var descEl = document.getElementById('detail-description');
                     if (descEl) {
-                        var translatedText = descEl.textContent || descEl.innerText;
+                        // 🌐 Google Translate의 <font> 태그에서 번역된 텍스트 추출
+                        var fontEl = descEl.querySelector('font');
+                        var translatedText = fontEl ? (fontEl.innerText || fontEl.textContent) : (descEl.innerText || descEl.textContent);
                         utterance.text = translatedText;
                         utterance.lang = window.__ttsTargetLang;
-                        console.log('🎤✅ [TTS 재생] 언어:', window.__ttsTargetLang, '길이:', translatedText.length);
+                        console.log('🎤✅ [TTS 재생] 언어:', window.__ttsTargetLang, fontEl ? '(font태그)' : '(innerText)', '길이:', translatedText.length);
                     }
                 }
                 
@@ -71,15 +73,21 @@
                         
                         if (window.__ttsQueue.length > 0) {
                             console.log('🎤✅ [대기열 재생]', window.__ttsQueue.length + '개');
-                            window.__ttsQueue.forEach(function(utt) {
-                                var descEl = document.getElementById('detail-description');
-                                if (descEl) {
-                                    utt.text = descEl.textContent || descEl.innerText;
-                                    utt.lang = window.__ttsTargetLang;
-                                }
-                                originalSpeak(utt);
-                            });
-                            window.__ttsQueue = [];
+                            // 🌐 2025-12-24: 번역 클래스 감지 후 실제 텍스트 변환까지 500ms 추가 대기
+                            setTimeout(function() {
+                                console.log('[TTS] 번역 텍스트 적용 대기 완료 (500ms)');
+                                window.__ttsQueue.forEach(function(utt) {
+                                    var descEl = document.getElementById('detail-description');
+                                    if (descEl) {
+                                        // 🌐 Google Translate의 <font> 태그에서 번역된 텍스트 추출
+                                        var fontEl = descEl.querySelector('font');
+                                        utt.text = fontEl ? (fontEl.innerText || fontEl.textContent) : (descEl.innerText || descEl.textContent);
+                                        utt.lang = window.__ttsTargetLang;
+                                    }
+                                    originalSpeak(utt);
+                                });
+                                window.__ttsQueue = [];
+                            }, 500);
                         }
                     }
                 });
@@ -107,13 +115,16 @@
     <!-- 🌐 2025.12.03: 쿼리 파라미터로 구글 번역 쿠키 설정 (자동 번역용) -->
     <script>
         (function() {
-            var params = new URLSearchParams(window.location.search);
-            var lang = params.get('lang');
-            if (lang && /^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
+            var storedLang = null;
+            try { storedLang = localStorage.getItem('appLanguage'); } catch(e) {}
+            var urlParams = new URLSearchParams(window.location.search);
+            var urlLang = urlParams.get('lang');
+            var lang = storedLang || urlLang || 'ko';
+            if (lang && lang !== 'ko' && /^[a-z]{2}(-[A-Z]{2})?$/.test(lang)) {
                 var domain = window.location.hostname;
                 document.cookie = 'googtrans=/ko/' + lang + ';path=/;domain=' + domain;
                 document.cookie = 'googtrans=/ko/' + lang + ';path=/';
-                console.log('🌐 Pre-set googtrans cookie for:', lang);
+                console.log('🌐 [Gallery] googtrans 쿠키 설정 (appLanguage 우선):', lang);
             }
         })();
     </script>
@@ -472,6 +483,115 @@
         let voices = [];
         let currentUtterance = null;
         
+        // ═══════════════════════════════════════════════════════════════
+        // 🔊 표준 음성 로직 (2025-12-24) - guideDetailPage.js와 동일
+        // ═══════════════════════════════════════════════════════════════
+        let voiceConfigsCache = null;
+        let voiceConfigsLoading = false;
+        
+        const DEFAULT_VOICE_PRIORITIES = {
+            'ko-KR': { default: ['Microsoft Heami', 'Yuna'] },
+            'en-US': { default: ['Samantha', 'Microsoft Zira', 'Google US English', 'English'] },
+            'ja-JP': { default: ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'] },
+            'zh-CN': { default: ['Ting-Ting', 'Microsoft Huihui', 'Google 普通话', 'Chinese'] },
+            'fr-FR': { default: ['Thomas', 'Microsoft Hortense', 'Google français', 'French'] },
+            'de-DE': { default: ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'] },
+            'es-ES': { default: ['Monica', 'Microsoft Helena', 'Google español', 'Spanish'] }
+        };
+        
+        function detectPlatform() {
+            const ua = navigator.userAgent;
+            if (/iPhone|iPad|iPod/.test(ua)) return 'ios';
+            if (/Android/.test(ua)) return 'android';
+            return 'windows';
+        }
+        
+        async function loadVoiceConfigsFromDB() {
+            if (voiceConfigsCache) return voiceConfigsCache;
+            if (voiceConfigsLoading) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                return voiceConfigsCache || null;
+            }
+            
+            voiceConfigsLoading = true;
+            try {
+                const response = await fetch('/api/voice-configs');
+                if (response.ok) {
+                    const configs = await response.json();
+                    voiceConfigsCache = {};
+                    for (const config of configs) {
+                        if (!voiceConfigsCache[config.langCode]) {
+                            voiceConfigsCache[config.langCode] = {};
+                        }
+                        voiceConfigsCache[config.langCode][config.platform] = {
+                            priorities: config.voicePriorities,
+                            excludeVoices: config.excludeVoices || []
+                        };
+                    }
+                    console.log('🔊 [ShareTemplate Voice DB] 설정 로드 완료:', Object.keys(voiceConfigsCache));
+                }
+            } catch (error) {
+                console.warn('🔊 [ShareTemplate Voice DB] 로드 실패, 기본값 사용:', error.message);
+            }
+            voiceConfigsLoading = false;
+            return voiceConfigsCache;
+        }
+        
+        function getVoicePriorityFromDB(langCode) {
+            const platform = detectPlatform();
+            
+            if (voiceConfigsCache && voiceConfigsCache[langCode]) {
+                const config = voiceConfigsCache[langCode][platform] || voiceConfigsCache[langCode]['default'];
+                if (config) {
+                    return { priorities: config.priorities, excludeVoices: config.excludeVoices };
+                }
+            }
+            
+            const fallback = DEFAULT_VOICE_PRIORITIES[langCode];
+            if (fallback) {
+                const priorities = fallback[platform] || fallback['default'] || fallback[Object.keys(fallback)[0]];
+                return { priorities, excludeVoices: [] };
+            }
+            
+            return { priorities: [], excludeVoices: [] };
+        }
+        
+        function getVoiceForLanguage(userLang) {
+            const langMap = {
+                'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP',
+                'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES'
+            };
+            
+            const fullLang = langMap[userLang] || 'ko-KR';
+            const langCode = fullLang.substring(0, 2);
+            
+            const voiceConfig = getVoicePriorityFromDB(fullLang);
+            const priorities = voiceConfig.priorities;
+            const excludeVoices = voiceConfig.excludeVoices;
+            
+            const allVoices = synth.getVoices();
+            let targetVoice = null;
+            
+            for (const voiceName of priorities) {
+                targetVoice = allVoices.find(v => 
+                    v.name.includes(voiceName) && !excludeVoices.some(ex => v.name.includes(ex))
+                );
+                if (targetVoice) break;
+            }
+            
+            if (!targetVoice) {
+                targetVoice = allVoices.find(v => 
+                    v.lang.replace('_', '-').startsWith(langCode) && !excludeVoices.some(ex => v.name.includes(ex))
+                );
+            }
+            
+            console.log('[ShareTemplate TTS] userLang:', userLang, 'fullLang:', fullLang, '→ voice:', targetVoice?.name);
+            return targetVoice || allVoices[0];
+        }
+        
+        // 앱 시작 시 음성 설정 로드
+        loadVoiceConfigsFromDB();
+        
         function populateVoiceList() {
             voices = synth.getVoices();
         }
@@ -487,7 +607,7 @@
             if (pauseIcon) pauseIcon.style.display = 'none';
         }
         
-        // 🎤 2025-12-03: voiceLang 파라미터 추가 (저장된 언어로 TTS 재생)
+        // 🎤 2025-12-24: 표준 음성 로직 - 사용자 언어 기준 TTS 재생
         function playAudio(text, voiceLang) {
             stopAudio();
             
@@ -503,12 +623,12 @@
             
             currentUtterance = new SpeechSynthesisUtterance(cleanText);
             
-            // 🎤 저장된 voiceLang 사용 (각 가이드별 원본 언어, 없으면 TTS 스킵)
-            if (!voiceLang) {
-                console.warn('[Share TTS] voiceLang 없음 - TTS 스킵');
-                return;
-            }
-            const langCode = voiceLang;
+            // 🔊 표준 음성 로직: URL lang 파라미터 또는 appLanguage 기준
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlLang = urlParams.get('lang');
+            const userLang = urlLang || localStorage.getItem('appLanguage') || 'ko';
+            const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
+            const langCode = langCodeMap[userLang] || 'ko-KR';
             
             const allVoices = synth.getVoices();
             let targetVoice = null;
@@ -522,29 +642,17 @@
                            || koVoices.find(v => v.name.includes('소라'))
                            || koVoices.find(v => v.name.includes('Heami'))
                            || koVoices[0];
-                console.log('[Share TTS] 한국어 음성:', targetVoice?.name || 'default');
+                console.log('[ShareTemplate TTS] 한국어 음성:', targetVoice?.name || 'default');
             } else {
-                // 다른 언어: 저장된 voiceName 사용 (각 가이드별 원본 음성)
-                // voiceName이 appData에 있으면 그 음성 사용
-                const currentItem = appData.find(item => item.voiceLang === langCode);
-                const savedVoiceName = currentItem?.voiceName;
-                
-                if (savedVoiceName) {
-                    targetVoice = allVoices.find(v => v.name.includes(savedVoiceName));
-                    console.log('[Share TTS] 저장된 음성:', savedVoiceName, '→', targetVoice?.name);
-                }
-                
-                // 저장된 음성 없으면 언어 코드로 찾기
-                if (!targetVoice) {
-                    targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
-                }
+                // 다른 언어: DB voice_configs 또는 기본값
+                targetVoice = getVoiceForLanguage(userLang);
             }
             
             currentUtterance.voice = targetVoice || null;
             currentUtterance.lang = langCode;
             currentUtterance.rate = 1.0;
             
-            console.log('[Share TTS] 언어:', langCode, '음성:', targetVoice ? targetVoice.name : 'default');
+            console.log('[ShareTemplate TTS] 언어:', langCode, '음성:', targetVoice ? targetVoice.name : 'default');
             
             const playIcon = document.getElementById('play-icon');
             const pauseIcon = document.getElementById('pause-icon');
@@ -589,6 +697,41 @@
         
         // 🎤 현재 보고 있는 아이템의 voiceLang 저장
         let currentVoiceLang = null;
+        
+        // 🌐 2025-12-24: 동적 콘텐츠 강제 재번역 함수
+        let retranslationPending = false;
+        
+        function retranslateNewContent() {
+            // 🌐 2025-12-24: userLang 체크 제거 - Google Translate 드롭다운 활성화 여부만 확인
+            return new Promise((resolve) => {
+                const selectElement = document.querySelector('.goog-te-combo');
+                
+                if (!selectElement || !selectElement.value) {
+                    console.log('[Gallery Retranslate] Google Translate 드롭다운 비활성 - 스킵');
+                    resolve();
+                    return;
+                }
+                
+                const currentLang = selectElement.value;
+                console.log('[Gallery Retranslate] 🔄 강제 재번역 시작:', currentLang);
+                retranslationPending = true;
+                
+                selectElement.value = '';
+                selectElement.dispatchEvent(new Event('change'));
+                
+                setTimeout(() => {
+                    selectElement.value = currentLang;
+                    selectElement.dispatchEvent(new Event('change'));
+                    
+                    setTimeout(() => {
+                        console.log('[Gallery Retranslate] ✅ 재번역 완료');
+                        retranslationPending = false;
+                        window.dispatchEvent(new CustomEvent('galleryRetranslationComplete'));
+                        resolve();
+                    }, 800);
+                }, 100);
+            });
+        }
         
         // 갤러리 아이템 클릭 (앱과 100% 동일한 로직)
         document.querySelectorAll('.gallery-item').forEach(item => {
@@ -653,8 +796,11 @@
                 // 텍스트는 표시 상태로 시작 (음성과 동시에 보임)
                 document.getElementById('detail-text').classList.remove('hidden');
                 
-                // 🎤 음성 자동 재생 (저장된 언어 사용)
-                playAudio(itemData.description, currentVoiceLang);
+                // 🌐 2025-12-24: 동적 콘텐츠 재번역 후 TTS 재생
+                retranslateNewContent().then(() => {
+                    // 🎤 음성 자동 재생 (저장된 언어 사용)
+                    playAudio(itemData.description, currentVoiceLang);
+                });
             });
         });
         
@@ -724,15 +870,15 @@
     
     <!-- ⚠️ 핵심 로직: Service Worker 등록 (오프라인 지원) -->
     <script>
-        // Service Worker 지원 확인 및 등록 (v10 - 메인 앱과 동일)
+        // Service Worker 지원 확인 및 등록 (v10 - 공유페이지 전용 Network First)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/service-worker.js')
+                navigator.serviceWorker.register('/sw-share.js')
                     .then(registration => {
-                        console.log('✅ [SW] v10 등록 성공:', registration.scope);
+                        console.log('✅ [SW-Share] v10 등록 성공:', registration.scope);
                     })
                     .catch(error => {
-                        console.log('❌ [SW] 등록 실패:', error);
+                        console.log('❌ [SW-Share] 등록 실패:', error);
                     });
             });
         }
@@ -746,7 +892,7 @@
     <script type="text/javascript">
         function googleTranslateElementInit() {
             new google.translate.TranslateElement({
-                pageLanguage: 'ko',
+                pageLanguage: 'auto', // 🌐 2025-12-24: 양방향 번역
                 includedLanguages: 'ko,en,ja,zh-CN,fr,de,es',
                 autoDisplay: false
             }, 'google_translate_element');
@@ -761,6 +907,13 @@
         .goog-te-gadget { font-size: 0px !important; color: transparent !important; }
         .goog-logo-link { display: none !important; }
         .skiptranslate { display: none !important; }
+        /* 구글 번역 스피너 완전 숨김 */
+        .goog-te-spinner-pos { display: none !important; }
+        .goog-te-spinner { display: none !important; }
+        .goog-te-spinner-animation { display: none !important; }
     </style>
+    
+    <!-- 🔊 2025-12-25: 외부 TTS 로직 (기존 DB 페이지도 동적 업데이트) -->
+    <script src="/share-page.js"></script>
 </body>
 </html>
