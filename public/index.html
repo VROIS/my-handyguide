@@ -439,17 +439,22 @@
             background-color: #e0efff;
             color: #1d4ed8;
         }
-        /* 🔧 2026-01-07: 2단계 선택 - 다시 터치 대기 상태 */
+        /* 🔧 2026-01-07: 2단계 선택 - 다시 터치 대기 상태 (크기 확대 + 흰색 테두리) */
         .language-item.ready-to-start {
-            background-color: #4285F4;
-            color: white;
+            background-color: #f0f7ff;
+            color: #1d4ed8;
             font-weight: 700;
-            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.4);
-            animation: pulse-ready 1s ease-in-out infinite;
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: scale(1.08);
+            z-index: 10;
+            position: relative;
+            animation: bounce-ready 0.6s ease-out;
         }
-        @keyframes pulse-ready {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.02); }
+        @keyframes bounce-ready {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.12); }
+            100% { transform: scale(1.08); }
         }
         .language-item:first-child {
             border-radius: 0.75rem 0.75rem 0 0;
