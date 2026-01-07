@@ -4976,10 +4976,18 @@ document.addEventListener('DOMContentLoaded', () => {
         // localStorage에 저장
         localStorage.setItem('appLanguage', selectedLang);
         
-        // Google Translate 쿠키 설정
+        // 🔧 2026-01-07: 한국어 선택 시 googtrans 쿠키 완전 삭제 (불어 전환 버그 해결)
         const domain = window.location.hostname;
-        document.cookie = `googtrans=/ko/${selectedLang}; path=/; domain=${domain}`;
-        document.cookie = `googtrans=/ko/${selectedLang}; path=/`;
+        if (selectedLang === 'ko') {
+            // 쿠키 만료시켜서 삭제
+            document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=${domain}`;
+            document.cookie = `googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.${domain}`;
+            console.log('🗑️ googtrans 쿠키 삭제 완료');
+        } else {
+            document.cookie = `googtrans=/ko/${selectedLang}; path=/; domain=${domain}`;
+            document.cookie = `googtrans=/ko/${selectedLang}; path=/`;
+        }
         
         // 토스트 메시지
         const langNames = {
