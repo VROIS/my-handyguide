@@ -551,7 +551,8 @@ document.addEventListener('DOMContentLoaded', () => {
             authModal.classList.remove('pointer-events-none');
             authModal.classList.add('pointer-events-auto');
         }
-        showToast('무료 체험이 끝났습니다. 로그인하면 10 크레딧을 드려요!');
+        // 🎁 2026-01-07: 프로모션 메시지 (기존: 10 크레딧)
+        showToast('무료 체험이 끝났습니다. 로그인하면 140 크레딧을 드려요! 🎁');
     }
 
     function showChargeModal() {

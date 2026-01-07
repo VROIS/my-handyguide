@@ -16,7 +16,9 @@ import { eq, desc, sql, and, like } from 'drizzle-orm';
 import { notificationService } from './notificationService';
 
 export const CREDIT_CONFIG = {
-  SIGNUP_BONUS: 10,
+  // 🎁 2026-01-07: 프로모션 - 신규 가입 140 크레딧 (기존 10)
+  // 프로모션 종료 후 10으로 복원
+  SIGNUP_BONUS: 140,
   PURCHASE_CREDITS: 140,
   PURCHASE_BONUS: 40,
   DETAIL_PAGE_COST: 2,
@@ -111,11 +113,39 @@ export class CreditService {
       return await this.getBalance(userId);
     }
 
+    // 🎁 2026-01-07: 프로모션 메시지 (기존: 10 크레딧)
     return await this.addCredits(
       userId,
       CREDIT_CONFIG.SIGNUP_BONUS,
       'signup_bonus',
-      '신규 가입 보너스 10 크레딧'
+      `신규 가입 보너스 ${CREDIT_CONFIG.SIGNUP_BONUS} 크레딧 🎁`
+    );
+  }
+
+  /**
+   * 🎁 2026-01-07: 프로모션 보너스 (기존 가입자 대상)
+   * 프로모션 종료 후 이 함수 호출 제거
+   */
+  async grantPromoBonus(userId: string): Promise<number> {
+    const [existingPromo] = await db.select()
+      .from(creditTransactions)
+      .where(and(
+        eq(creditTransactions.userId, userId),
+        eq(creditTransactions.type, 'promo_bonus_2026')
+      ))
+      .limit(1);
+
+    if (existingPromo) {
+      console.log(`User ${userId} already received promo bonus`);
+      return await this.getBalance(userId);
+    }
+
+    console.log(`🎁 [프로모션] 기존 사용자 ${userId}에게 140 크레딧 지급`);
+    return await this.addCredits(
+      userId,
+      140,
+      'promo_bonus_2026',
+      '🎁 2026년 프로모션 보너스 140 크레딧'
     );
   }
 

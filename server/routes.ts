@@ -626,6 +626,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getUserId(req.user);
       const user = await storage.getUser(userId);
+      
+      // 🎁 2026-01-07: 프로모션 - 기존 가입자에게 프로모션 보너스 지급
+      // 프로모션 종료 후 아래 3줄 삭제
+      if (user) {
+        await creditService.grantPromoBonus(userId);
+      }
+      
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
