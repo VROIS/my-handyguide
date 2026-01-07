@@ -2081,9 +2081,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.removeItem('pendingShareUrl');
                     window.open(pendingUrl, '_blank');
                 } else {
-                    // Featured Gallery 새로고침
-                    console.log('🔄 Refreshing Featured Gallery');
-                    loadFeaturedGallery();
+                    // 🎁 2026-01-07: 프로모션 - 인증 후 자동으로 메인 페이지 진입
+                    console.log('🚀 인증 완료 → 메인 페이지 자동 진입');
+                    handleStartFeaturesClick();
                 }
             }
         });
@@ -2092,7 +2092,9 @@ document.addEventListener('DOMContentLoaded', () => {
         window.addEventListener('storage', (event) => {
             if (event.key === 'auth_success' && event.newValue === 'true') {
                 console.log('🔔 Storage 이벤트 감지: auth_success = true');
+                // 🎁 2026-01-07: 프로모션 - 인증 후 자동으로 메인 페이지 진입
                 checkAuthStatusAndCloseModal();
+                handleStartFeaturesClick();
             }
         });
         
@@ -2152,6 +2154,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function handleStartFeaturesClick() {
+        // 🎁 2026-01-07: 프로모션 - 인증 필수 (미인증 시 모달 표시)
+        const user = await checkUserAuth();
+        if (!user) {
+            console.log('🔒 미인증 사용자 → 인증 모달 표시');
+            // 기존 authModal 사용 (새로 만들지 않음)
+            const authModal = document.getElementById('authModal');
+            if (authModal) {
+                authModal.classList.remove('hidden');
+                authModal.classList.remove('pointer-events-none');
+                authModal.classList.add('pointer-events-auto');
+            }
+            showToast('로그인하시면 무료로 사용하실 수 있어요!');
+            return; // 인증 완료 후 다시 호출됨
+        }
+        
+        console.log('✅ 인증 완료 → 메인 페이지 진입');
         showPage(mainPage);
         cameraStartOverlay.classList.add('hidden');
     
