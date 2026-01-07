@@ -700,26 +700,62 @@ const guideDetailPage = {
         
         console.log('[TTS] 재생 언어:', fullLang, '텍스트 길이:', cleanText.length);
         
-        // 🔴 음성 목록 로드 대기 (최대 1초)
+        // 🔴 2026-01-07: 음성 목록 로드 대기 강화 (삼성폰 Chrome 호환성)
         let voices = this._state.synth.getVoices();
         if (voices.length === 0) {
-            console.log('[TTS] Waiting for voices to load...');
+            console.log('[TTS] Waiting for voices to load... (삼성폰 호환 모드)');
             await new Promise(resolve => {
-                const checkVoices = () => {
+                let resolved = false;
+                
+                // 방법 1: voiceschanged 이벤트 (권장)
+                const onVoicesChanged = () => {
+                    if (resolved) return;
                     voices = self._state.synth.getVoices();
                     if (voices.length > 0) {
+                        resolved = true;
+                        self._state.synth.removeEventListener('voiceschanged', onVoicesChanged);
+                        console.log('[TTS] voiceschanged 이벤트로 음성 로드');
                         resolve();
-                    } else {
-                        setTimeout(checkVoices, 100);
                     }
                 };
-                setTimeout(checkVoices, 100);
-                setTimeout(resolve, 1000); // 최대 1초 대기
+                self._state.synth.addEventListener('voiceschanged', onVoicesChanged);
+                
+                // 방법 2: 폴링 백업 (삼성폰에서 이벤트가 안 올 수 있음)
+                const checkVoices = () => {
+                    if (resolved) return;
+                    voices = self._state.synth.getVoices();
+                    if (voices.length > 0) {
+                        resolved = true;
+                        self._state.synth.removeEventListener('voiceschanged', onVoicesChanged);
+                        console.log('[TTS] 폴링으로 음성 로드');
+                        resolve();
+                    } else {
+                        setTimeout(checkVoices, 200);
+                    }
+                };
+                setTimeout(checkVoices, 200);
+                
+                // 방법 3: 최대 대기 시간 (3초로 확장 - 삼성폰 저사양 대응)
+                setTimeout(() => {
+                    if (!resolved) {
+                        resolved = true;
+                        self._state.synth.removeEventListener('voiceschanged', onVoicesChanged);
+                        console.warn('[TTS] 음성 로드 타임아웃 (3초) - 기본 음성 사용');
+                        resolve();
+                    }
+                }, 3000);
             });
             voices = this._state.synth.getVoices();
         }
         this._state.voices = voices;
-        console.log('[TTS] Voices loaded:', voices.length);
+        console.log('[TTS] Voices loaded:', voices.length, '개');
+        
+        // 🔧 음성이 아예 없으면 에러 메시지
+        if (voices.length === 0) {
+            console.error('[TTS] ⚠️ 음성을 찾을 수 없습니다. 브라우저 TTS를 지원하지 않거나 음성 데이터가 없습니다.');
+            self._updateAudioButtonIcon(false);
+            return;
+        }
         
         // 🎤 2025-12-11: 현재 앱 언어(appLanguage)에 맞는 음성 선택 (savedVoiceName 무시)
         let targetVoice = null;
@@ -784,7 +820,28 @@ const guideDetailPage = {
             self._els.description.textContent = self._state.originalText;
         };
         
-        this._state.synth.speak(this._state.currentUtterance);
+        // 🔧 2026-01-07: 에러 핸들링 추가 (삼성폰 TTS 오류 대응)
+        this._state.currentUtterance.onerror = (event) => {
+            console.error('[TTS] ⚠️ 음성 재생 오류:', event.error);
+            self._updateAudioButtonIcon(false);
+            
+            // 사용자에게 알림 (네트워크 문제 또는 음성 지원 안됨)
+            if (event.error === 'network') {
+                console.warn('[TTS] 네트워크 오류 - 인터넷 연결을 확인하세요');
+            } else if (event.error === 'not-allowed') {
+                console.warn('[TTS] 음성 재생이 차단됨 - 사용자 상호작용 후 시도하세요');
+            } else if (event.error === 'synthesis-unavailable') {
+                console.warn('[TTS] 이 기기에서 TTS가 지원되지 않습니다');
+            }
+        };
+        
+        // 🔧 2026-01-07: 삼성폰 Chrome에서 자동 재생 차단 우회 (사용자 제스처 필요)
+        try {
+            this._state.synth.speak(this._state.currentUtterance);
+        } catch (speakError) {
+            console.error('[TTS] speak() 호출 오류:', speakError);
+            self._updateAudioButtonIcon(false);
+        }
     },
 
     // 음성 정지
