@@ -1,8 +1,97 @@
-# 내손가이드 - 프로젝트 현황 (2025년 12월 08일)
+# 내손가이드 - 프로젝트 현황 (2026년 1월 07일)
 
 **프로젝트:** 파리 여행 가이드 PWA  
 **핵심 타겟:** 📱 모바일 99%, 카카오톡 90%, 삼성 안드로이드 90%  
-**현재 상태:** Production 배포 중, 다국어 TTS 시스템 완성
+**현재 상태:** Production 배포 중, 프로모션 모드 활성화
+
+---
+
+## 🎁 프로모션 모드 (2026-01-07) - 즉시 복원 가이드
+
+### ⚠️ 현재 상태: 프로모션 활성화
+| 항목 | 현재 값 | 원래 값 |
+|------|---------|---------|
+| 신규 가입 크레딧 | 140 | 10 |
+| 사용량 제한 | 비활성화 (무제한) | 활성화 |
+| 인증 필수 | 바로 시작하기 버튼 | 없음 |
+| 기존 가입자 보너스 | 140 크레딧 자동 지급 | 없음 |
+
+### 🔄 프로모션 종료 시 복원 체크리스트
+
+#### 1️⃣ 프론트엔드: `public/index.js`
+
+**위치 1: checkUsageLimit 함수 (약 576줄)**
+```javascript
+// 삭제할 부분:
+console.log('🎁 [프로모션] 사용량 제한 비활성화 - 무제한 허용');
+return true;
+
+// 주석 해제할 부분:
+/* ========== 🔒 프로모션 종료 후 아래 주석 해제 ========== */
+// ... 전체 로직 주석 해제
+```
+
+**위치 2: handleStartFeaturesClick 함수 (약 2157줄)**
+```javascript
+// 삭제할 부분 (함수 상단 15줄):
+// 🎁 2026-01-07: 프로모션 - 인증 필수 (미인증 시 모달 표시)
+const user = await checkUserAuth();
+if (!user) {
+    // ... 모달 표시 로직 전체 삭제
+}
+console.log('✅ 인증 완료 → 메인 페이지 진입');
+```
+
+**위치 3: OAuth 성공 콜백 (약 2086줄)**
+```javascript
+// 삭제할 부분:
+console.log('🚀 인증 완료 → 메인 페이지 자동 진입');
+handleStartFeaturesClick();
+
+// 원래대로 복원:
+loadFeaturedGallery();
+```
+
+**위치 4: storage 이벤트 (약 2099줄)**
+```javascript
+// 삭제할 부분:
+handleStartFeaturesClick();
+```
+
+**위치 5: showAuthModalForUsage 함수 (약 557줄)**
+```javascript
+// 변경: 140 → 10
+showToast('무료 체험이 끝났습니다. 로그인하면 10 크레딧을 드려요!');
+```
+
+#### 2️⃣ 서버: `server/creditService.ts`
+
+**위치 1: CREDIT_CONFIG 상수 (약 21줄)**
+```typescript
+// 변경: 140 → 10
+SIGNUP_BONUS: 10,  // 원래 값
+```
+
+**위치 2: grantPromoBonus 함수 (약 128줄)**
+```typescript
+// 함수 전체 삭제 가능 (또는 유지해도 무방)
+async grantPromoBonus(userId: string): Promise<number> { ... }
+```
+
+#### 3️⃣ 서버: `server/routes.ts`
+
+**위치: /api/auth/user 엔드포인트 (약 633줄)**
+```typescript
+// 삭제할 부분:
+// 🎁 2026-01-07: 프로모션 - 기존 가입자에게 프로모션 보너스 지급
+if (user) {
+  await creditService.grantPromoBonus(userId);
+}
+```
+
+### 📊 비용 예상 (프로모션 기간)
+- 1명 140 크레딧 소진 시: 약 $0.49 (670원)
+- 1,000명 가입 + 전원 소진 시: 약 $490 (67만원)
 
 ---
 
