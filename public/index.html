@@ -1578,39 +1578,9 @@
                    document.referrer.includes('android-app://');
         }
         
-        // 🔧 2025-12-18: 전역 언어 선택 함수 (onclick 속성용 - iOS PWA 최종 폴백)
-        window.selectLanguage = function(lang) {
-            console.log('🌍 window.selectLanguage 호출:', lang, 'PWA:', isPWAMode());
-            
-            // 선택된 항목 하이라이트
-            languageItems.forEach(i => {
-                i.classList.remove('selected');
-                if (i.getAttribute('data-value') === lang) {
-                    i.classList.add('selected');
-                }
-            });
-            
-            // 언어 저장
-            LanguageHelper.setLanguage(lang);
-            
-            // PWA 모드: 직접 페이지 전환
-            if (isPWAMode()) {
-                console.log('📱 PWA 모드 → 직접 페이지 전환');
-                if (landingPage && featuresPage) {
-                    landingPage.classList.add('hidden');
-                    featuresPage.classList.add('visible');
-                }
-                return;
-            }
-            
-            // 일반 브라우저: 기존 동작
-            localStorage.setItem('landingVisited', 'true');
-            if (lang !== 'ko') {
-                document.cookie = `googtrans=/ko/${lang}; path=/`;
-                document.cookie = `googtrans=/ko/${lang}; path=/; domain=${window.location.hostname}`;
-            }
-            window.location.reload();
-        };
+        // 🔧 2026-01-07: 2단계 동작 - 1.스크롤 선택 2.다시 터치로 실행
+        // (상단 인라인 스크립트에서 이미 정의됨 - 여기서는 덮어쓰지 않음)
+        // window.selectLanguage는 상단에서 정의된 2단계 버전 사용
         
         // 언어 선택 시 → googtrans 쿠키 설정 → 페이지 새로고침 (2025-12-08 스크롤 리스트)
         // 🔧 2025-12-17: PWA 모드 터치 이벤트 지원 + 직접 페이지 전환
