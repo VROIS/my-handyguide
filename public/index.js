@@ -2564,10 +2564,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const canProceed = await checkUsageLimit('detail');
         if (!canProceed) return;
         
-        isRecognizing = true;
-        micBtn.classList.add('mic-listening');
-        recognition.start();
-
+        // 🔧 2026-01-18: 이벤트 핸들러를 start() 전에 등록 (프로모션 코드 호환성)
         recognition.onresult = (event) => {
             processTextQuery(event.results[0][0].transcript);
         };
@@ -2577,15 +2574,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const messages = {
                 'no-speech': '음성을 듣지 못했어요. 다시 시도해볼까요?',
                 'not-allowed': '마이크 사용 권한이 필요합니다.',
-                'service-not-allowed': '마이크 사용 권한이 필요합니다.'
+                'service-not-allowed': '마이크 사용 권한이 필요합니다.',
+                'network': '네트워크 연결을 확인해주세요.',
+                'aborted': '음성 인식이 중단되었습니다.'
             };
-            showToast(messages[event.error] || '음성 인식 중 오류가 발생했습니다.');
+            showToast(messages[event.error] || `음성 인식 오류: ${event.error}`);
         };
         
         recognition.onend = () => {
             isRecognizing = false;
             micBtn.classList.remove('mic-listening');
         };
+
+        isRecognizing = true;
+        micBtn.classList.add('mic-listening');
+        recognition.start();
     }
     
     // 🎤 상세페이지에서 다시 질문하기 (페이지 이동 없이)
@@ -2603,10 +2606,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const canProceed = await checkUsageLimit('detail');
         if (!canProceed) return;
         
-        isRecognizing = true;
-        detailMicBtn?.classList.add('mic-listening');
-        recognition.start();
-
+        // 🔧 2026-01-18: 이벤트 핸들러를 start() 전에 등록 (프로모션 코드 호환성)
         recognition.onresult = (event) => {
             processTextQuery(event.results[0][0].transcript);
         };
@@ -2616,15 +2616,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const messages = {
                 'no-speech': '음성을 듣지 못했어요. 다시 시도해볼까요?',
                 'not-allowed': '마이크 사용 권한이 필요합니다.',
-                'service-not-allowed': '마이크 사용 권한이 필요합니다.'
+                'service-not-allowed': '마이크 사용 권한이 필요합니다.',
+                'network': '네트워크 연결을 확인해주세요.',
+                'aborted': '음성 인식이 중단되었습니다.'
             };
-            showToast(messages[event.error] || '음성 인식 중 오류가 발생했습니다.');
+            showToast(messages[event.error] || `음성 인식 오류: ${event.error}`);
         };
         
         recognition.onend = () => {
             isRecognizing = false;
             detailMicBtn?.classList.remove('mic-listening');
         };
+
+        isRecognizing = true;
+        detailMicBtn?.classList.add('mic-listening');
+        recognition.start();
     }
     
     async function processTextQuery(prompt) {
