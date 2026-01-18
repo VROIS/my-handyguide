@@ -136,14 +136,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition = SpeechRecognition ? new SpeechRecognition() : null;
     let isRecognizing = false;
-    
-    // iOS Safari 호환성을 위한 recognition 설정
-    if (recognition) {
-        recognition.lang = 'ko-KR';
-        recognition.continuous = false;
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-    }
 
     let stream = null;
     let isCameraActive = false; // To prevent camera re-initialization
@@ -580,7 +572,12 @@ document.addEventListener('DOMContentLoaded', () => {
      * - 이유: 로그인 시 localStorage 관리자 상태가 잘못 남아있는 버그 수정
      */
     async function checkUsageLimit(type = 'detail') {
-        // 🔧 2026-01-18: 원래 로직 복원 (프로모션은 140 크레딧 지급으로 처리)
+        // 🎁 2026-01-07: 프로모션 기간 - 사용량 제한 임시 비활성화
+        // 프로모션 종료 후 아래 return true를 삭제하면 원래대로 복원됨
+        console.log('🎁 [프로모션] 사용량 제한 비활성화 - 무제한 허용');
+        return true;
+        
+        /* ========== 🔒 프로모션 종료 후 아래 주석 해제 ==========
         // 1. 사용자 인증 상태 확인 (서버 기반)
         const user = await checkUserAuth();
 
@@ -619,6 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         console.log(`✅ 크레딧 충분: ${credits} (필요: ${cost})`);
         return true;
+        ========== 프로모션 종료 후 위 주석 해제 ========== */
     }
 
     /**
@@ -2552,7 +2550,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    function handleMicButtonClick() {
+    async function handleMicButtonClick() {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
         if (isRecognizing) return recognition.stop();
         
@@ -2562,10 +2560,14 @@ document.addEventListener('DOMContentLoaded', () => {
             resetSpeechState();
         }
         
-        // 🎤 iOS Safari: 완전 동기 함수로 마이크 즉시 시작 (크레딧 체크는 processTextQuery에서)
+        // 🔒 사용량 제한 체크 (AI 호출 전)
+        const canProceed = await checkUsageLimit('detail');
+        if (!canProceed) return;
+        
         isRecognizing = true;
         micBtn.classList.add('mic-listening');
-        
+        recognition.start();
+
         recognition.onresult = (event) => {
             processTextQuery(event.results[0][0].transcript);
         };
@@ -2584,19 +2586,10 @@ document.addEventListener('DOMContentLoaded', () => {
             isRecognizing = false;
             micBtn.classList.remove('mic-listening');
         };
-        
-        try {
-            recognition.start();
-        } catch (e) {
-            console.error('recognition.start() error:', e);
-            isRecognizing = false;
-            micBtn.classList.remove('mic-listening');
-            showToast('음성 인식을 시작할 수 없습니다.');
-        }
     }
     
     // 🎤 상세페이지에서 다시 질문하기 (페이지 이동 없이)
-    function handleDetailMicClick() {
+    async function handleDetailMicClick() {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
         if (isRecognizing) return recognition.stop();
         
@@ -2606,10 +2599,14 @@ document.addEventListener('DOMContentLoaded', () => {
             resetSpeechState();
         }
         
-        // 🎤 iOS Safari: 완전 동기 함수로 마이크 즉시 시작 (크레딧 체크는 processTextQuery에서)
+        // 🔒 사용량 제한 체크 (AI 호출 전)
+        const canProceed = await checkUsageLimit('detail');
+        if (!canProceed) return;
+        
         isRecognizing = true;
         detailMicBtn?.classList.add('mic-listening');
-        
+        recognition.start();
+
         recognition.onresult = (event) => {
             processTextQuery(event.results[0][0].transcript);
         };
@@ -2628,25 +2625,12 @@ document.addEventListener('DOMContentLoaded', () => {
             isRecognizing = false;
             detailMicBtn?.classList.remove('mic-listening');
         };
-        
-        try {
-            recognition.start();
-        } catch (e) {
-            console.error('recognition.start() error:', e);
-            isRecognizing = false;
-            detailMicBtn?.classList.remove('mic-listening');
-            showToast('음성 인식을 시작할 수 없습니다.');
-        }
     }
     
     async function processTextQuery(prompt) {
         cameFromArchive = false;
         if (synth.speaking || synth.pending) synth.cancel();
         resetSpeechState();
-        
-        // 🔒 음성 질문 전 크레딧 체크 (마이크 시작 후 여기서 체크)
-        const canProceed = await checkUsageLimit('detail');
-        if (!canProceed) return;
         
         showDetailPage();
         
