@@ -2588,6 +2588,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         recognition.onerror = (event) => {
             console.error('Speech recognition error:', event.error);
+            // 🎤 2026-01-18: 에러 시 마이크 상태 즉시 초기화
+            isRecognizing = false;
+            micBtn?.classList.remove('mic-listening');
             const messages = {
                 'no-speech': '음성을 듣지 못했어요. 다시 시도해볼까요?',
                 'not-allowed': '마이크 사용 권한이 필요합니다.',
@@ -2598,7 +2601,7 @@ document.addEventListener('DOMContentLoaded', () => {
         
         recognition.onend = () => {
             isRecognizing = false;
-            micBtn.classList.remove('mic-listening');
+            micBtn?.classList.remove('mic-listening');
         };
     }
     
@@ -2627,6 +2630,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         recognition.onerror = (event) => {
             console.error('Speech recognition error:', event.error);
+            // 🎤 2026-01-18: 에러 시 마이크 상태 즉시 초기화
+            isRecognizing = false;
+            detailMicBtn?.classList.remove('mic-listening');
             const messages = {
                 'no-speech': '음성을 듣지 못했어요. 다시 시도해볼까요?',
                 'not-allowed': '마이크 사용 권한이 필요합니다.',
