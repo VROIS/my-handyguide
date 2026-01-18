@@ -136,6 +136,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition = SpeechRecognition ? new SpeechRecognition() : null;
     let isRecognizing = false;
+    
+    // iOS Safari 호환성을 위한 recognition 설정
+    if (recognition) {
+        recognition.lang = 'ko-KR';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+    }
 
     let stream = null;
     let isCameraActive = false; // To prevent camera re-initialization
