@@ -2044,6 +2044,55 @@ document.addEventListener('DOMContentLoaded', () => {
             recognition.lang = getRecognitionLang();
             recognition.interimResults = false;
             recognition.maxAlternatives = 1;
+            
+            // 🎤 2026-01-18: 이벤트 핸들러 한 번만 등록 (중복 방지)
+            recognition.onresult = (event) => {
+                clearMicTimeout();
+                processTextQuery(event.results[0][0].transcript);
+            };
+            
+            recognition.onerror = (event) => {
+                clearMicTimeout();
+                console.error('Speech recognition error:', event.error);
+                isRecognizing = false;
+                micBtn?.classList.remove('mic-listening');
+                detailMicBtn?.classList.remove('mic-listening');
+                const messages = {
+                    'no-speech': '음성을 듣지 못했어요. 다시 시도해볼까요?',
+                    'not-allowed': '마이크 사용 권한이 필요합니다.',
+                    'service-not-allowed': '마이크 사용 권한이 필요합니다.'
+                };
+                showToast(messages[event.error] || '음성 인식 중 오류가 발생했습니다.');
+            };
+            
+            recognition.onend = () => {
+                clearMicTimeout();
+                isRecognizing = false;
+                micBtn?.classList.remove('mic-listening');
+                detailMicBtn?.classList.remove('mic-listening');
+            };
+        }
+        
+        // 🎤 2026-01-18: 마이크 타임아웃 관리
+        let micTimeoutId = null;
+        function setMicTimeout() {
+            clearMicTimeout();
+            micTimeoutId = setTimeout(() => {
+                if (isRecognizing) {
+                    console.log('🎤 마이크 타임아웃 - 강제 종료');
+                    recognition.stop();
+                    isRecognizing = false;
+                    micBtn?.classList.remove('mic-listening');
+                    detailMicBtn?.classList.remove('mic-listening');
+                    showToast('음성을 듣지 못했어요. 다시 시도해볼까요?');
+                }
+            }, 10000);
+        }
+        function clearMicTimeout() {
+            if (micTimeoutId) {
+                clearTimeout(micTimeoutId);
+                micTimeoutId = null;
+            }
         }
         
         // 🌐 언어 코드 매핑 함수 (ko → ko-KR, fr → fr-FR 등)
@@ -2564,6 +2613,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
+    // 🎤 2026-01-18: 이벤트 핸들러 중복 등록 제거 - 초기화 시점에 한 번만 등록
     async function handleMicButtonClick() {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
         if (isRecognizing) return recognition.stop();
@@ -2580,46 +2630,12 @@ document.addEventListener('DOMContentLoaded', () => {
         
         isRecognizing = true;
         micBtn.classList.add('mic-listening');
+        setMicTimeout();
         recognition.start();
-
-        // 🎤 2026-01-18: 10초 타임아웃 (iOS Safari 호환성)
-        const micTimeout = setTimeout(() => {
-            if (isRecognizing) {
-                console.log('🎤 마이크 타임아웃 - 강제 종료');
-                recognition.stop();
-                isRecognizing = false;
-                micBtn?.classList.remove('mic-listening');
-                showToast('음성을 듣지 못했어요. 다시 시도해볼까요?');
-            }
-        }, 10000);
-
-        recognition.onresult = (event) => {
-            clearTimeout(micTimeout);
-            processTextQuery(event.results[0][0].transcript);
-        };
-
-        recognition.onerror = (event) => {
-            clearTimeout(micTimeout);
-            console.error('Speech recognition error:', event.error);
-            // 🎤 2026-01-18: 에러 시 마이크 상태 즉시 초기화
-            isRecognizing = false;
-            micBtn?.classList.remove('mic-listening');
-            const messages = {
-                'no-speech': '음성을 듣지 못했어요. 다시 시도해볼까요?',
-                'not-allowed': '마이크 사용 권한이 필요합니다.',
-                'service-not-allowed': '마이크 사용 권한이 필요합니다.'
-            };
-            showToast(messages[event.error] || '음성 인식 중 오류가 발생했습니다.');
-        };
-        
-        recognition.onend = () => {
-            clearTimeout(micTimeout);
-            isRecognizing = false;
-            micBtn?.classList.remove('mic-listening');
-        };
     }
     
     // 🎤 상세페이지에서 다시 질문하기 (페이지 이동 없이)
+    // 🎤 2026-01-18: 이벤트 핸들러 중복 등록 제거 - 초기화 시점에 한 번만 등록
     async function handleDetailMicClick() {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
         if (isRecognizing) return recognition.stop();
@@ -2636,43 +2652,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         isRecognizing = true;
         detailMicBtn?.classList.add('mic-listening');
+        setMicTimeout();
         recognition.start();
-
-        // 🎤 2026-01-18: 10초 타임아웃 (iOS Safari 호환성)
-        const micTimeout = setTimeout(() => {
-            if (isRecognizing) {
-                console.log('🎤 마이크 타임아웃 - 강제 종료');
-                recognition.stop();
-                isRecognizing = false;
-                detailMicBtn?.classList.remove('mic-listening');
-                showToast('음성을 듣지 못했어요. 다시 시도해볼까요?');
-            }
-        }, 10000);
-
-        recognition.onresult = (event) => {
-            clearTimeout(micTimeout);
-            processTextQuery(event.results[0][0].transcript);
-        };
-
-        recognition.onerror = (event) => {
-            clearTimeout(micTimeout);
-            console.error('Speech recognition error:', event.error);
-            // 🎤 2026-01-18: 에러 시 마이크 상태 즉시 초기화
-            isRecognizing = false;
-            detailMicBtn?.classList.remove('mic-listening');
-            const messages = {
-                'no-speech': '음성을 듣지 못했어요. 다시 시도해볼까요?',
-                'not-allowed': '마이크 사용 권한이 필요합니다.',
-                'service-not-allowed': '마이크 사용 권한이 필요합니다.'
-            };
-            showToast(messages[event.error] || '음성 인식 중 오류가 발생했습니다.');
-        };
-        
-        recognition.onend = () => {
-            clearTimeout(micTimeout);
-            isRecognizing = false;
-            detailMicBtn?.classList.remove('mic-listening');
-        };
     }
     
     async function processTextQuery(prompt) {
