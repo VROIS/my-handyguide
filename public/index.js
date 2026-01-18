@@ -2544,7 +2544,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    async function handleMicButtonClick() {
+    function handleMicButtonClick() {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
         if (isRecognizing) return recognition.stop();
         
@@ -2554,11 +2554,10 @@ document.addEventListener('DOMContentLoaded', () => {
             resetSpeechState();
         }
         
-        // 🎤 iOS Safari: 사용자 제스처 컨텍스트 유지를 위해 마이크 먼저 시작
+        // 🎤 iOS Safari: 완전 동기 함수로 마이크 즉시 시작 (크레딧 체크는 processTextQuery에서)
         isRecognizing = true;
         micBtn.classList.add('mic-listening');
         
-        // 이벤트 핸들러 먼저 등록
         recognition.onresult = (event) => {
             processTextQuery(event.results[0][0].transcript);
         };
@@ -2585,19 +2584,11 @@ document.addEventListener('DOMContentLoaded', () => {
             isRecognizing = false;
             micBtn.classList.remove('mic-listening');
             showToast('음성 인식을 시작할 수 없습니다.');
-            return;
-        }
-        
-        // 🔒 마이크 시작 후 크레딧 체크 (실패 시 중단)
-        const canProceed = await checkUsageLimit('detail');
-        if (!canProceed) {
-            recognition.stop();
-            return;
         }
     }
     
     // 🎤 상세페이지에서 다시 질문하기 (페이지 이동 없이)
-    async function handleDetailMicClick() {
+    function handleDetailMicClick() {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
         if (isRecognizing) return recognition.stop();
         
@@ -2607,11 +2598,10 @@ document.addEventListener('DOMContentLoaded', () => {
             resetSpeechState();
         }
         
-        // 🎤 iOS Safari: 사용자 제스처 컨텍스트 유지를 위해 마이크 먼저 시작
+        // 🎤 iOS Safari: 완전 동기 함수로 마이크 즉시 시작 (크레딧 체크는 processTextQuery에서)
         isRecognizing = true;
         detailMicBtn?.classList.add('mic-listening');
         
-        // 이벤트 핸들러 먼저 등록
         recognition.onresult = (event) => {
             processTextQuery(event.results[0][0].transcript);
         };
@@ -2638,14 +2628,6 @@ document.addEventListener('DOMContentLoaded', () => {
             isRecognizing = false;
             detailMicBtn?.classList.remove('mic-listening');
             showToast('음성 인식을 시작할 수 없습니다.');
-            return;
-        }
-        
-        // 🔒 마이크 시작 후 크레딧 체크 (실패 시 중단)
-        const canProceed = await checkUsageLimit('detail');
-        if (!canProceed) {
-            recognition.stop();
-            return;
         }
     }
     
@@ -2653,6 +2635,10 @@ document.addEventListener('DOMContentLoaded', () => {
         cameFromArchive = false;
         if (synth.speaking || synth.pending) synth.cancel();
         resetSpeechState();
+        
+        // 🔒 음성 질문 전 크레딧 체크 (마이크 시작 후 여기서 체크)
+        const canProceed = await checkUsageLimit('detail');
+        if (!canProceed) return;
         
         showDetailPage();
         
