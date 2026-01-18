@@ -2545,12 +2545,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function handleMicButtonClick() {
-        console.log('🎤 [마이크] handleMicButtonClick 시작');
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
-        if (isRecognizing) {
-            console.log('🎤 [마이크] 이미 녹음 중 - stop 호출');
-            return recognition.stop();
-        }
+        if (isRecognizing) return recognition.stop();
         
         // 🔊 마이크 시작 전 음성 재생 즉시 중지
         if (synth.speaking || synth.pending) {
@@ -2558,34 +2554,17 @@ document.addEventListener('DOMContentLoaded', () => {
             resetSpeechState();
         }
         
-        // 🔒 사용량 제한 체크 (AI 호출 전)
-        console.log('🎤 [마이크] checkUsageLimit 호출 전');
-        const canProceed = await checkUsageLimit('detail');
-        console.log('🎤 [마이크] checkUsageLimit 결과:', canProceed);
-        if (!canProceed) return;
-        
-        console.log('🎤 [마이크] recognition.start() 호출');
+        // 🎤 iOS Safari: 사용자 제스처 컨텍스트 유지를 위해 마이크 먼저 시작
         isRecognizing = true;
         micBtn.classList.add('mic-listening');
         
-        try {
-            recognition.start();
-            console.log('🎤 [마이크] recognition.start() 성공');
-        } catch (e) {
-            console.error('🎤 [마이크] recognition.start() 에러:', e);
-            isRecognizing = false;
-            micBtn.classList.remove('mic-listening');
-            showToast('음성 인식을 시작할 수 없습니다.');
-            return;
-        }
-
+        // 이벤트 핸들러 먼저 등록
         recognition.onresult = (event) => {
-            console.log('🎤 [마이크] onresult:', event.results[0][0].transcript);
             processTextQuery(event.results[0][0].transcript);
         };
 
         recognition.onerror = (event) => {
-            console.error('🎤 [마이크] onerror:', event.error);
+            console.error('Speech recognition error:', event.error);
             const messages = {
                 'no-speech': '음성을 듣지 못했어요. 다시 시도해볼까요?',
                 'not-allowed': '마이크 사용 권한이 필요합니다.',
@@ -2595,10 +2574,26 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         recognition.onend = () => {
-            console.log('🎤 [마이크] onend');
             isRecognizing = false;
             micBtn.classList.remove('mic-listening');
         };
+        
+        try {
+            recognition.start();
+        } catch (e) {
+            console.error('recognition.start() error:', e);
+            isRecognizing = false;
+            micBtn.classList.remove('mic-listening');
+            showToast('음성 인식을 시작할 수 없습니다.');
+            return;
+        }
+        
+        // 🔒 마이크 시작 후 크레딧 체크 (실패 시 중단)
+        const canProceed = await checkUsageLimit('detail');
+        if (!canProceed) {
+            recognition.stop();
+            return;
+        }
     }
     
     // 🎤 상세페이지에서 다시 질문하기 (페이지 이동 없이)
@@ -2612,14 +2607,11 @@ document.addEventListener('DOMContentLoaded', () => {
             resetSpeechState();
         }
         
-        // 🔒 사용량 제한 체크 (AI 호출 전)
-        const canProceed = await checkUsageLimit('detail');
-        if (!canProceed) return;
-        
+        // 🎤 iOS Safari: 사용자 제스처 컨텍스트 유지를 위해 마이크 먼저 시작
         isRecognizing = true;
         detailMicBtn?.classList.add('mic-listening');
-        recognition.start();
-
+        
+        // 이벤트 핸들러 먼저 등록
         recognition.onresult = (event) => {
             processTextQuery(event.results[0][0].transcript);
         };
@@ -2638,6 +2630,23 @@ document.addEventListener('DOMContentLoaded', () => {
             isRecognizing = false;
             detailMicBtn?.classList.remove('mic-listening');
         };
+        
+        try {
+            recognition.start();
+        } catch (e) {
+            console.error('recognition.start() error:', e);
+            isRecognizing = false;
+            detailMicBtn?.classList.remove('mic-listening');
+            showToast('음성 인식을 시작할 수 없습니다.');
+            return;
+        }
+        
+        // 🔒 마이크 시작 후 크레딧 체크 (실패 시 중단)
+        const canProceed = await checkUsageLimit('detail');
+        if (!canProceed) {
+            recognition.stop();
+            return;
+        }
     }
     
     async function processTextQuery(prompt) {
