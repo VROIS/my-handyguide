@@ -1575,6 +1575,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // ✅ 페이지 이동 시 음성 즉시 정지 - 2025.10.02 확보됨
         synth.cancel();
         resetSpeechState();
+        // 🎤 2026-01-18: 페이지 이동 시 마이크 종료 (AI 중복 호출 방지)
+        if (recognition && isRecognizing) {
+            recognition.stop();
+            isRecognizing = false;
+            micBtn?.classList.remove('mic-listening');
+            detailMicBtn?.classList.remove('mic-listening');
+        }
         showPage(mainPage);
 
         detailPage.classList.remove('bg-friendly');
@@ -1609,6 +1616,13 @@ document.addEventListener('DOMContentLoaded', () => {
         pauseCamera();
         synth.cancel();
         resetSpeechState();
+        // 🎤 2026-01-18: 페이지 이동 시 마이크 종료 (AI 중복 호출 방지)
+        if (recognition && isRecognizing) {
+            recognition.stop();
+            isRecognizing = false;
+            micBtn?.classList.remove('mic-listening');
+            detailMicBtn?.classList.remove('mic-listening');
+        }
         if (isSelectionMode) { 
             toggleSelectionMode(false);
         }
