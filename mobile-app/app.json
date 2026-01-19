@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "손안의 가이드",
+    "slug": "sonanie-guide",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#4285F4"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sonanie.guide"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#4285F4"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.sonanie.guide"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "webAppUrl": "https://my-handyguide.replit.app"
+    }
+  }
+}
