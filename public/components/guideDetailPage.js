@@ -564,13 +564,14 @@ const guideDetailPage = {
         this._state.savedVoiceLang = guide.voiceLang || null;
         this._state.savedVoiceName = guide.voiceName || null;
 
-        // 🌐 2025-12-24: 동적 콘텐츠 재번역 후 TTS 재생
-        this._retranslateNewContent().then(() => {
-            // 🎤 저장된 음성 정보 전달 (voiceLang, voiceName, renderId)
-            if (guide.description) {
-                this._playAudio(guide.description, guide.voiceLang, guide.voiceName, renderId);
-            }
-        });
+        // 🔧 2026-01-19: 사용자 제스처 컨텍스트 유지를 위해 즉시 TTS 재생
+        // (비동기 체인 제거 - iOS Safari autoplay 정책 우회)
+        if (guide.description) {
+            this._playAudio(guide.description, guide.voiceLang, guide.voiceName, renderId);
+        }
+        
+        // 🌐 번역은 백그라운드에서 비동기로 진행 (TTS와 별도)
+        this._retranslateNewContent();
     },
 
     // 페이지 표시
