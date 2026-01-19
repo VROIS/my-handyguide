@@ -513,9 +513,15 @@
                     // 🔧 2026-01-07: 선택된 언어 상태 (2단계 동작용)
                     window.__selectedLang = null;
                     
+                    // 🔧 2026-01-19: Safari 감지 함수
+                    function isSafari() {
+                        var ua = navigator.userAgent;
+                        return /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
+                    }
+                    
                     // 전역 언어 선택 함수 (onclick에서 호출) - 2단계 동작
                     window.selectLanguage = function(lang) {
-                        console.log('🌍 selectLanguage 호출:', lang, '현재 선택:', window.__selectedLang);
+                        console.log('🌍 selectLanguage 호출:', lang, '현재 선택:', window.__selectedLang, 'Safari:', isSafari());
                         
                         var items = document.querySelectorAll('.language-item');
                         
@@ -541,9 +547,9 @@
                     
                     // 실제 언어 선택 실행 함수
                     function executeLanguageSelection(lang) {
-                        console.log('🚀 언어 선택 실행:', lang, 'PWA:', window.isPWAMode());
+                        console.log('🚀 언어 선택 실행:', lang, 'PWA:', window.isPWAMode(), 'Safari:', isSafari());
                         
-                        // 언어 저장
+                        // 언어 저장 (localStorage는 Safari에서도 잘 동작)
                         localStorage.setItem('appLanguage', lang);
                         
                         // PWA 모드: 직접 페이지 전환
@@ -555,11 +561,23 @@
                                 landing.classList.add('hidden');
                                 features.classList.add('visible');
                             }
+                            // 🔧 2026-01-19: Safari에서 구글 번역 직접 트리거
+                            if (isSafari() && lang !== 'ko') {
+                                setTimeout(function() { triggerGoogleTranslate(lang); }, 500);
+                            }
                             return;
                         }
                         
                         // 일반 브라우저: 기존 동작
                         localStorage.setItem('landingVisited', 'true');
+                        
+                        // 🔧 2026-01-19: Safari 전용 로직 - 쿠키 대신 JS로 직접 번역 트리거
+                        if (isSafari()) {
+                            console.log('🍎 Safari 감지 → localStorage 기반 언어 적용');
+                            // Safari는 쿠키가 잘 안 되므로 reload 후 JS로 처리
+                            window.location.reload();
+                            return;
+                        }
                         
                         // 🔧 2026-01-07: 한국어 선택 시 googtrans 쿠키 완전 삭제 (불어 전환 버그 해결)
                         if (lang === 'ko') {
@@ -573,6 +591,20 @@
                             document.cookie = 'googtrans=/ko/' + lang + '; path=/; domain=' + window.location.hostname;
                         }
                         window.location.reload();
+                    }
+                    
+                    // 🔧 2026-01-19: 구글 번역 직접 트리거 (Safari용)
+                    function triggerGoogleTranslate(lang) {
+                        console.log('🔄 구글 번역 직접 트리거:', lang);
+                        var combo = document.querySelector('.goog-te-combo');
+                        if (combo) {
+                            combo.value = lang;
+                            combo.dispatchEvent(new Event('change'));
+                            console.log('✅ 구글 번역 트리거 완료');
+                        } else {
+                            console.log('⚠️ 구글 번역 콤보박스 없음, 1초 후 재시도');
+                            setTimeout(function() { triggerGoogleTranslate(lang); }, 1000);
+                        }
                     }
                     </script>
                     <!-- 고정 리스트 + 스크롤 (2025-12-08) -->
@@ -1576,6 +1608,35 @@
             });
         }
         
+        // 🔧 2026-01-19: Safari에서 페이지 로드 시 localStorage 언어 자동 적용
+        function isSafariBrowser() {
+            var ua = navigator.userAgent;
+            return /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
+        }
+        
+        if (isSafariBrowser() && savedLanguage && savedLanguage !== 'ko') {
+            console.log('🍎 Safari 페이지 로드 → localStorage 언어 적용:', savedLanguage);
+            // 구글 번역 위젯 로드 후 트리거
+            setTimeout(() => {
+                const combo = document.querySelector('.goog-te-combo');
+                if (combo) {
+                    combo.value = savedLanguage;
+                    combo.dispatchEvent(new Event('change'));
+                    console.log('✅ Safari 구글 번역 자동 트리거 완료');
+                } else {
+                    console.log('⚠️ 구글 번역 콤보박스 없음, 재시도...');
+                    setTimeout(() => {
+                        const retryCombo = document.querySelector('.goog-te-combo');
+                        if (retryCombo) {
+                            retryCombo.value = savedLanguage;
+                            retryCombo.dispatchEvent(new Event('change'));
+                            console.log('✅ Safari 구글 번역 재시도 성공');
+                        }
+                    }, 2000);
+                }
+            }, 1500);
+        }
+        
         // 🔧 PWA standalone 모드 감지 (2025-12-17)
         function isPWAMode() {
             return window.matchMedia('(display-mode: standalone)').matches || 
@@ -1783,6 +1844,21 @@
     /* Google Translate 모든 고정 요소 숨김 */
     [id^="goog-gt-"] { display: none !important; }
     .goog-te-spinner { display: none !important; }
+    
+    /* 🔧 2026-01-19: Safari 스패너 아이콘 숨기기 강화 */
+    .VIpgJd-ZVi9od-l4eHX-hSRGPd { display: none !important; visibility: hidden !important; }
+    .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; visibility: hidden !important; }
+    .VIpgJd-ZVi9od-aZ2wEe-wOHMyf { display: none !important; visibility: hidden !important; }
+    .VIpgJd-ZVi9od-aZ2wEe-OiiCO { display: none !important; visibility: hidden !important; }
+    [class*="VIpgJd"] { display: none !important; visibility: hidden !important; }
+    /* Safari 전용 구글 번역 요소 숨김 */
+    .goog-te-ftab-link { display: none !important; }
+    .goog-te-ftab-float { display: none !important; }
+    div[id^="goog-gt-"] { display: none !important; }
+    div[class^="goog-te-"] { display: none !important; }
+    /* 최상위 레벨 iframe 숨김 (Safari) */
+    body > iframe[style*="z-index"] { display: none !important; }
+    iframe[frameborder="0"][style*="position"] { display: none !important; }
 </style>
 
 <!-- 커튼 효과 제거됨 (2025-12-07) -->
