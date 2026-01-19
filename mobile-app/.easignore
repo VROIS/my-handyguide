@@ -1,0 +1,14 @@
+# Ignore everything outside mobile-app
+../node_modules
+../public
+../server
+../shared
+../scripts
+../uploads
+../dist
+../.git
+../attached_assets
+
+# Keep assets folder explicitly
+!assets/
+!assets/*
