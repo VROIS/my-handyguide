@@ -1,4 +1,4 @@
-# Exclude everything except mobile-app
+# Exclude large directories
 node_modules/
 public/
 server/
@@ -9,12 +9,8 @@ dist/
 attached_assets/
 shared_guidebooks/
 .git/
+
+# Exclude markdown files
 *.md
-*.ts
-*.js
-*.json
-*.sh
-*.sql
-*.cjs
-*.mjs
-!mobile-app/
+
+# Keep mobile-app folder (don't exclude it)
