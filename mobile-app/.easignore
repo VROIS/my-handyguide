@@ -1,14 +1,7 @@
-# Ignore everything outside mobile-app
-../node_modules
-../public
-../server
-../shared
-../scripts
-../uploads
-../dist
-../.git
-../attached_assets
+# Ignore root project files (we're in mobile-app subfolder)
+node_modules/
 
-# Keep assets folder explicitly
-!assets/
-!assets/*
+# Ignore unnecessary files
+*.log
+*.md
+.expo-shared/
