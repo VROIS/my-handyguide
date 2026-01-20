@@ -345,6 +345,13 @@ app.get('/s/:id', async (req, res) => {
     res.sendFile('user-guide.html', { root: publicDir });
   });
   
+  app.get('/download.html', (req, res) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+    res.sendFile('download.html', { root: publicDir });
+  });
+  
   // 🔧 [공유링크 임시 비활성화] SEO 친화적 URL은 추후 구현 예정
 
   const server = await registerRoutes(app);
