@@ -2678,6 +2678,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function processTextQuery(prompt) {
+        // 🎤 2025-01-21: 마이크 즉시 정지 (AI 중복 호출 방지, 비용 절감)
+        if (recognition && isRecognizing) {
+            recognition.stop();
+            isRecognizing = false;
+            micBtn?.classList.remove('mic-listening');
+            detailMicBtn?.classList.remove('mic-listening');
+        }
+        
         cameFromArchive = false;
         if (synth.speaking || synth.pending) synth.cancel();
         resetSpeechState();
