@@ -606,7 +606,9 @@
                         
                         // 🔧 2단계 동작: 이미 선택된 언어를 다시 터치하면 실행
                         if (window.__selectedLang === lang) {
-                            console.log('✅ 같은 언어 다시 터치 → 실행!');
+                            console.log('✅ 같은 언어 다시 터치 → 캐시 삭제 후 실행!');
+                            // 🔧 2026-01-21: 한국어 포함 모든 언어 동일 동작 - 캐시 삭제 후 실행
+                            await Promise.all([clearAllCaches(), saveLanguageToServer(lang)]);
                             executeLanguageSelection(lang);
                             return;
                         }
