@@ -1297,8 +1297,9 @@ document.addEventListener('DOMContentLoaded', () => {
         async function playAudio(text) {
             stopAudio();
             
-            // 🌐 구글 번역 완료 대기 (번역된 텍스트로 TTS 재생)
-            await waitForTranslation();
+            // ✅ 2025-01-21: 구글 번역 대기 삭제
+            // AI가 이미 사용자 선택 언어로 텍스트 생성하므로 번역 불필요
+            // waitForTranslation() 호출 시 iOS autoplay 정책 위반 → TTS 실패
             
             // ⚠️ **핵심 로직 - 절대 수정 금지!** (2025-10-03 치명적 버그 해결)
             // 
