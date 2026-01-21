@@ -3809,13 +3809,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function speakNext() {
-        // 🌐 구글 번역 완료 대기 (번역된 텍스트로 TTS 재생)
-        await waitForTranslation();
-        
-        // 🌐 2025-12-24: 동적 콘텐츠 재번역 완료 대기 (언어 무관)
-        await waitForRetranslation();
-        if (retranslationPending) {
-            console.log('[TTS] 재번역 완료 후 TTS 시작');
+        // 🌐 2025-01-21: AI 생성 직후(cameFromArchive=false)는 번역 불필요 → 즉시 TTS
+        // 보관함에서(cameFromArchive=true)만 구글 번역 대기
+        if (cameFromArchive) {
+            // 🌐 구글 번역 완료 대기 (번역된 텍스트로 TTS 재생)
+            await waitForTranslation();
+            
+            // 🌐 2025-12-24: 동적 콘텐츠 재번역 완료 대기 (언어 무관)
+            await waitForRetranslation();
+            if (retranslationPending) {
+                console.log('[TTS] 재번역 완료 후 TTS 시작');
+            }
         }
         
         if (utteranceQueue.length === 0) {
