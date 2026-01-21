@@ -3841,6 +3841,9 @@ document.addEventListener('DOMContentLoaded', () => {
         element.classList.add('speaking');
         currentlySpeakingElement = element;
         
+        // 🔄 2025-01-21: 하이라이트된 문장으로 자동 스크롤 (부드럽게)
+        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        
         // 🌐 2025-12-24: Google Translate의 <font> 태그에서 번역된 텍스트 추출
         // Google Translate는 번역된 텍스트를 <font> 태그로 감쌈
         let translatedText = text;
