@@ -428,6 +428,40 @@
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            justify-content: space-between;
+        }
+        .language-item .lang-text {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .language-item .lang-check {
+            width: 22px;
+            height: 22px;
+            border: 2px solid #d1d5db;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .language-item.selected .lang-check {
+            background: #4285F4;
+            border-color: #4285F4;
+        }
+        .language-item.selected .lang-check::after {
+            content: '✓';
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .language-item.cache-clearing .lang-check {
+            animation: spin-check 1s linear infinite;
+        }
+        @keyframes spin-check {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
         .language-item:last-child {
             border-bottom: none;
@@ -519,11 +553,56 @@
                         return /Safari/.test(ua) && !/Chrome/.test(ua) && !/CriOS/.test(ua);
                     }
                     
-                    // 전역 언어 선택 함수 (onclick에서 호출) - 2단계 동작
-                    window.selectLanguage = function(lang) {
+                    // 🔧 2026-01-21: 캐시 완전 삭제 함수 (SW + IndexedDB + localStorage 언어 관련)
+                    async function clearAllCaches() {
+                        console.log('🧹 캐시 삭제 시작...');
+                        try {
+                            // 1. Service Worker 캐시 삭제
+                            if ('caches' in window) {
+                                var cacheNames = await caches.keys();
+                                for (var name of cacheNames) {
+                                    await caches.delete(name);
+                                    console.log('✅ SW 캐시 삭제:', name);
+                                }
+                            }
+                            // 2. IndexedDB 삭제 (guide-storage 등)
+                            var dbNames = ['guide-storage', 'share-page-db', 'workbox-expiration'];
+                            for (var dbName of dbNames) {
+                                try {
+                                    indexedDB.deleteDatabase(dbName);
+                                    console.log('✅ IndexedDB 삭제:', dbName);
+                                } catch (e) { console.log('⚠️ IndexedDB 삭제 실패:', dbName); }
+                            }
+                            // 3. googtrans 쿠키 삭제
+                            document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                            document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + window.location.hostname;
+                            document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + window.location.hostname;
+                            console.log('✅ 쿠키 삭제 완료');
+                            return true;
+                        } catch (e) {
+                            console.error('❌ 캐시 삭제 오류:', e);
+                            return false;
+                        }
+                    }
+                    
+                    // 🔧 2026-01-21: 서버에 언어 저장
+                    async function saveLanguageToServer(lang) {
+                        try {
+                            await fetch('/api/user/language', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ language: lang })
+                            });
+                            console.log('✅ 서버 언어 저장:', lang);
+                        } catch (e) { console.log('⚠️ 서버 저장 실패 (비로그인)'); }
+                    }
+                    
+                    // 전역 언어 선택 함수 (onclick에서 호출) - 2단계 동작 + 캐시 삭제
+                    window.selectLanguage = async function(lang) {
                         console.log('🌍 selectLanguage 호출:', lang, '현재 선택:', window.__selectedLang, 'Safari:', isSafari());
                         
                         var items = document.querySelectorAll('.language-item');
+                        var selectedItem = document.querySelector('.language-item[data-value="' + lang + '"]');
                         
                         // 🔧 2단계 동작: 이미 선택된 언어를 다시 터치하면 실행
                         if (window.__selectedLang === lang) {
@@ -532,17 +611,27 @@
                             return;
                         }
                         
-                        // 1단계: 첫 터치 → 선택만 (하이라이트)
-                        console.log('📌 첫 터치 → 선택:', lang);
+                        // 1단계: 첫 터치 → 선택 + 캐시 삭제 (백그라운드)
+                        console.log('📌 첫 터치 → 선택 + 캐시 삭제:', lang);
                         window.__selectedLang = lang;
                         
-                        // 시각적 피드백 - 선택 표시
+                        // 시각적 피드백 - 선택 표시 + 로딩 상태
                         items.forEach(function(item) {
-                            item.classList.remove('selected', 'ready-to-start');
+                            item.classList.remove('selected', 'ready-to-start', 'cache-clearing');
                             if (item.getAttribute('data-value') === lang) {
-                                item.classList.add('selected', 'ready-to-start');
+                                item.classList.add('selected', 'cache-clearing');
                             }
                         });
+                        
+                        // 백그라운드: 캐시 삭제 + 서버 저장
+                        await Promise.all([clearAllCaches(), saveLanguageToServer(lang)]);
+                        
+                        // 로딩 완료 → ready-to-start 상태
+                        if (selectedItem) {
+                            selectedItem.classList.remove('cache-clearing');
+                            selectedItem.classList.add('ready-to-start');
+                        }
+                        console.log('✅ 캐시 삭제 완료, 다시 터치하면 실행');
                     };
                     
                     // 실제 언어 선택 실행 함수
@@ -609,13 +698,13 @@
                     </script>
                     <!-- 고정 리스트 + 스크롤 (2025-12-08) -->
                     <div class="language-scroll-list notranslate" id="languageScrollList">
-                        <div class="language-item selected" data-value="ko" data-testid="lang-ko" onclick="window.selectLanguage('ko')">🇰🇷 한국어</div>
-                        <div class="language-item" data-value="en" data-testid="lang-en" onclick="window.selectLanguage('en')">🇺🇸 English</div>
-                        <div class="language-item" data-value="fr" data-testid="lang-fr" onclick="window.selectLanguage('fr')">🇫🇷 Français</div>
-                        <div class="language-item" data-value="zh-CN" data-testid="lang-zh" onclick="window.selectLanguage('zh-CN')">🇨🇳 中文 (简体)</div>
-                        <div class="language-item" data-value="ja" data-testid="lang-ja" onclick="window.selectLanguage('ja')">🇯🇵 日本語</div>
-                        <div class="language-item" data-value="es" data-testid="lang-es" onclick="window.selectLanguage('es')">🇪🇸 Español</div>
-                        <div class="language-item" data-value="de" data-testid="lang-de" onclick="window.selectLanguage('de')">🇩🇪 Deutsch</div>
+                        <div class="language-item selected" data-value="ko" data-testid="lang-ko" onclick="window.selectLanguage('ko')"><span class="lang-text">🇰🇷 한국어</span><span class="lang-check"></span></div>
+                        <div class="language-item" data-value="en" data-testid="lang-en" onclick="window.selectLanguage('en')"><span class="lang-text">🇺🇸 English</span><span class="lang-check"></span></div>
+                        <div class="language-item" data-value="fr" data-testid="lang-fr" onclick="window.selectLanguage('fr')"><span class="lang-text">🇫🇷 Français</span><span class="lang-check"></span></div>
+                        <div class="language-item" data-value="zh-CN" data-testid="lang-zh" onclick="window.selectLanguage('zh-CN')"><span class="lang-text">🇨🇳 中文 (简体)</span><span class="lang-check"></span></div>
+                        <div class="language-item" data-value="ja" data-testid="lang-ja" onclick="window.selectLanguage('ja')"><span class="lang-text">🇯🇵 日本語</span><span class="lang-check"></span></div>
+                        <div class="language-item" data-value="es" data-testid="lang-es" onclick="window.selectLanguage('es')"><span class="lang-text">🇪🇸 Español</span><span class="lang-check"></span></div>
+                        <div class="language-item" data-value="de" data-testid="lang-de" onclick="window.selectLanguage('de')"><span class="lang-text">🇩🇪 Deutsch</span><span class="lang-check"></span></div>
                     </div>
                 </div>
             </div>
