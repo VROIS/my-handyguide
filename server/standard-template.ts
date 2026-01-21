@@ -784,13 +784,19 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                     // 현재 문장 하이라이트
                     const highlightedHTML = sentences.map((sentence, idx) => {
                         if (idx === currentSentenceIndex) {
-                            return '<span style="background-color: rgba(66, 133, 244, 0.3); font-weight: 600;">' + sentence + '</span>';
+                            return '<span class="current-sentence" style="background-color: rgba(66, 133, 244, 0.3); font-weight: 600;">' + sentence + '</span>';
                         }
                         return sentence;
                     }).join('');
                     
                     textElement.innerHTML = highlightedHTML;
                     currentSentenceIndex++;
+                    
+                    // 🔄 2025-01-21: 하이라이트된 문장으로 자동 스크롤 (부드럽게)
+                    const currentSpan = textElement.querySelector('.current-sentence');
+                    if (currentSpan) {
+                        currentSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
                 }
             };
             
@@ -1484,12 +1490,18 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
         }
         
         function playAudio() {
-            const text = document.getElementById('detail-description').textContent;
+            const textElement = document.getElementById('detail-description');
+            const text = textElement.textContent;
             if (!text) return;
             
             stopAudio();
             
             const cleanText = text.replace(/<br\\s*\\/?>/gi, ' ');
+            
+            // 🔄 2025-01-21: 문장 분리 및 하이라이트 준비
+            const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
+            const originalText = cleanText;
+            
             currentUtterance = new SpeechSynthesisUtterance(cleanText);
             
             // 🔊 표준 음성 로직: URL lang 파라미터 또는 appLanguage 기준
@@ -1523,14 +1535,38 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
             
             console.log('[SingleGuide TTS] 언어:', langCode, '음성:', targetVoice ? targetVoice.name : 'default');
             
+            let currentSentenceIndex = 0;
+            
             currentUtterance.onstart = () => {
                 document.getElementById('play-icon').style.display = 'none';
                 document.getElementById('pause-icon').style.display = 'block';
             };
             
+            // 🔄 2025-01-21: 문장별 하이라이트 + 자동 스크롤
+            currentUtterance.onboundary = (event) => {
+                if (event.name === 'sentence') {
+                    const highlightedHTML = sentences.map((sentence, idx) => {
+                        if (idx === currentSentenceIndex) {
+                            return '<span class="current-sentence" style="background-color: rgba(66, 133, 244, 0.3); font-weight: 600;">' + sentence + '</span>';
+                        }
+                        return sentence;
+                    }).join('');
+                    
+                    textElement.innerHTML = highlightedHTML;
+                    currentSentenceIndex++;
+                    
+                    const currentSpan = textElement.querySelector('.current-sentence');
+                    if (currentSpan) {
+                        currentSpan.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }
+            };
+            
             currentUtterance.onend = () => {
                 document.getElementById('play-icon').style.display = 'block';
                 document.getElementById('pause-icon').style.display = 'none';
+                // 하이라이트 제거, 원본 복원
+                textElement.textContent = originalText;
             };
             
             synth.speak(currentUtterance);
