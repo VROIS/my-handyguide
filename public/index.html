@@ -520,8 +520,49 @@
 <body style="background-color: #FFFEFA;">
     <!-- 🆕 New Landing Page (2025-12-07) - 모바일 최적화 -->
     <div id="landingPage" class="h-screen flex flex-col" style="background: #f9fafb; position: relative; z-index: 100;">
+        <!-- 🔧 2026-01-22: 모바일 디버깅 박스 (화면에서 직접 확인) -->
+        <div id="debugBox" style="position: fixed; top: 0; left: 0; right: 0; background: rgba(0,0,0,0.85); color: #0f0; font-size: 10px; padding: 8px; z-index: 9999; font-family: monospace; max-height: 120px; overflow-y: auto;">
+            <div style="font-weight: bold; color: #ff0; margin-bottom: 4px;">🔍 DEBUG (탭하면 닫힘)</div>
+            <div id="debugContent">로딩 중...</div>
+        </div>
+        <script>
+        // 디버깅 박스 업데이트 함수
+        function updateDebugBox() {
+            var box = document.getElementById('debugContent');
+            if (!box) return;
+            
+            var navLang = navigator.language || navigator.userLanguage || 'N/A';
+            var navLangs = navigator.languages ? JSON.stringify(navigator.languages) : 'N/A';
+            var storedLang = localStorage.getItem('appLanguage') || 'null (없음)';
+            var googtrans = document.cookie.split(';').find(function(c) { return c.includes('googtrans'); }) || '없음';
+            var ua = navigator.userAgent.substring(0, 60) + '...';
+            var isPWA = (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) ? 'YES' : 'NO';
+            
+            box.innerHTML = 
+                '<b>기기언어:</b> ' + navLang + '<br>' +
+                '<b>languages:</b> ' + navLangs + '<br>' +
+                '<b>localStorage:</b> ' + storedLang + '<br>' +
+                '<b>googtrans:</b> ' + googtrans.trim() + '<br>' +
+                '<b>PWA:</b> ' + isPWA + '<br>' +
+                '<b>UA:</b> ' + ua;
+        }
+        
+        // 페이지 로드 시 + 0.5초 후 업데이트
+        updateDebugBox();
+        setTimeout(updateDebugBox, 500);
+        setTimeout(updateDebugBox, 2000);
+        
+        // 디버깅 박스 클릭 시 숨김
+        document.getElementById('debugBox').onclick = function() {
+            this.style.display = 'none';
+        };
+        
+        // 전역 함수로 노출 (언어 선택 시 업데이트용)
+        window.updateDebugBox = updateDebugBox;
+        </script>
+        
         <!-- 상단 로고 영역 - 50vh (2025-12-08 UX 최적화) -->
-        <div class="flex items-center justify-center" style="height: 50vh; flex-shrink: 0;">
+        <div class="flex items-center justify-center" style="height: 50vh; flex-shrink: 0; margin-top: 100px;">
             <img src="/assets/landing-logo-CiUrtW71.jpg" alt="손안의 가이드 - Your Expert in Hand" class="max-w-[85%] h-full object-contain">
         </div>
         
@@ -642,6 +683,9 @@
                         
                         // 언어 저장 (localStorage는 Safari에서도 잘 동작)
                         localStorage.setItem('appLanguage', lang);
+                        
+                        // 🔧 2026-01-22: 디버깅 박스 업데이트
+                        if (window.updateDebugBox) window.updateDebugBox();
                         
                         // PWA 모드: 직접 페이지 전환
                         if (window.isPWAMode()) {
