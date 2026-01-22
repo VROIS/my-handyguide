@@ -526,6 +526,24 @@
             <div id="debugContent">로딩 중...</div>
         </div>
         <script>
+        // 🔧 2026-01-22: 랜딩 페이지 진입 시 localStorage + googtrans 쿠키 완전 초기화
+        // 이렇게 하면 이전에 저장된 프랑스어 등이 삭제됨
+        (function() {
+            console.log('🧹 [RESET] 랜딩 페이지 진입 → localStorage + googtrans 완전 초기화');
+            console.log('🧹 [RESET] 초기화 전 localStorage.appLanguage:', localStorage.getItem('appLanguage'));
+            
+            // 1. localStorage.appLanguage 삭제
+            localStorage.removeItem('appLanguage');
+            
+            // 2. googtrans 쿠키 삭제
+            document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + window.location.hostname;
+            document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + window.location.hostname;
+            
+            console.log('🧹 [RESET] 초기화 후 localStorage.appLanguage:', localStorage.getItem('appLanguage'));
+            console.log('🧹 [RESET] 완료 - 사용자가 언어 선택하면 저장됨');
+        })();
+        
         // 디버깅 박스 업데이트 함수
         function updateDebugBox() {
             var box = document.getElementById('debugContent');
