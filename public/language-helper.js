@@ -78,39 +78,22 @@ const LanguageHelper = {
    * - Google Translate 로드 전에 쿠키 설정
    */
   initializeLanguage: function() {
-    // 🔧 2026-01-22: 디버깅 로그 + 기기 언어 감지 (localStorage 강제 저장 제거!)
-    console.log('🔍 [DEBUG] ========== 언어 초기화 시작 ==========');
-    console.log('🔍 [DEBUG] navigator.language:', navigator.language);
-    console.log('🔍 [DEBUG] navigator.languages:', JSON.stringify(navigator.languages));
-    console.log('🔍 [DEBUG] localStorage.appLanguage (before):', localStorage.getItem('appLanguage'));
-    console.log('🔍 [DEBUG] googtrans 쿠키:', document.cookie.split(';').find(c => c.includes('googtrans')) || '없음');
-    console.log('🔍 [DEBUG] User-Agent:', navigator.userAgent.substring(0, 80));
-    
-    // 🔧 localStorage에 값이 있으면 사용, 없으면 기기 언어 감지 (저장 안 함!)
+    // localStorage에 값이 있으면 사용, 없으면 기기 언어 감지 (저장 안 함!)
     let savedLang = localStorage.getItem('appLanguage');
     if (!savedLang) {
-      // 기기 언어 감지 (ko-KR → ko, fr-FR → fr)
       const deviceLang = navigator.language?.split('-')[0] || 'ko';
-      // 지원하는 언어인지 확인
       const supportedLangs = Object.keys(this.LANGUAGES);
       savedLang = supportedLangs.includes(deviceLang) ? deviceLang : 'ko';
-      console.log('⚠️ [DEBUG] localStorage 없음 → 기기 언어 감지:', deviceLang, '→ 사용:', savedLang);
-      // 🔧 핵심: localStorage에 저장하지 않음! 사용자가 선택할 때만 저장
     }
-    console.log('🔍 [DEBUG] 최종 언어:', savedLang);
     
     if (savedLang !== 'ko') {
       const domain = window.location.hostname;
       document.cookie = `googtrans=/ko/${savedLang}; path=/; domain=${domain}`;
       document.cookie = `googtrans=/ko/${savedLang}; path=/`;
-      console.log(`🌐 저장된 언어 적용: ${savedLang}`);
     } else {
-      // 🔧 한국어면 googtrans 쿠키 삭제 (기기 언어 영향 방지)
       document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
       document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + window.location.hostname;
-      console.log('🔍 [DEBUG] 한국어 → googtrans 쿠키 삭제');
     }
-    console.log('🔍 [DEBUG] ========== 언어 초기화 완료 ==========');
   },
 
   /**

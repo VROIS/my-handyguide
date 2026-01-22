@@ -63,3 +63,17 @@ Prioritizes specific voice names for Korean (Yuna, Sora, Heami) and uses a `voic
 -   **@google-cloud/storage**: Replit App Storage client.
 -   **OpenID Client**: OpenID Connect client library.
 -   **connect-pg-simple**: PostgreSQL session store.
+
+# Debugging & Troubleshooting
+
+## Debug Code Backup
+`docs/debug-code-backup.md` contains reusable debugging code for language/translation issues:
+- Mobile debug box (visual on-screen debugger)
+- Language initialization logs
+- Google Translate debugging
+
+## Language Settings (2026-01-22)
+- **localStorage only** - No DB sync, localStorage.appLanguage is the single source of truth
+- **Device language detection** - Used only if localStorage is empty (not saved)
+- **One-time reset** - langResetDone v2 flag clears old 'fr' values
+- **TTS auto-config** - Based on localStorage.appLanguage (ko → ko-KR, fr → fr-FR)
