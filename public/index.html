@@ -689,6 +689,11 @@
                         console.log('📌 첫 터치 → 선택 + 캐시 삭제:', lang);
                         window.__selectedLang = lang;
                         
+                        // 🔧 2026-01-22: 첫 터치에서도 localStorage 저장 (디버깅용)
+                        localStorage.setItem('appLanguage', lang);
+                        console.log('📌 [DEBUG] localStorage.appLanguage 저장됨:', lang);
+                        if (window.updateDebugBox) window.updateDebugBox();
+                        
                         // 시각적 피드백 - 선택 표시 + 로딩 상태
                         items.forEach(function(item) {
                             item.classList.remove('selected', 'ready-to-start', 'cache-clearing');
