@@ -2149,6 +2149,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     
         mainLoader.classList.remove('hidden');
+        
+        // 🚀 2026-01-24: Gemini 사전 워밍업 (카메라와 병렬 실행)
+        gemini.warmupGemini().catch(e => console.warn('Gemini 워밍업 실패:', e));
     
         try {
             if (!stream) {
@@ -2199,9 +2202,7 @@ document.addEventListener('DOMContentLoaded', () => {
             video.srcObject = stream;
             video.play().catch(e => console.error("Video play failed:", e));
             video.onloadedmetadata = () => {
-                [shootBtn, uploadBtn, micBtn].forEach(btn => {
-                    if (btn) btn.disabled = false;
-                });
+                // 2026-01-24: 버튼 활성화 로직 제거 (HTML에서 처음부터 활성화 상태)
                 isCameraActive = true;
                 resolve();
             };

@@ -216,3 +216,24 @@ export async function* generateTextStream(prompt) {
 
 // 관리자 대시보드에서 프롬프트 저장 후 캐시 무효화용
 window.clearPromptCache = clearPromptCache;
+
+/**
+ * 🚀 2026-01-24: Gemini 서비스 사전 워밍업
+ * 메인 페이지 진입 시 호출하여 첫 API 응답 지연 방지
+ */
+export async function warmupGemini() {
+    try {
+        const language = localStorage.getItem('appLanguage') || 'ko';
+        console.log('🔥 Gemini 워밍업 시작 (언어:', language, ')');
+        
+        // 프롬프트 캐시 사전 로드 (실제 API 호출 없이)
+        await fetchPromptFromServer(language, 'image');
+        await fetchPromptFromServer(language, 'text');
+        
+        console.log('✅ Gemini 워밍업 완료 - 프롬프트 캐시 준비됨');
+        return true;
+    } catch (error) {
+        console.warn('⚠️ Gemini 워밍업 실패 (무시됨):', error);
+        return false;
+    }
+}
