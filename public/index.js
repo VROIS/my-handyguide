@@ -2569,11 +2569,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 🎤 2026-01-19: 배포본 방식으로 롤백 - 함수 호출 시 이벤트 핸들러 등록
     async function handleMicButtonClick() {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
-        if (isRecognizing) return recognition.stop();
         
-        // 🚨 2026-01-24: AI 처리 중이면 마이크 클릭 무시
-        if (isAIProcessing) {
-            console.log('🚨 [마이크차단] AI 처리 중 - 클릭 무시');
+        // 🚨 2026-01-24: 전기 스위치 방식 - 진행 중이면 무시 (토글 안 함!)
+        // 마이크 ON 상태에서 다시 클릭해도 끊지 않음 → 결과 받으면 자동 OFF
+        if (isRecognizing || isAIProcessing) {
+            console.log('🚨 [마이크] 이미 처리 중 - 클릭 무시');
             return;
         }
         
@@ -2638,11 +2638,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 🎤 2026-01-19: 배포본 방식으로 롤백 - 함수 호출 시 이벤트 핸들러 등록
     async function handleDetailMicClick() {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
-        if (isRecognizing) return recognition.stop();
         
-        // 🚨 2026-01-24: AI 처리 중이면 마이크 클릭 무시
-        if (isAIProcessing) {
-            console.log('🚨 [상세마이크차단] AI 처리 중 - 클릭 무시');
+        // 🚨 2026-01-24: 전기 스위치 방식 - 진행 중이면 무시 (토글 안 함!)
+        // 마이크 ON 상태에서 다시 클릭해도 끊지 않음 → 결과 받으면 자동 OFF
+        if (isRecognizing || isAIProcessing) {
+            console.log('🚨 [상세마이크] 이미 처리 중 - 클릭 무시');
             return;
         }
         
