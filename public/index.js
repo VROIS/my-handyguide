@@ -2238,6 +2238,12 @@ document.addEventListener('DOMContentLoaded', () => {
     async function capturePhoto() {
         if (!video.videoWidth || !video.videoHeight) return;
         
+        // 🚨 2026-01-24: AI 처리 중이면 촬영 무시
+        if (isAIProcessing) {
+            console.log('🚨 [촬영차단] AI 처리 중 - 클릭 무시');
+            return;
+        }
+        
         // 🔒 사용량 제한 체크 (AI 호출 전)
         const canProceed = await checkUsageLimit('detail');
         if (!canProceed) return;
@@ -2335,6 +2341,13 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleFileSelect(event) {
         const file = event.target.files?.[0];
         if (file) {
+            // 🚨 2026-01-24: AI 처리 중이면 업로드 무시
+            if (isAIProcessing) {
+                console.log('🚨 [업로드차단] AI 처리 중 - 클릭 무시');
+                event.target.value = '';
+                return;
+            }
+            
             // 🔒 사용량 제한 체크 (AI 호출 전)
             const canProceed = await checkUsageLimit('detail');
             if (!canProceed) {
@@ -2401,6 +2414,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function processImage(dataUrl, sourceButton) {
+        // 🚨 2026-01-24: AI 중복 호출 차단 (비용 절감 핵심)
+        if (isAIProcessing) {
+            console.log('🚨 [AI차단] 이미 AI 처리 중 - 중복 호출 무시');
+            return;
+        }
+        isAIProcessing = true;
+        console.log('🔒 [AI시작] isAIProcessing = true (이미지)');
+        
         sourceButton.disabled = true;
         cameFromArchive = false;
         if (synth.speaking || synth.pending) synth.cancel();
@@ -2530,6 +2551,9 @@ document.addEventListener('DOMContentLoaded', () => {
             updateAudioButton('disabled');
         } finally {
              sourceButton.disabled = false;
+             // 🚨 2026-01-24: AI 처리 완료 - 플래그 해제
+             isAIProcessing = false;
+             console.log('🔓 [AI완료] isAIProcessing = false (이미지)');
         }
     }
     
@@ -2537,6 +2561,12 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleMicButtonClick() {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
         if (isRecognizing) return recognition.stop();
+        
+        // 🚨 2026-01-24: AI 처리 중이면 마이크 클릭 무시
+        if (isAIProcessing) {
+            console.log('🚨 [마이크차단] AI 처리 중 - 클릭 무시');
+            return;
+        }
         
         // 🔊 마이크 시작 전 음성 재생 즉시 중지
         if (synth.speaking || synth.pending) {
@@ -2594,6 +2624,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
         if (isRecognizing) return recognition.stop();
         
+        // 🚨 2026-01-24: AI 처리 중이면 마이크 클릭 무시
+        if (isAIProcessing) {
+            console.log('🚨 [상세마이크차단] AI 처리 중 - 클릭 무시');
+            return;
+        }
+        
         // 🔊 마이크 시작 전 음성 재생 즉시 중지
         if (synth.speaking || synth.pending) {
             synth.cancel();
@@ -2645,6 +2681,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     async function processTextQuery(prompt) {
+        // 🚨 2026-01-24: AI 중복 호출 차단 (비용 절감 핵심)
+        if (isAIProcessing) {
+            console.log('🚨 [AI차단] 이미 AI 처리 중 - 중복 호출 무시');
+            return;
+        }
+        isAIProcessing = true;
+        console.log('🔒 [AI시작] isAIProcessing = true');
+        
         // 🎤 2025-01-21: 마이크 즉시 정지 (AI 중복 호출 방지, 비용 절감)
         if (recognition && isRecognizing) {
             recognition.stop();
@@ -2749,6 +2793,10 @@ document.addEventListener('DOMContentLoaded', () => {
             textOverlay.classList.remove('hidden');
             descriptionText.innerText = "답변 생성 중 오류가 발생했습니다. 네트워크 연결을 확인하고 다시 시도해 주세요.";
             updateAudioButton('disabled');
+        } finally {
+            // 🚨 2026-01-24: AI 처리 완료 - 플래그 해제
+            isAIProcessing = false;
+            console.log('🔓 [AI완료] isAIProcessing = false (텍스트)');
         }
     }
 
