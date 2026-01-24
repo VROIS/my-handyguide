@@ -137,6 +137,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let recognition = SpeechRecognition ? new SpeechRecognition() : null;
     let isRecognizing = false;
     
+    // 🚨 2026-01-24: iOS 구형 기기 마이크 문제 해결
+    // continuous=false: 한 번 결과 받으면 자동 종료 (iOS 필수!)
+    // interimResults=false: 최종 결과만 받음
+    if (recognition) {
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+    }
+    
     // 🚨 2026-01-24: AI 중복 호출 방지 플래그 (비용 절감)
     // - 모든 버튼(촬영/마이크/업로드)에서 공유
     // - AI 호출 시작 시 true → 응답 완료/오류 시 false
@@ -2595,12 +2604,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         recognition.onresult = (event) => {
             clearTimeout(micTimeout);
+            // 🚨 2026-01-24: 결과 받은 즉시 음성 인식 완전 중지 (iOS 필수!)
+            recognition.stop();
+            isRecognizing = false;
+            micBtn?.classList.remove('mic-listening');
+            console.log('🎤 [메인] 음성 인식 결과 받음 → 즉시 중지');
             processTextQuery(event.results[0][0].transcript);
         };
 
         recognition.onerror = (event) => {
             clearTimeout(micTimeout);
             console.error('Speech recognition error:', event.error);
+            recognition.stop(); // 🚨 오류 시에도 명시적 중지
             isRecognizing = false;
             micBtn?.classList.remove('mic-listening');
             const messages = {
@@ -2615,6 +2630,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clearTimeout(micTimeout);
             isRecognizing = false;
             micBtn?.classList.remove('mic-listening');
+            console.log('🎤 [메인] recognition.onend 호출됨');
         };
     }
     
@@ -2657,12 +2673,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
         recognition.onresult = (event) => {
             clearTimeout(micTimeout);
+            // 🚨 2026-01-24: 결과 받은 즉시 음성 인식 완전 중지 (iOS 필수!)
+            recognition.stop();
+            isRecognizing = false;
+            detailMicBtn?.classList.remove('mic-listening');
+            console.log('🎤 [상세] 음성 인식 결과 받음 → 즉시 중지');
             processTextQuery(event.results[0][0].transcript);
         };
 
         recognition.onerror = (event) => {
             clearTimeout(micTimeout);
             console.error('Speech recognition error:', event.error);
+            recognition.stop(); // 🚨 오류 시에도 명시적 중지
             isRecognizing = false;
             detailMicBtn?.classList.remove('mic-listening');
             const messages = {
@@ -2677,6 +2699,7 @@ document.addEventListener('DOMContentLoaded', () => {
             clearTimeout(micTimeout);
             isRecognizing = false;
             detailMicBtn?.classList.remove('mic-listening');
+            console.log('🎤 [상세] recognition.onend 호출됨');
         };
     }
     
