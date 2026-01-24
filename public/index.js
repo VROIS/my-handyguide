@@ -2558,7 +2558,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
     
-    // 🎤 2026-01-24: 12월 버전으로 롤백 (토글 방식, 설정 없음)
     async function handleMicButtonClick() {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
         if (isRecognizing) return recognition.stop();
@@ -2577,12 +2576,27 @@ document.addEventListener('DOMContentLoaded', () => {
         micBtn.classList.add('mic-listening');
         recognition.start();
 
+        // 🎤 10초 타임아웃 (iOS Safari 호환성)
+        const micTimeout = setTimeout(() => {
+            if (isRecognizing) {
+                console.log('🎤 마이크 타임아웃 - 강제 종료');
+                recognition.stop();
+                isRecognizing = false;
+                micBtn?.classList.remove('mic-listening');
+                showToast('음성을 듣지 못했어요. 다시 시도해볼까요?');
+            }
+        }, 10000);
+
         recognition.onresult = (event) => {
+            clearTimeout(micTimeout);
             processTextQuery(event.results[0][0].transcript);
         };
 
         recognition.onerror = (event) => {
+            clearTimeout(micTimeout);
             console.error('Speech recognition error:', event.error);
+            isRecognizing = false;
+            micBtn?.classList.remove('mic-listening');
             const messages = {
                 'no-speech': '음성을 듣지 못했어요. 다시 시도해볼까요?',
                 'not-allowed': '마이크 사용 권한이 필요합니다.',
@@ -2592,12 +2606,14 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         recognition.onend = () => {
+            clearTimeout(micTimeout);
             isRecognizing = false;
-            micBtn.classList.remove('mic-listening');
+            micBtn?.classList.remove('mic-listening');
         };
     }
     
-    // 🎤 2026-01-24: 12월 버전으로 롤백 (토글 방식, 설정 없음)
+    // 🎤 상세페이지에서 다시 질문하기 (페이지 이동 없이)
+    // 🎤 2026-01-19: 배포본 방식으로 롤백 - 함수 호출 시 이벤트 핸들러 등록
     async function handleDetailMicClick() {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
         if (isRecognizing) return recognition.stop();
@@ -2616,12 +2632,27 @@ document.addEventListener('DOMContentLoaded', () => {
         detailMicBtn?.classList.add('mic-listening');
         recognition.start();
 
+        // 🎤 10초 타임아웃 (iOS Safari 호환성)
+        const micTimeout = setTimeout(() => {
+            if (isRecognizing) {
+                console.log('🎤 마이크 타임아웃 - 강제 종료');
+                recognition.stop();
+                isRecognizing = false;
+                detailMicBtn?.classList.remove('mic-listening');
+                showToast('음성을 듣지 못했어요. 다시 시도해볼까요?');
+            }
+        }, 10000);
+
         recognition.onresult = (event) => {
+            clearTimeout(micTimeout);
             processTextQuery(event.results[0][0].transcript);
         };
 
         recognition.onerror = (event) => {
+            clearTimeout(micTimeout);
             console.error('Speech recognition error:', event.error);
+            isRecognizing = false;
+            detailMicBtn?.classList.remove('mic-listening');
             const messages = {
                 'no-speech': '음성을 듣지 못했어요. 다시 시도해볼까요?',
                 'not-allowed': '마이크 사용 권한이 필요합니다.',
@@ -2631,6 +2662,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
         
         recognition.onend = () => {
+            clearTimeout(micTimeout);
             isRecognizing = false;
             detailMicBtn?.classList.remove('mic-listening');
         };
