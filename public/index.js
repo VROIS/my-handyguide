@@ -136,6 +136,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition = SpeechRecognition ? new SpeechRecognition() : null;
     let isRecognizing = false;
+    
+    // 🚨 2026-01-24: AI 중복 호출 방지 플래그 (비용 절감)
+    // - 모든 버튼(촬영/마이크/업로드)에서 공유
+    // - AI 호출 시작 시 true → 응답 완료/오류 시 false
+    // - 버튼은 항상 활성화, 하지만 처리 중이면 클릭 무시
+    let isAIProcessing = false;
 
     let stream = null;
     let isCameraActive = false; // To prevent camera re-initialization
