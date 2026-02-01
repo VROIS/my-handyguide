@@ -95,3 +95,10 @@ Prioritizes specific voice names for Korean (Yuna, Sora, Heami) and uses a `voic
 ### 3. 크레딧 부족 시 처리 추가
 - **수정 위치**: `public/geminiService.js` 라인 143-148
 - **동작**: 402 응답 시 alert 표시 후 `/profile.html`로 리다이렉트
+
+### 4. API 호출 로깅 추가 (2026-02-01)
+- **목적**: 정확한 AI 호출 횟수 추적 (저장 안 한 1회성 열람 포함)
+- **구현**: `/api/gemini` 호출마다 `api_logs` 테이블에 기록
+- **기록 항목**: 시간, 사용자ID, 응답시간(ms), 성공여부, 추정비용($0.015/call)
+- **대시보드 연동**: `/api/admin/overview`, `/api/admin/stats`가 `api_logs`에서 실시간 데이터 조회
+- **과거 데이터**: 버그 기간(2025-12-11~2026-02-01) AI 호출은 추적 불가 (api_logs 비어있음)
