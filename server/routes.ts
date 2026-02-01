@@ -7,7 +7,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupGoogleAuth } from "./googleAuth";
 import { setupKakaoAuth } from "./kakaoAuth";
 import { generateLocationBasedContent, getLocationName, generateShareLinkDescription, generateCinematicPrompt, optimizeAudioScript, analyzeTextAndGenerateScript, analyzeImageAndGenerateScript, generatePersonaVoice, type GuideContent, type DreamShotPrompt, type AnalyzedScript } from "./gemini";
-import { insertGuideSchema, insertShareLinkSchema, insertSharedHtmlPageSchema, creditTransactions, users, notifications, pushSubscriptions, insertNotificationSchema, insertPushSubscriptionSchema, voiceConfigs, dreamStudioVideos, apiLogs } from "@shared/schema";
+import { insertGuideSchema, insertShareLinkSchema, insertSharedHtmlPageSchema, creditTransactions, users, notifications, pushSubscriptions, insertNotificationSchema, insertPushSubscriptionSchema, voiceConfigs, dreamStudioVideos, apiLogs, userActivityLogs } from "@shared/schema";
 import webpush from "web-push";
 import { eq, and, or, isNull } from "drizzle-orm";
 import { GoogleGenAI } from "@google/genai";
@@ -104,6 +104,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({
       googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || ''
     });
+  });
+  
+  // ═══════════════════════════════════════════════════════════════
+  // 📊 사용자 활동 로그 API (2026-02-01)
+  // ═══════════════════════════════════════════════════════════════
+  // 목적: 디바이스/브라우저 분포 등 사용자 행동 데이터 수집
+  // 프론트엔드에서 페이지 로드 시 호출
+  // ═══════════════════════════════════════════════════════════════
+  
+  app.post('/api/activity', async (req: any, res) => {
+    try {
+      const { deviceType, browser, sessionId, pageViews } = req.body;
+      const userAgent = req.headers['user-agent'] || '';
+      const userId = req.user?.id || req.session?.passport?.user || null;
+      
+      // 디바이스 타입 자동 감지 (클라이언트에서 보내지 않은 경우)
+      let detectedDeviceType = deviceType;
+      if (!detectedDeviceType) {
+        if (/Mobile|Android|iPhone|iPad/i.test(userAgent)) {
+          detectedDeviceType = /iPad|Tablet/i.test(userAgent) ? 'tablet' : 'mobile';
+        } else {
+          detectedDeviceType = 'desktop';
+        }
+      }
+      
+      // 브라우저 자동 감지 (클라이언트에서 보내지 않은 경우)
+      let detectedBrowser = browser;
+      if (!detectedBrowser) {
+        if (/KAKAOTALK/i.test(userAgent)) detectedBrowser = 'KakaoTalk';
+        else if (/NAVER/i.test(userAgent)) detectedBrowser = 'Naver';
+        else if (/SamsungBrowser/i.test(userAgent)) detectedBrowser = 'Samsung';
+        else if (/Edg/i.test(userAgent)) detectedBrowser = 'Edge';
+        else if (/Chrome/i.test(userAgent)) detectedBrowser = 'Chrome';
+        else if (/Safari/i.test(userAgent)) detectedBrowser = 'Safari';
+        else if (/Firefox/i.test(userAgent)) detectedBrowser = 'Firefox';
+        else detectedBrowser = 'Other';
+      }
+      
+      await db.insert(userActivityLogs).values({
+        userId,
+        sessionId: sessionId || crypto.randomUUID(),
+        deviceType: detectedDeviceType,
+        browser: detectedBrowser,
+        userAgent,
+        pageViews: pageViews || 1,
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('활동 로그 기록 오류:', error);
+      res.status(500).json({ error: '활동 로그 기록 실패' });
+    }
   });
   
   // ═══════════════════════════════════════════════════════════════

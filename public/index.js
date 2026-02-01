@@ -3,6 +3,22 @@ import * as gemini from './geminiService.js';
 import { optimizeImage } from './imageOptimizer.js';
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 📊 사용자 활동 로그 기록 (2026-02-01)
+    // 세션 ID 생성 또는 재사용
+    let sessionId = sessionStorage.getItem('activity_session_id');
+    if (!sessionId) {
+        sessionId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substr(2);
+        sessionStorage.setItem('activity_session_id', sessionId);
+    }
+    
+    // 활동 로그 전송 (비동기, 실패해도 무시)
+    fetch('/api/activity', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ sessionId })
+    }).catch(() => {}); // 에러 무시
+    
     // 🌐 언어 선택 바인딩 (admin-settings.html과 동일)
     LanguageHelper.bindLanguageSelect('languageSelect');
     
