@@ -136,6 +136,14 @@ async function* streamResponseFromServer(body) {
 
         if (!response.ok || !response.body) {
             const errorData = await response.json().catch(() => ({ error: `서버 오류: ${response.status}` }));
+            
+            // 🎯 2026-02-01: 크레딧 부족 시 프로필 페이지로 이동
+            if (response.status === 402) {
+                alert('크레딧이 부족합니다. 프로필에서 충전해주세요.');
+                window.location.href = '/profile.html';
+                return;
+            }
+            
             throw new Error(errorData.error || `서버에서 응답을 받을 수 없습니다.`);
         }
 

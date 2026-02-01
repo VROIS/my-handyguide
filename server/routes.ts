@@ -221,8 +221,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "요청 본문에 필수 데이터(prompt 또는 base64Image)가 누락되었습니다." });
       }
       
-      // 🎯 크레딧 차감 로직 (인증된 사용자만)
-      const userId = req.user?.id;
+      // 🎯 2026-02-01: 크레딧 차감 버그 수정 - 세션 기반 사용자 ID 가져오기
+      // req.user는 passport 미들웨어가 세션에서 자동으로 복원함
+      const userId = req.user?.id || req.session?.passport?.user;
+      console.log(`🔍 [Gemini] userId: ${userId}, req.user: ${!!req.user}, session.passport: ${!!req.session?.passport?.user}`);
+      
       if (userId && userId !== 'temp-user-id') {
         const user = await storage.getUser(userId);
         if (user && !user.isAdmin) {
