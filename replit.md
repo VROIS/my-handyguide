@@ -77,3 +77,21 @@ Prioritizes specific voice names for Korean (Yuna, Sora, Heami) and uses a `voic
 - **Device language detection** - Used only if localStorage is empty (not saved)
 - **One-time reset** - langResetDone v2 flag clears old 'fr' values
 - **TTS auto-config** - Based on localStorage.appLanguage (ko → ko-KR, fr → fr-FR)
+
+## Critical Bug Fixes (2026-02-01)
+
+### 1. AI 호출 시 크레딧 차감 버그 (2025-12-11 ~ 2026-02-01)
+- **증상**: AI 호출해도 크레딧이 차감되지 않음
+- **원인**: `/api/gemini` 엔드포인트에서 `req.user?.id`가 항상 undefined
+- **수정**: `server/routes.ts` 라인 229 - `req.user?.id || req.session?.passport?.user`로 변경
+- **영향**: 약 1.5개월간 무료 AI 사용 가능했음
+
+### 2. 프로모션 크레딧 이중지급 (43명 × 280 크레딧)
+- **증상**: 신규 가입자가 140 대신 280 크레딧 수령
+- **원인**: `signup_bonus(140)` + `promo_bonus_2026(140)` 중복 지급
+- **수정**: `server/creditService.ts` - signup_bonus 받은 사용자는 promo_bonus 제외 로직 추가
+- **DB 조치**: 배포본에서 promo_bonus_2026 삭제 + 모든 사용자 100 크레딧으로 초기화
+
+### 3. 크레딧 부족 시 처리 추가
+- **수정 위치**: `public/geminiService.js` 라인 143-148
+- **동작**: 402 응답 시 alert 표시 후 `/profile.html`로 리다이렉트
