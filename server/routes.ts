@@ -2633,21 +2633,16 @@ self.addEventListener('fetch', (event) => {
       `);
       const recentUsers = Number(recentUsersResult.rows[0]?.count || 0);
 
-      // AI 호출 횟수 및 비용 (테이블이 없으면 0으로 처리)
-      let totalApiCalls = 0;
-      let estimatedCost = 0;
-      try {
-        const apiCallsResult = await db.execute(sql`
-          SELECT 
-            COUNT(*) as count,
-            COALESCE(SUM(estimated_cost), 0) as total_cost
-          FROM api_logs
-        `);
-        totalApiCalls = Number(apiCallsResult.rows[0]?.count || 0);
-        estimatedCost = Number(apiCallsResult.rows[0]?.total_cost || 0);
-      } catch (apiLogsError) {
-        console.warn('api_logs 테이블 없음 (정상):', apiLogsError);
-      }
+      // 🎯 2026-02-01: AI 호출 횟수 - credit_transactions에서 usage 타입으로 실시간 반영
+      // Gemini 3.0 Flash 비용: 이미지+텍스트 요청당 약 $0.015 추정
+      // (Input: $0.50/1M tokens, Output: $3.00/1M tokens, 평균 10K input + 2K output = ~$0.011~0.02)
+      const GEMINI_30_FLASH_COST_PER_CALL = 0.015; // USD
+      
+      const aiCallsResult = await db.execute(sql`
+        SELECT COUNT(*) as count FROM credit_transactions WHERE type = 'usage'
+      `);
+      const totalApiCalls = Number(aiCallsResult.rows[0]?.count || 0);
+      const estimatedCost = totalApiCalls * GEMINI_30_FLASH_COST_PER_CALL;
 
       // 전체 공유 링크
       const totalSharesResult = await db.execute(sql`
@@ -3244,7 +3239,8 @@ self.addEventListener('fetch', (event) => {
       
       // AI 호출 수 (usage 건수)
       const totalAICalls = usages.length;
-      // Gemini 2.5 Flash 비용 추정: 호출당 ~$0.015 (이미지+텍스트)
+      // 🎯 2026-02-01: Gemini 3.0 Flash 비용 추정: 호출당 ~$0.015 (이미지+텍스트)
+      // (Input: $0.50/1M tokens, Output: $3.00/1M tokens)
       const estimatedAICostUSD = totalAICalls * 0.015;
       const estimatedAICostEUR = estimatedAICostUSD * 0.92; // USD to EUR
       
