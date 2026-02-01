@@ -125,8 +125,23 @@ export class CreditService {
   /**
    * 🎁 2026-01-07: 프로모션 보너스 (기존 가입자 대상)
    * 프로모션 종료 후 이 함수 호출 제거
+   * ⚠️ 2026-02-01: 신규 가입자(signup_bonus 있음) 제외 - 280 이중지급 버그 수정
    */
   async grantPromoBonus(userId: string): Promise<number> {
+    // 신규 가입자는 프로모션 보너스 제외 (signup_bonus 이미 받았으면 스킵)
+    const [hasSignupBonus] = await db.select()
+      .from(creditTransactions)
+      .where(and(
+        eq(creditTransactions.userId, userId),
+        eq(creditTransactions.type, 'signup_bonus')
+      ))
+      .limit(1);
+
+    if (hasSignupBonus) {
+      console.log(`User ${userId} is new signup, skip promo bonus`);
+      return await this.getBalance(userId);
+    }
+
     const [existingPromo] = await db.select()
       .from(creditTransactions)
       .where(and(
