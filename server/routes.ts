@@ -3685,8 +3685,8 @@ self.addEventListener('fetch', (event) => {
     }
   });
 
-  // 관리자 전체 알림 발송 (관리자 설정 페이지에서만 접근 가능 - 프론트엔드에서 이미 인증됨)
-  app.post('/api/admin/notifications/broadcast', async (req: any, res) => {
+  // 관리자 전체 알림 발송 (requireAdmin 인증 필수)
+  app.post('/api/admin/notifications/broadcast', requireAdmin, async (req: any, res) => {
     try {
       const { type, title, message, link } = req.body;
       
