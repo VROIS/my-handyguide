@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>손안의 가이드 - 베타 테스트 참여</title>
+    <title>손안의 가이드 - 베타 테스터 참여 / Join Beta Testers</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234285F4'><path d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/></svg>">
     <meta name="theme-color" content="#1a73e8"/>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -20,113 +20,336 @@
             border-radius: 24px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
+        .btn-google {
+            background: white;
+            border: 2px solid #dadce0;
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        .btn-google:hover {
+            background: #f8f9fa;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
         .btn-install {
             background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
-            transition: opacity 0.2s, transform 0.1s;
+            transition: opacity 0.2s;
         }
-        .btn-install:active {
-            opacity: 0.85;
-            transform: scale(0.98);
-        }
+        .btn-install:hover { opacity: 0.9; }
         .btn-web {
             background: #f1f3f4;
             color: #444;
             transition: background 0.2s;
         }
-        .btn-web:active {
-            background: #e2e5e9;
+        .btn-web:hover { background: #e2e5e9; }
+        .benefit-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 10px 0;
         }
-        .warning-box {
-            background: #fff8e1;
-            border: 2px solid #f9a825;
-            border-radius: 12px;
+        .lang-btn {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
         }
-        .credit-box {
-            background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
-            border: 2px solid #66bb6a;
-            border-radius: 12px;
-        }
-        .step-circle {
-            width: 32px;
-            height: 32px;
+        .lang-btn.active {
             background: #1a73e8;
             color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 14px;
-            flex-shrink: 0;
         }
+        .lang-btn:not(.active) {
+            background: #f1f3f4;
+            color: #555;
+        }
+        .spinner {
+            width: 36px;
+            height: 36px;
+            border: 3px solid #e8f0fe;
+            border-top-color: #1a73e8;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="flex items-center justify-center p-4 py-8">
     <div class="card w-full max-w-md p-8">
 
+        <div class="flex justify-end mb-4 gap-2">
+            <button class="lang-btn" id="btnKo" onclick="setLang('ko')">한국어</button>
+            <button class="lang-btn" id="btnEn" onclick="setLang('en')">English</button>
+        </div>
+
         <div class="text-center mb-6">
             <div class="text-5xl mb-3">🗺️</div>
-            <h1 class="text-2xl font-bold text-gray-800 mb-1">손안의 가이드</h1>
-            <p class="text-gray-500 text-sm">AI가 만들어주는 나만의 여행 가이드</p>
+            <h1 class="text-2xl font-bold text-gray-800 mb-1" id="txt-title"></h1>
+            <p class="text-gray-500 text-sm" id="txt-subtitle"></p>
         </div>
 
-        <div class="credit-box p-4 mb-6 text-center">
-            <div class="text-2xl mb-1">🎁</div>
-            <p class="font-bold text-green-800 text-base">베타 참여 시 무료 100 크레딧 제공!</p>
-            <p class="text-green-700 text-sm mt-1">AI 가이드 50회 무료 사용 가능</p>
-        </div>
-
-        <div class="warning-box p-4 mb-6">
-            <div class="flex items-start gap-2">
-                <span class="text-xl mt-0.5">⚠️</span>
-                <div>
-                    <p class="font-bold text-yellow-800 text-sm">반드시 Chrome 브라우저로 열어주세요</p>
-                    <p class="text-yellow-700 text-xs mt-1">카카오톡, 네이버 앱 내 브라우저에서는 설치가 되지 않습니다.</p>
+        <div id="screen-landing">
+            <div class="bg-blue-50 border border-blue-200 rounded-2xl p-5 mb-6">
+                <p class="font-bold text-blue-800 text-sm mb-3" id="txt-invite-title"></p>
+                <div class="space-y-1">
+                    <div class="benefit-item">
+                        <span class="text-lg">🎁</span>
+                        <p class="text-gray-700 text-sm" id="txt-benefit1"></p>
+                    </div>
+                    <div class="benefit-item">
+                        <span class="text-lg">📱</span>
+                        <p class="text-gray-700 text-sm" id="txt-benefit2"></p>
+                    </div>
+                    <div class="benefit-item">
+                        <span class="text-lg">📅</span>
+                        <p class="text-gray-700 text-sm" id="txt-benefit3"></p>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="mb-6">
-            <p class="font-bold text-gray-700 text-sm mb-3">📋 설치 방법 (3단계)</p>
-            <div class="space-y-3">
-                <div class="flex items-center gap-3">
-                    <div class="step-circle">1</div>
-                    <p class="text-gray-700 text-sm">이 페이지를 <strong>Chrome</strong>으로 열기</p>
+            <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 mb-5 text-center" id="txt-android-only"></p>
+
+            <button onclick="loginWithGoogle()"
+                class="btn-google w-full py-4 px-6 rounded-xl font-bold text-gray-800 text-base flex items-center justify-center gap-3 mb-3 shadow-sm">
+                <svg class="w-6 h-6" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                <span id="txt-google-btn"></span>
+            </button>
+
+            <div class="relative my-4">
+                <div class="absolute inset-0 flex items-center">
+                    <div class="w-full border-t border-gray-200"></div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <div class="step-circle">2</div>
-                    <p class="text-gray-700 text-sm">아래 <strong>"지금 설치하기"</strong> 버튼 클릭</p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <div class="step-circle">3</div>
-                    <p class="text-gray-700 text-sm">Play Store에서 <strong>설치</strong> 완료</p>
+                <div class="relative flex justify-center">
+                    <span class="px-3 bg-white text-xs text-gray-400" id="txt-or"></span>
                 </div>
             </div>
+
+            <a href="https://My-handyguide1.replit.app"
+               class="btn-web block w-full py-3 px-6 rounded-xl font-bold text-sm text-center">
+                <span id="txt-web-btn"></span>
+            </a>
+
+            <p class="text-center text-xs text-gray-400 mt-4" id="txt-terms"></p>
         </div>
 
-        <a href="https://play.google.com/apps/testing/com.sonanie.guide"
-           target="_blank"
-           class="btn-install block w-full py-4 px-6 rounded-2xl text-white font-bold text-lg text-center shadow-lg mb-3">
-            📱 지금 설치하기 (Android)
-        </a>
-
-        <div class="relative my-5">
-            <div class="absolute inset-0 flex items-center">
-                <div class="w-full border-t border-gray-200"></div>
-            </div>
-            <div class="relative flex justify-center text-xs text-gray-400">
-                <span class="px-3 bg-white">iPhone · 웹에서 사용하기</span>
-            </div>
+        <div id="screen-processing" class="hidden text-center py-8">
+            <div class="spinner mx-auto mb-4"></div>
+            <p class="text-gray-600 font-bold" id="txt-processing"></p>
         </div>
 
-        <a href="https://My-handyguide1.replit.app"
-           class="btn-web block w-full py-3 px-6 rounded-2xl font-bold text-sm text-center">
-            🌐 웹 버전으로 바로 시작하기
-        </a>
+        <div id="screen-success" class="hidden">
+            <div class="text-center mb-6">
+                <div class="text-5xl mb-3">🎉</div>
+                <h2 class="text-xl font-bold text-gray-800 mb-1" id="txt-success-title"></h2>
+            </div>
 
-        <p class="text-center text-xs text-gray-400 mt-6">
-            문의: 앱 내 피드백 기능을 이용해주세요
-        </p>
+            <div class="bg-green-50 border border-green-200 rounded-2xl p-5 mb-4">
+                <p class="font-bold text-green-800 text-sm mb-2" id="txt-credit-granted"></p>
+                <p class="text-green-700 text-sm" id="txt-credit-desc"></p>
+            </div>
+
+            <div class="bg-blue-50 border border-blue-200 rounded-2xl p-5 mb-6">
+                <p class="font-bold text-blue-800 text-sm mb-2" id="txt-email-sent"></p>
+                <p class="text-gray-600 text-sm" id="txt-install-steps"></p>
+            </div>
+
+            <a id="btn-beta-install"
+               href="https://play.google.com/apps/internaltest/4701739022712298192"
+               target="_blank"
+               class="btn-install block w-full py-4 px-6 rounded-2xl text-white font-bold text-base text-center shadow-lg mb-3">
+                <span id="txt-install-btn"></span>
+            </a>
+
+            <a href="https://My-handyguide1.replit.app"
+               class="btn-web block w-full py-3 px-6 rounded-xl font-bold text-sm text-center">
+                <span id="txt-web-start-btn"></span>
+            </a>
+        </div>
+
+        <div id="screen-already" class="hidden text-center py-6">
+            <div class="text-4xl mb-3">✅</div>
+            <p class="font-bold text-gray-800 mb-2" id="txt-already-title"></p>
+            <p class="text-gray-500 text-sm mb-6" id="txt-already-desc"></p>
+            <a href="https://play.google.com/apps/internaltest/4701739022712298192"
+               target="_blank"
+               class="btn-install block w-full py-4 px-6 rounded-2xl text-white font-bold text-base text-center shadow-lg mb-3">
+                <span id="txt-already-install-btn"></span>
+            </a>
+            <a href="https://My-handyguide1.replit.app"
+               class="btn-web block w-full py-3 px-6 rounded-xl font-bold text-sm text-center">
+                <span id="txt-already-web-btn"></span>
+            </a>
+        </div>
+
+        <div id="screen-error" class="hidden text-center py-6">
+            <div class="text-4xl mb-3">⚠️</div>
+            <p class="font-bold text-gray-800 mb-2" id="txt-error-title"></p>
+            <p class="text-gray-500 text-sm mb-6" id="txt-error-desc"></p>
+            <button onclick="showScreen('landing')"
+                class="btn-install block w-full py-4 px-6 rounded-2xl text-white font-bold text-base text-center shadow-lg">
+                <span id="txt-retry-btn"></span>
+            </button>
+        </div>
+
     </div>
+
+    <script>
+        const STRINGS = {
+            ko: {
+                title: '손안의 가이드',
+                subtitle: 'AI가 만들어주는 나만의 여행 가이드',
+                inviteTitle: '📣 곧 Google Play Store에 정식 출시됩니다!',
+                benefit1: '무료 100 크레딧 즉시 지급 — 지금 바로 웹에서 사용 가능',
+                benefit2: '정식 출시 전 Android 베타 앱 먼저 체험',
+                benefit3: '설치 후 14일간 유지해주시면 큰 도움이 됩니다',
+                androidOnly: '📱 Android 전용 베타 앱입니다 (iPhone은 아래 웹 버전 이용)',
+                googleBtn: 'Google로 시작하기',
+                or: 'iPhone · PC는 웹에서',
+                webBtn: '🌐 웹 버전으로 바로 시작하기 (iPhone 지원)',
+                terms: '로그인 시 위치정보, 사진 정보 사용에 동의합니다',
+                processing: '테스터 등록 중...',
+                successTitle: '등록 완료!',
+                creditGranted: '🎁 100 크레딧이 지급되었습니다',
+                creditDesc: '앱 정식 출시 전에도 지금 바로 웹에서 AI 여행가이드를 사용하실 수 있습니다!',
+                emailSent: '📩 Android 베타 앱 초대 이메일을 발송했습니다',
+                installSteps: '이메일을 확인하여 "download it on Google Play" 파란 글자를 클릭 후 설치해주세요.\n⚠️ "Leave the program" 버튼은 클릭하지 마세요',
+                installBtn: '📱 베타 앱 설치하기 (Android)',
+                webStartBtn: '🌐 지금 웹에서 시작하기',
+                alreadyTitle: '이미 등록되어 있습니다',
+                alreadyDesc: '아래 버튼으로 베타 앱을 설치하거나 웹에서 바로 시작하세요',
+                alreadyInstallBtn: '📱 베타 앱 설치하기 (Android)',
+                alreadyWebBtn: '🌐 웹에서 시작하기',
+                errorTitle: '오류가 발생했습니다',
+                errorDesc: '잠시 후 다시 시도해주세요',
+                retryBtn: '다시 시도',
+            },
+            en: {
+                title: 'My Hand Guide',
+                subtitle: 'AI-powered personalized travel guide',
+                inviteTitle: '📣 Coming soon to Google Play Store!',
+                benefit1: '100 free credits instantly — usable right now on the web',
+                benefit2: 'Early access to the Android beta app before official launch',
+                benefit3: 'Please keep the app for 14 days after install — it helps a lot!',
+                androidOnly: '📱 Android beta only (iPhone users: please use the web version below)',
+                googleBtn: 'Continue with Google',
+                or: 'iPhone · PC: use the web version',
+                webBtn: '🌐 Start on Web (iPhone supported)',
+                terms: 'By signing in, you agree to location and photo data usage',
+                processing: 'Registering as tester...',
+                successTitle: 'You\'re in!',
+                creditGranted: '🎁 100 credits have been added to your account',
+                creditDesc: 'You can start using the AI travel guide on the web right now — no need to wait for the official launch!',
+                emailSent: '📩 A beta app invitation email has been sent to you',
+                installSteps: 'Check your email and click the blue "download it on Google Play" link to install.\n⚠️ Do NOT click the "Leave the program" button',
+                installBtn: '📱 Install Beta App (Android)',
+                webStartBtn: '🌐 Start on Web Now',
+                alreadyTitle: 'Already registered!',
+                alreadyDesc: 'Install the beta app or start on the web',
+                alreadyInstallBtn: '📱 Install Beta App (Android)',
+                alreadyWebBtn: '🌐 Start on Web',
+                errorTitle: 'Something went wrong',
+                errorDesc: 'Please try again in a moment',
+                retryBtn: 'Try again',
+            }
+        };
+
+        let currentLang = 'ko';
+
+        function detectLang() {
+            const nav = navigator.language || navigator.userLanguage || 'ko';
+            return nav.toLowerCase().startsWith('ko') ? 'ko' : 'en';
+        }
+
+        function setLang(lang) {
+            currentLang = lang;
+            const s = STRINGS[lang];
+            document.getElementById('txt-title').textContent = s.title;
+            document.getElementById('txt-subtitle').textContent = s.subtitle;
+            document.getElementById('txt-invite-title').textContent = s.inviteTitle;
+            document.getElementById('txt-benefit1').textContent = s.benefit1;
+            document.getElementById('txt-benefit2').textContent = s.benefit2;
+            document.getElementById('txt-benefit3').textContent = s.benefit3;
+            document.getElementById('txt-android-only').textContent = s.androidOnly;
+            document.getElementById('txt-google-btn').textContent = s.googleBtn;
+            document.getElementById('txt-or').textContent = s.or;
+            document.getElementById('txt-web-btn').textContent = s.webBtn;
+            document.getElementById('txt-terms').textContent = s.terms;
+            document.getElementById('txt-processing').textContent = s.processing;
+            document.getElementById('txt-success-title').textContent = s.successTitle;
+            document.getElementById('txt-credit-granted').textContent = s.creditGranted;
+            document.getElementById('txt-credit-desc').textContent = s.creditDesc;
+            document.getElementById('txt-email-sent').textContent = s.emailSent;
+            document.getElementById('txt-install-steps').textContent = s.installSteps;
+            document.getElementById('txt-install-btn').textContent = s.installBtn;
+            document.getElementById('txt-web-start-btn').textContent = s.webStartBtn;
+            document.getElementById('txt-already-title').textContent = s.alreadyTitle;
+            document.getElementById('txt-already-desc').textContent = s.alreadyDesc;
+            document.getElementById('txt-already-install-btn').textContent = s.alreadyInstallBtn;
+            document.getElementById('txt-already-web-btn').textContent = s.alreadyWebBtn;
+            document.getElementById('txt-error-title').textContent = s.errorTitle;
+            document.getElementById('txt-error-desc').textContent = s.errorDesc;
+            document.getElementById('txt-retry-btn').textContent = s.retryBtn;
+            document.getElementById('btnKo').classList.toggle('active', lang === 'ko');
+            document.getElementById('btnEn').classList.toggle('active', lang === 'en');
+        }
+
+        function showScreen(name) {
+            ['landing','processing','success','already','error'].forEach(s => {
+                document.getElementById('screen-' + s).classList.add('hidden');
+            });
+            document.getElementById('screen-' + name).classList.remove('hidden');
+        }
+
+        function loginWithGoogle() {
+            sessionStorage.setItem('authRedirect', '/beta?registered=1');
+            window.location.href = '/api/auth/google';
+        }
+
+        async function handleRegistration() {
+            showScreen('processing');
+            try {
+                const res = await fetch('/api/beta/play-register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lang: currentLang })
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    if (data.alreadyRegistered) {
+                        showScreen('already');
+                    } else {
+                        showScreen('success');
+                    }
+                } else {
+                    showScreen('error');
+                }
+            } catch (e) {
+                showScreen('error');
+            }
+        }
+
+        async function init() {
+            const lang = detectLang();
+            setLang(lang);
+
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('registered') === '1') {
+                history.replaceState({}, '', '/beta');
+                const authRes = await fetch('/api/auth/user');
+                if (authRes.ok) {
+                    await handleRegistration();
+                } else {
+                    showScreen('landing');
+                }
+            } else {
+                showScreen('landing');
+            }
+        }
+
+        init();
+    </script>
 </body>
 </html>
