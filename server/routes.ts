@@ -93,7 +93,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api', (req, res) => {
     res.json({ status: 'ok', message: '내손가이드 API 서버가 정상 작동 중입니다.' });
   });
-  
+
+  app.get('/beta', (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'public', 'beta.html'));
+  });
+
   // ═══════════════════════════════════════════════════════════════
   // 🗺️ Google Maps API 키 제공 (2025-10-26)
   // ═══════════════════════════════════════════════════════════════

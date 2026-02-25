@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>손안의 가이드 - 베타 테스트 참여</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%234285F4'><path d='M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z'/></svg>">
+    <meta name="theme-color" content="#1a73e8"/>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://hangeul.pstatic.net">
+    <link rel="stylesheet" href="https://hangeul.pstatic.net/maruburi/maruburi.css">
+    <style>
+        html, body {
+            font-family: 'MaruBuri', sans-serif;
+            background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+            min-height: 100vh;
+        }
+        .card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        .btn-install {
+            background: linear-gradient(135deg, #1a73e8 0%, #0d47a1 100%);
+            transition: opacity 0.2s, transform 0.1s;
+        }
+        .btn-install:active {
+            opacity: 0.85;
+            transform: scale(0.98);
+        }
+        .btn-web {
+            background: #f1f3f4;
+            color: #444;
+            transition: background 0.2s;
+        }
+        .btn-web:active {
+            background: #e2e5e9;
+        }
+        .warning-box {
+            background: #fff8e1;
+            border: 2px solid #f9a825;
+            border-radius: 12px;
+        }
+        .credit-box {
+            background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%);
+            border: 2px solid #66bb6a;
+            border-radius: 12px;
+        }
+        .step-circle {
+            width: 32px;
+            height: 32px;
+            background: #1a73e8;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center p-4 py-8">
+    <div class="card w-full max-w-md p-8">
+
+        <div class="text-center mb-6">
+            <div class="text-5xl mb-3">🗺️</div>
+            <h1 class="text-2xl font-bold text-gray-800 mb-1">손안의 가이드</h1>
+            <p class="text-gray-500 text-sm">AI가 만들어주는 나만의 여행 가이드</p>
+        </div>
+
+        <div class="credit-box p-4 mb-6 text-center">
+            <div class="text-2xl mb-1">🎁</div>
+            <p class="font-bold text-green-800 text-base">베타 참여 시 무료 100 크레딧 제공!</p>
+            <p class="text-green-700 text-sm mt-1">AI 가이드 50회 무료 사용 가능</p>
+        </div>
+
+        <div class="warning-box p-4 mb-6">
+            <div class="flex items-start gap-2">
+                <span class="text-xl mt-0.5">⚠️</span>
+                <div>
+                    <p class="font-bold text-yellow-800 text-sm">반드시 Chrome 브라우저로 열어주세요</p>
+                    <p class="text-yellow-700 text-xs mt-1">카카오톡, 네이버 앱 내 브라우저에서는 설치가 되지 않습니다.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <p class="font-bold text-gray-700 text-sm mb-3">📋 설치 방법 (3단계)</p>
+            <div class="space-y-3">
+                <div class="flex items-center gap-3">
+                    <div class="step-circle">1</div>
+                    <p class="text-gray-700 text-sm">이 페이지를 <strong>Chrome</strong>으로 열기</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="step-circle">2</div>
+                    <p class="text-gray-700 text-sm">아래 <strong>"지금 설치하기"</strong> 버튼 클릭</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <div class="step-circle">3</div>
+                    <p class="text-gray-700 text-sm">Play Store에서 <strong>설치</strong> 완료</p>
+                </div>
+            </div>
+        </div>
+
+        <a href="https://play.google.com/apps/testing/com.sonanie.guide"
+           target="_blank"
+           class="btn-install block w-full py-4 px-6 rounded-2xl text-white font-bold text-lg text-center shadow-lg mb-3">
+            📱 지금 설치하기 (Android)
+        </a>
+
+        <div class="relative my-5">
+            <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-gray-200"></div>
+            </div>
+            <div class="relative flex justify-center text-xs text-gray-400">
+                <span class="px-3 bg-white">iPhone · 웹에서 사용하기</span>
+            </div>
+        </div>
+
+        <a href="https://My-handyguide1.replit.app"
+           class="btn-web block w-full py-3 px-6 rounded-2xl font-bold text-sm text-center">
+            🌐 웹 버전으로 바로 시작하기
+        </a>
+
+        <p class="text-center text-xs text-gray-400 mt-6">
+            문의: 앱 내 피드백 기능을 이용해주세요
+        </p>
+    </div>
+</body>
+</html>
