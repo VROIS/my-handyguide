@@ -105,7 +105,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ═══════════════════════════════════════════════════════════════
   const betaRegisteredEmails = new Set<string>();
 
-  app.post('/api/beta/play-register', isAuthenticated, async (req: any, res) => {
+  app.post('/api/beta/play-register', async (req: any, res) => {
     try {
       const userId = req.user?.id || req.session?.passport?.user;
       if (!userId) return res.status(401).json({ message: 'Not authenticated' });
