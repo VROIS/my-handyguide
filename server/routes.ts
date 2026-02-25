@@ -744,17 +744,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = req.user?.id || req.session?.passport?.user;
       if (!userId) return res.status(401).json({ message: 'Not authenticated' });
 
-      const userRecord = await db.select({ email: users.email, name: users.name })
-        .from(users)
-        .where(eq(users.id, userId))
-        .limit(1);
+      const userRecord = await storage.getUser(userId);
 
-      if (!userRecord.length || !userRecord[0].email) {
+      if (!userRecord || !userRecord.email) {
         return res.status(400).json({ message: 'No email found' });
       }
 
-      const email = userRecord[0].email;
-      const name = userRecord[0].name || '';
+      const email = userRecord.email;
+      const name = [userRecord.firstName, userRecord.lastName].filter(Boolean).join(' ');
       const lang = req.body?.lang === 'en' ? 'en' : 'ko';
 
       if (betaRegisteredEmails.has(email)) {
