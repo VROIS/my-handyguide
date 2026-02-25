@@ -1,6 +1,4 @@
 const nodemailer = require('nodemailer');
-const { Client } = require('pg');
-const readline = require('readline');
 
 const SENDER_EMAIL = 'dbstour1@gmail.com';
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
@@ -8,15 +6,39 @@ const TESTING_LINK = 'https://play.google.com/apps/internaltest/4701739022712298
 const BETA_PAGE = 'https://My-handyguide1.replit.app/beta';
 const WEB_APP = 'https://My-handyguide1.replit.app';
 
-async function getUsers() {
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
-  await client.connect();
-  const result = await client.query(
-    `SELECT email, first_name, last_name FROM users WHERE email ILIKE '%@gmail.com' AND email IS NOT NULL ORDER BY email`
-  );
-  await client.end();
-  return result.rows;
-}
+// 프로덕션 DB 조회 결과 (2026-02-25) - dbstour1@gmail.com 제외 (이미 발송됨)
+const USERS = [
+  { email: 'a01056421474@gmail.com', first_name: '미경', last_name: '류' },
+  { email: 'agatha03@dosun.hs.kr', first_name: '주희', last_name: '함' },
+  { email: 'biology@hyundai.hs.kr', first_name: '호진', last_name: '최' },
+  { email: 'blue8671@gmail.com', first_name: '비비드', last_name: '' },
+  { email: 'caesar198107@gmail.com', first_name: '민석', last_name: '강' },
+  { email: 'cherished921@gmail.com', first_name: '민경', last_name: '천' },
+  { email: 'choiyj0218@gmail.com', first_name: '예진', last_name: '최' },
+  { email: 'earltoooo@gmail.com', first_name: '지혜', last_name: '김' },
+  { email: 'enzoafrica@gmail.com', first_name: 'Enzo', last_name: 'Oh' },
+  { email: 'gaemiking@gmail.com', first_name: 'ji won', last_name: 'lee' },
+  { email: 'gajungssamzzang@gmail.com', first_name: 'Sujin', last_name: 'Lee' },
+  { email: 'happyhour012012@gmail.com', first_name: 'Hyunju', last_name: 'Kim' },
+  { email: 'jinouc@gmail.com', first_name: 'jinouc', last_name: 'jung' },
+  { email: 'jpfoodking@gmail.com', first_name: '충순', last_name: '고' },
+  { email: 'june_wook@snu.ms.kr', first_name: '철호', last_name: '허' },
+  { email: 'leemyeonghan@gmail.com', first_name: 'Myeong Han', last_name: 'Lee' },
+  { email: 'memilmuk82@gmail.com', first_name: 'JINSEON', last_name: 'LEE' },
+  { email: 'myungah0126@gmail.com', first_name: '명아', last_name: '문' },
+  { email: 'nkino12@gmail.com', first_name: '신', last_name: 'Shin' },
+  { email: 'osh9149@gmail.com', first_name: '승희', last_name: '오' },
+  { email: 'pk97699@gmail.com', first_name: '현희', last_name: '기' },
+  { email: 'renaitre2014@gmail.com', first_name: 'Boniface', last_name: 'park' },
+  { email: 'salladin0717@gmail.com', first_name: '정수쌤', last_name: '' },
+  { email: 'shc77777@gmail.com', first_name: 'Jake', last_name: 'Seo' },
+  { email: 'smartlivingparis@gmail.com', first_name: 'Smart Living', last_name: 'Paris' },
+  { email: 'sobi65501@gmail.com', first_name: '소비', last_name: '' },
+  { email: 'stchichi70@gmail.com', first_name: 'Cheshire', last_name: 'Cat' },
+  { email: 'supersonic9799@gmail.com', first_name: '영준', last_name: '김' },
+  { email: 'teachingko@snu.ac.kr', first_name: '고진홍', last_name: '' },
+  { email: 'wonchon2020@gmail.com', first_name: '정보', last_name: '' },
+];
 
 function getEmailHtml(firstName, lastName) {
   const fullName = [firstName, lastName].filter(Boolean).join(' ');
@@ -95,27 +117,14 @@ async function main() {
     console.error('❌ GMAIL_APP_PASSWORD 환경변수가 없습니다.');
     process.exit(1);
   }
-  if (!process.env.DATABASE_URL) {
-    console.error('❌ DATABASE_URL 환경변수가 없습니다.');
-    process.exit(1);
-  }
 
-  console.log('📡 DB에서 Gmail 사용자 조회 중...');
-  const users = await getUsers();
-  console.log(`\n✅ Gmail 사용자 ${users.length}명 발견\n`);
-
+  console.log(`📋 발송 대상: ${USERS.length}명\n`);
   console.log('━'.repeat(60));
-  console.log('📋 발송 대상 이메일 목록:');
-  console.log('━'.repeat(60));
-  users.forEach(u => {
-    const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || '(이름 없음)';
-    console.log(`${u.email}  |  ${name}`);
+  USERS.forEach((u, i) => {
+    const name = [u.first_name, u.last_name].filter(Boolean).join(' ');
+    console.log(`${String(i + 1).padStart(2)}. ${u.email}  |  ${name}`);
   });
   console.log('━'.repeat(60));
-  console.log('\n준비되면 Enter를 눌러 이메일 발송을 시작하세요...\n');
-
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  await new Promise(resolve => rl.question('발송 시작 ▶ ', () => { rl.close(); resolve(); }));
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -124,7 +133,7 @@ async function main() {
 
   try {
     await transporter.verify();
-    console.log('\n✅ Gmail SMTP 연결 성공!\n');
+    console.log('\n✅ Gmail SMTP 연결 성공! 발송 시작...\n');
   } catch (err) {
     console.error('❌ Gmail SMTP 연결 실패:', err.message);
     process.exit(1);
@@ -132,8 +141,9 @@ async function main() {
 
   let success = 0;
   let failed = 0;
+  const failedList = [];
 
-  for (const user of users) {
+  for (const user of USERS) {
     try {
       await transporter.sendMail({
         from: `"손안의 가이드" <${SENDER_EMAIL}>`,
@@ -142,16 +152,22 @@ async function main() {
         html: getEmailHtml(user.first_name, user.last_name),
       });
       success++;
-      const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || '';
-      console.log(`✅ [${success + failed}/${users.length}] ${user.email}  ${name}`);
+      const name = [user.first_name, user.last_name].filter(Boolean).join(' ');
+      console.log(`✅ [${success + failed}/${USERS.length}] ${user.email}  ${name}`);
       await new Promise(r => setTimeout(r, 1500));
     } catch (err) {
       failed++;
-      console.error(`❌ [${success + failed}/${users.length}] ${user.email}: ${err.message}`);
+      failedList.push(user.email);
+      console.error(`❌ [${success + failed}/${USERS.length}] ${user.email}: ${err.message}`);
     }
   }
 
-  console.log(`\n📊 완료: 성공 ${success}건, 실패 ${failed}건 (총 ${users.length}건)`);
+  console.log('\n' + '━'.repeat(60));
+  console.log(`📊 발송 완료: 성공 ${success}건, 실패 ${failed}건 (총 ${USERS.length}건)`);
+  if (failedList.length > 0) {
+    console.log('❌ 실패 목록:');
+    failedList.forEach(e => console.log('  -', e));
+  }
 }
 
 main().catch(console.error);
