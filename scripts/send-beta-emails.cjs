@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 const { Client } = require('pg');
+const readline = require('readline');
 
 const SENDER_EMAIL = 'dbstour1@gmail.com';
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
@@ -7,18 +8,19 @@ const TESTING_LINK = 'https://play.google.com/apps/internaltest/4701739022712298
 const BETA_PAGE = 'https://My-handyguide1.replit.app/beta';
 const WEB_APP = 'https://My-handyguide1.replit.app';
 
-async function getGmailUsers() {
+async function getUsers() {
   const client = new Client({ connectionString: process.env.DATABASE_URL });
   await client.connect();
   const result = await client.query(
-    `SELECT email, name FROM users WHERE email ILIKE '%@gmail.com' AND email IS NOT NULL ORDER BY email`
+    `SELECT email, first_name, last_name FROM users WHERE email ILIKE '%@gmail.com' AND email IS NOT NULL ORDER BY email`
   );
   await client.end();
   return result.rows;
 }
 
-function getEmailHtml(name) {
-  const greeting = name ? `안녕하세요, ${name}님!` : '안녕하세요!';
+function getEmailHtml(firstName, lastName) {
+  const fullName = [firstName, lastName].filter(Boolean).join(' ');
+  const greeting = fullName ? `안녕하세요, ${fullName}님!` : '안녕하세요!';
   return `
 <!DOCTYPE html>
 <html lang="ko">
@@ -38,7 +40,8 @@ function getEmailHtml(name) {
     </p>
     <p style="line-height:1.8;">
       📱 <strong>Android 폰 사용자 전용</strong>입니다<br>
-      📅 설치 후 <strong>14일간만</strong> 유지해주시면 정식 출시에 큰 도움이 됩니다
+      📅 설치 후 <strong>14일간만</strong> 유지해주시면 정식 출시에 큰 도움이 됩니다<br>
+      ✅ <strong>테스트 앱 설치 후 실제 앱처럼 바로 사용이 가능합니다</strong>
     </p>
   </div>
 
@@ -98,20 +101,21 @@ async function main() {
   }
 
   console.log('📡 DB에서 Gmail 사용자 조회 중...');
-  const users = await getGmailUsers();
+  const users = await getUsers();
   console.log(`\n✅ Gmail 사용자 ${users.length}명 발견\n`);
 
   console.log('━'.repeat(60));
   console.log('📋 발송 대상 이메일 목록:');
   console.log('━'.repeat(60));
-  users.forEach(u => console.log(u.email));
+  users.forEach(u => {
+    const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || '(이름 없음)';
+    console.log(`${u.email}  |  ${name}`);
+  });
   console.log('━'.repeat(60));
   console.log('\n준비되면 Enter를 눌러 이메일 발송을 시작하세요...\n');
 
-  await new Promise(resolve => {
-    process.stdin.once('data', resolve);
-    process.stdout.write('발송 시작 ▶ ');
-  });
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  await new Promise(resolve => rl.question('발송 시작 ▶ ', () => { rl.close(); resolve(); }));
 
   const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -135,10 +139,11 @@ async function main() {
         from: `"손안의 가이드" <${SENDER_EMAIL}>`,
         to: user.email,
         subject: '[손안의 가이드] 정식 출시 전, 1분만 도와주세요 (Android 전용)',
-        html: getEmailHtml(user.name),
+        html: getEmailHtml(user.first_name, user.last_name),
       });
       success++;
-      console.log(`✅ [${success + failed}/${users.length}] ${user.email}`);
+      const name = [user.first_name, user.last_name].filter(Boolean).join(' ') || '';
+      console.log(`✅ [${success + failed}/${users.length}] ${user.email}  ${name}`);
       await new Promise(r => setTimeout(r, 1500));
     } catch (err) {
       failed++;
