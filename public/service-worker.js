@@ -104,6 +104,12 @@ self.addEventListener('fetch', event => {
     event.respondWith(fetch(event.request));
     return;
   }
+
+  // /beta 페이지는 항상 네트워크에서 최신 버전 제공 (캐시 제외)
+  if (url.pathname === '/beta' || url.pathname === '/beta.html') {
+    event.respondWith(fetch(event.request));
+    return;
+  }
   
   // 일반 요청에 대한 기본 캐시 전략 (share.html?id=... 를 위해 쿼리 스트링 무시)
   event.respondWith(
