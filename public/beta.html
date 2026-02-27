@@ -303,40 +303,44 @@
         }
 
         function loginWithGoogle() {
-            sessionStorage.setItem('authRedirect', '/');
-            sessionStorage.setItem('betaSource', '1');
-            window.location.href = '/api/auth/google';
-        }
-
-        async function registerBetaDirectly(lang) {
-            showScreen('processing');
-            try {
-                const res = await fetch('/api/beta/play-register', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lang })
-                });
-                const data = await res.json();
-                if (res.ok) {
-                    showScreen(data.alreadyRegistered ? 'already' : 'success');
-                } else {
-                    showScreen('landing');
-                }
-            } catch (e) {
-                showScreen('landing');
+            const width = 500, height = 600;
+            const left = Math.round((screen.width - width) / 2);
+            const top = Math.round((screen.height - height) / 2);
+            const popup = window.open(
+                '/api/auth/google',
+                'google_oauth',
+                `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`
+            );
+            if (!popup || popup.closed) {
+                window.location.href = '/api/auth/google';
             }
         }
+
+        function registerAndRedirect() {
+            fetch('/api/beta/play-register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ lang: currentLang }),
+                keepalive: true
+            }).catch(() => {});
+            window.location.href = '/';
+        }
+
+        window.addEventListener('message', (event) => {
+            if (event.origin !== window.location.origin) return;
+            if (event.data?.type === 'oauth_success') {
+                registerAndRedirect();
+            }
+        });
 
         async function init() {
             const lang = detectLang();
             setLang(lang);
 
-            // 이미 로그인된 사용자 확인 → 바로 베타 등록
             try {
                 const authRes = await fetch('/api/auth/user');
                 if (authRes.ok) {
-                    // 이미 로그인됨: betaSource 없이 바로 등록 호출
-                    await registerBetaDirectly(lang);
+                    registerAndRedirect();
                     return;
                 }
             } catch (e) {}
