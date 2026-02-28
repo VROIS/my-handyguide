@@ -2,7 +2,8 @@ const nodemailer = require('nodemailer');
 
 const SENDER_EMAIL = 'dbstour1@gmail.com';
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
-const TESTING_LINK = 'https://play.google.com/apps/internaltest/4701739022712298192';
+const GROUP_LINK = 'https://groups.google.com/g/dbstour';
+const INSTALL_LINK = 'https://play.google.com/apps/testing/com.sonanie.guide';
 const BETA_PAGE = 'https://My-handyguide1.replit.app/beta';
 const WEB_APP = 'https://My-handyguide1.replit.app';
 
@@ -68,21 +69,24 @@ function getEmailHtml(firstName, lastName) {
   </div>
 
   <div style="background:#e8f0fe;border-radius:12px;padding:20px;margin-bottom:16px;">
-    <h3 style="color:#1a73e8;margin-top:0;font-size:14px;">📋 설치 방법</h3>
-    <ol style="font-size:13px;line-height:2.2;padding-left:20px;margin:0;">
-      <li>아래 버튼 클릭</li>
-      <li>파란 글자 <strong>"download it on Google Play"</strong> 클릭</li>
-      <li><strong>"설치"</strong> 클릭 → 완료!</li>
+    <h3 style="color:#1a73e8;margin-top:0;font-size:14px;">📋 설치 방법 (2단계)</h3>
+    <ol style="font-size:13px;line-height:2.4;padding-left:20px;margin:0;">
+      <li><strong>1단계:</strong> 아래 파란 버튼 클릭 → 구글 그룹에 가입</li>
+      <li><strong>2단계:</strong> 그룹 가입 완료 후 초록 버튼 클릭 → 앱 설치</li>
     </ol>
-    <p style="font-size:12px;color:#c62828;margin-top:12px;margin-bottom:0;">
-      ⚠️ <strong>"Leave the program"</strong> 버튼은 절대 클릭하지 마세요 (탈퇴 버튼입니다)
-    </p>
   </div>
 
-  <div style="text-align:center;margin:24px 0;">
-    <a href="${TESTING_LINK}"
-       style="display:inline-block;background:#1a73e8;color:white;text-decoration:none;padding:16px 40px;border-radius:12px;font-size:16px;font-weight:bold;">
-      📱 베타 앱 설치하기 (Android)
+  <div style="text-align:center;margin:20px 0 12px;">
+    <a href="${GROUP_LINK}"
+       style="display:inline-block;background:#1a73e8;color:white;text-decoration:none;padding:14px 36px;border-radius:12px;font-size:15px;font-weight:bold;">
+      1단계: 구글 그룹 가입하기
+    </a>
+  </div>
+
+  <div style="text-align:center;margin:0 0 20px;">
+    <a href="${INSTALL_LINK}"
+       style="display:inline-block;background:#34a853;color:white;text-decoration:none;padding:14px 36px;border-radius:12px;font-size:15px;font-weight:bold;">
+      2단계: 비공개 테스트 앱 설치하기 (Android)
     </a>
     <p style="margin-top:8px;font-size:11px;color:#999;">Android 기기에서만 설치 가능합니다</p>
   </div>

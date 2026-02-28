@@ -99,6 +99,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendFile(path.join(process.cwd(), 'public', 'beta.html'));
   });
 
+  app.get('/beta-setup', (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'public', 'beta-setup.html'));
+  });
+
   // ═══════════════════════════════════════════════════════════════
   // 🗺️ Google Maps API 키 제공 (2025-10-26)
   // ═══════════════════════════════════════════════════════════════
@@ -733,9 +737,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await setupKakaoAuth(app);
 
   // ═══════════════════════════════════════════════════════════════
-  // 📱 Beta Tester Registration (2026-02-25)
-  // 목적: /beta 페이지에서 Google 로그인 후 테스터 등록 + 초대 이메일 발송
-  // setupAuth 이후에 등록해야 req.user/session이 정상 작동함
+  // 📱 Beta Tester Registration
+  // 목적: /beta 페이지에서 Google 로그인 후 앱 DB에 사용자 저장 + 중복 체크
+  // 구글 그룹스 방식으로 전환 — Play Console API 미사용 (API가 이메일 목록 미지원)
   // ═══════════════════════════════════════════════════════════════
   const betaRegisteredEmails = new Set<string>();
 
@@ -751,83 +755,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const email = userRecord.email;
-      const name = [userRecord.firstName, userRecord.lastName].filter(Boolean).join(' ');
-      const lang = req.body?.lang === 'en' ? 'en' : 'ko';
 
       if (betaRegisteredEmails.has(email)) {
         return res.json({ success: true, alreadyRegistered: true });
       }
 
       betaRegisteredEmails.add(email);
-
-      const BETA_SENDER = 'dbstour1@gmail.com';
-      const BETA_TESTING_LINK = 'https://play.google.com/apps/internaltest/4701739022712298192';
-      const BETA_GMAIL_PASS = process.env.GMAIL_APP_PASSWORD;
-      const PLAY_SA_JSON = process.env.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON;
-      const PACKAGE_NAME = 'com.sonanie.guide';
-
-      // Play Console API: alpha 트랙에 테스터 등록 (edits.testers 3단계 흐름)
-      if (PLAY_SA_JSON) {
-        try {
-          const { google } = await import('googleapis');
-          const auth = new google.auth.GoogleAuth({
-            credentials: JSON.parse(PLAY_SA_JSON),
-            scopes: ['https://www.googleapis.com/auth/androidpublisher']
-          });
-          const accessToken = await auth.getAccessToken();
-          const BASE = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_NAME}`;
-          const headers = {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          };
-
-          // 1단계: Edit 생성
-          const editRes = await fetch(`${BASE}/edits`, { method: 'POST', headers, body: '{}' });
-          const editBody: any = await editRes.json();
-          if (!editRes.ok) {
-            console.error('[Beta] Play Console Edit 생성 오류:', editRes.status, JSON.stringify(editBody).substring(0, 200));
-          } else {
-            const editId = editBody.id;
-            console.log(`[Beta] Edit 생성: ${editId}`);
-
-            // 2단계: 현재 테스터 조회 후 추가
-            const getRes = await fetch(`${BASE}/edits/${editId}/testers/alpha`, { headers });
-            const getBody: any = await getRes.json();
-            if (!getRes.ok) {
-              console.error('[Beta] Play Console testers GET 오류:', getRes.status, JSON.stringify(getBody).substring(0, 200));
-              await fetch(`${BASE}/edits/${editId}`, { method: 'DELETE', headers });
-            } else {
-              const existingTesters: string[] = getBody.testers || [];
-              if (!existingTesters.includes(email)) {
-                const patchRes = await fetch(`${BASE}/edits/${editId}/testers/alpha`, {
-                  method: 'PATCH',
-                  headers,
-                  body: JSON.stringify({ testers: [...existingTesters, email] })
-                });
-                const patchBody: any = await patchRes.json();
-                if (!patchRes.ok) {
-                  console.error('[Beta] Play Console testers PATCH 오류:', patchRes.status, JSON.stringify(patchBody).substring(0, 200));
-                  await fetch(`${BASE}/edits/${editId}`, { method: 'DELETE', headers });
-                } else {
-                  // 3단계: Edit commit
-                  const commitRes = await fetch(`${BASE}/edits/${editId}:commit`, { method: 'POST', headers, body: '{}' });
-                  if (commitRes.ok) {
-                    console.log(`[Beta] Play Console alpha 등록 완료: ${email}`);
-                  } else {
-                    const commitBody: any = await commitRes.json();
-                    console.error('[Beta] Play Console commit 오류:', commitRes.status, JSON.stringify(commitBody).substring(0, 200));
-                  }
-                }
-              } else {
-                console.log(`[Beta] 이미 Play Console alpha에 등록됨: ${email}`);
-                await fetch(`${BASE}/edits/${editId}`, { method: 'DELETE', headers });
-              }
-            }
-          }
-        } catch (playErr: any) {
-          console.error('[Beta] Play Console API 오류:', playErr.message);
-        }
-      }
+      console.log(`[Beta] 신규 베타 테스터 등록: ${email}`);
 
       res.json({ success: true, alreadyRegistered: false });
     } catch (err: any) {

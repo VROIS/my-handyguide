@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>플레이 콘솔 설정 도우미 - 손안의 가이드</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://hangeul.pstatic.net">
+    <link rel="stylesheet" href="https://hangeul.pstatic.net/maruburi/maruburi.css">
+    <style>
+        body { font-family: 'MaruBuri', sans-serif; background: #f1f3f4; }
+        .copy-btn {
+            transition: all 0.15s;
+        }
+        .copy-btn:active { transform: scale(0.95); }
+        .copied { background: #34a853 !important; color: white !important; }
+    </style>
+</head>
+<body class="min-h-screen p-4 py-8">
+    <div class="max-w-lg mx-auto">
+
+        <div class="text-center mb-8">
+            <div class="text-4xl mb-2">📋</div>
+            <h1 class="text-2xl font-bold text-gray-800">플레이 콘솔 설정 도우미</h1>
+            <p class="text-gray-500 text-sm mt-1">비공개 테스트 설정 시 필요한 값들을 한 번에 복사하세요</p>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-6">
+            <p class="text-blue-800 text-sm font-bold mb-1">📍 사용 방법</p>
+            <p class="text-blue-700 text-sm">플레이 콘솔 → 테스트 및 출시 → 비공개 테스트 → 테스터 탭에서 아래 값을 붙여넣으세요.</p>
+        </div>
+
+        <div class="space-y-4">
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">테스터 설정 → Google 그룹스 선택 후</p>
+                <p class="text-sm font-bold text-gray-700 mb-3">이메일 주소 <span class="text-gray-400 font-normal">(Google 그룹스 이메일)</span></p>
+                <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
+                    <code class="flex-1 text-sm text-gray-800 break-all">dbstour@googlegroups.com</code>
+                    <button onclick="copyText('dbstour@googlegroups.com', this)"
+                        class="copy-btn flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-300">
+                        복사
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">테스터 설정</p>
+                <p class="text-sm font-bold text-gray-700 mb-3">의견 URL 또는 이메일 주소</p>
+                <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
+                    <code class="flex-1 text-sm text-gray-800 break-all">dbstour1@gmail.com</code>
+                    <button onclick="copyText('dbstour1@gmail.com', this)"
+                        class="copy-btn flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-300">
+                        복사
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">테스트 참여 방법 → Android에서 참여</p>
+                <p class="text-sm font-bold text-gray-700 mb-3">비공개 테스트 참여 링크 <span class="text-gray-400 font-normal">(사용자 공유용)</span></p>
+                <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
+                    <code class="flex-1 text-sm text-gray-800 break-all">https://play.google.com/apps/testing/com.sonanie.guide</code>
+                    <button onclick="copyText('https://play.google.com/apps/testing/com.sonanie.guide', this)"
+                        class="copy-btn flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-300">
+                        복사
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">구글 그룹스</p>
+                <p class="text-sm font-bold text-gray-700 mb-3">구글 그룹 가입 링크 <span class="text-gray-400 font-normal">(사용자 공유용)</span></p>
+                <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
+                    <code class="flex-1 text-sm text-gray-800 break-all">https://groups.google.com/g/dbstour</code>
+                    <button onclick="copyText('https://groups.google.com/g/dbstour', this)"
+                        class="copy-btn flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-300">
+                        복사
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-200 p-5">
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">베타 참여 안내 페이지</p>
+                <p class="text-sm font-bold text-gray-700 mb-3">앱 베타 신청 페이지 링크</p>
+                <div class="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 border border-gray-200">
+                    <code class="flex-1 text-sm text-gray-800 break-all">https://My-handyguide1.replit.app/beta</code>
+                    <button onclick="copyText('https://My-handyguide1.replit.app/beta', this)"
+                        class="copy-btn flex-shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold px-3 py-1.5 rounded-lg border border-gray-300">
+                        복사
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="mt-8 bg-amber-50 border border-amber-200 rounded-2xl p-4">
+            <p class="text-amber-800 text-sm font-bold mb-2">⚠️ 설정 순서 안내</p>
+            <ol class="text-amber-700 text-sm space-y-1 list-decimal list-inside">
+                <li>플레이 콘솔 → 비공개 테스트 → 테스터 탭</li>
+                <li>"Google 그룹스" 선택</li>
+                <li>위의 그룹스 이메일 주소 붙여넣기 → 저장</li>
+                <li>의견 이메일 주소 입력 → 저장</li>
+            </ol>
+        </div>
+
+        <p class="text-center text-xs text-gray-400 mt-6">손안의 가이드 내부 관리 페이지</p>
+    </div>
+
+    <script>
+        function copyText(text, btn) {
+            navigator.clipboard.writeText(text).then(() => {
+                const original = btn.textContent;
+                btn.textContent = '복사됨!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = original;
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(() => {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                const original = btn.textContent;
+                btn.textContent = '복사됨!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = original;
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>
