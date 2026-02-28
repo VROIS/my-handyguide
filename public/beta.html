@@ -110,8 +110,6 @@
                 </div>
             </div>
 
-            <p class="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 mb-5 text-center" id="txt-android-only"></p>
-
             <button onclick="loginWithGoogle()"
                 class="btn-google w-full py-4 px-6 rounded-xl font-bold text-gray-800 text-base flex items-center justify-center gap-3 mb-3 shadow-sm">
                 <svg class="w-6 h-6" viewBox="0 0 24 24">
@@ -222,14 +220,14 @@
             ko: {
                 title: '손안의 가이드',
                 subtitle: 'AI가 만들어주는 나만의 여행 가이드',
-                inviteTitle: '📣 곧 Google Play Store에 정식 출시됩니다!',
+                inviteTitle: '곧 Google Play Store에 정식 출시됩니다! 1분만 도와주세요!!!',
                 benefit1: '무료 100 크레딧 즉시 지급 — 지금 바로 웹에서 사용 가능',
                 benefit2: '구글 그룹 가입 후 Android 비공개 테스트 앱 먼저 체험',
                 benefit3: '앱 설치 후 14일간 유지해주시면 정식 출시에 큰 도움이 됩니다',
-                androidOnly: '📱 Android 전용 베타 앱입니다 (iPhone은 아래 웹 버전 이용)',
-                googleBtn: 'Google로 시작하기',
-                or: 'iPhone · PC는 웹에서',
-                webBtn: '🌐 웹 버전으로 바로 시작하기 (iPhone 지원)',
+                androidOnly: '',
+                googleBtn: '안드로이드폰으로 시작하기',
+                or: '또는',
+                webBtn: '아이폰으로 시작하기',
                 terms: '로그인 시 위치정보, 사진 정보 사용에 동의합니다',
                 processing: '등록 중...',
                 successTitle: '등록 완료!',
@@ -253,14 +251,14 @@
             en: {
                 title: 'My Hand Guide',
                 subtitle: 'AI-powered personalized travel guide',
-                inviteTitle: '📣 Coming soon to Google Play Store!',
+                inviteTitle: 'Coming soon to Google Play Store! Please help us for 1 minute!!!',
                 benefit1: '100 free credits instantly — usable right now on the web',
                 benefit2: 'Join Google Group then get early access to the Android beta app',
                 benefit3: 'Please keep the app for 14 days after install — it helps a lot!',
-                androidOnly: '📱 Android beta only (iPhone users: please use the web version below)',
-                googleBtn: 'Continue with Google',
-                or: 'iPhone · PC: use the web version',
-                webBtn: '🌐 Start on Web (iPhone supported)',
+                androidOnly: '',
+                googleBtn: 'Start on Android',
+                or: 'or',
+                webBtn: 'Start on iPhone',
                 terms: 'By signing in, you agree to location and photo data usage',
                 processing: 'Registering...',
                 successTitle: 'You\'re in!',
@@ -299,7 +297,6 @@
             document.getElementById('txt-benefit1').textContent = s.benefit1;
             document.getElementById('txt-benefit2').textContent = s.benefit2;
             document.getElementById('txt-benefit3').textContent = s.benefit3;
-            document.getElementById('txt-android-only').textContent = s.androidOnly;
             document.getElementById('txt-google-btn').textContent = s.googleBtn;
             document.getElementById('txt-or').textContent = s.or;
             document.getElementById('txt-web-btn').textContent = s.webBtn;

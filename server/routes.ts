@@ -99,9 +99,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.sendFile(path.join(process.cwd(), 'public', 'beta.html'));
   });
 
-  app.get('/beta-setup', (req, res) => {
-    res.sendFile(path.join(process.cwd(), 'public', 'beta-setup.html'));
-  });
 
   // ═══════════════════════════════════════════════════════════════
   // 🗺️ Google Maps API 키 제공 (2025-10-26)
