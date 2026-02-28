@@ -263,6 +263,8 @@ app.get('/s/:id', async (req, res) => {
 });
 
 (async () => {
+  console.log('[startup] Server initialization started');
+
   // 🔧 Ensure temp-user-id exists for share functionality
   try {
     const tempUser = await storage.getUser('temp-user-id');
@@ -391,6 +393,10 @@ app.get('/s/:id', async (req, res) => {
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
+    console.log(`[startup] Server listening on port ${port}`);
     log(`serving on port ${port}`);
   });
-})();
+})().catch((err) => {
+  console.error('[startup] Fatal startup error:', err);
+  process.exit(1);
+});
