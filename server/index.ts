@@ -7,6 +7,9 @@ import path from 'path';
 
 const app = express();
 
+// 프록시 신뢰 설정 - HTTPS 쿠키 정상 동작 (세션 유지)
+app.set("trust proxy", 1);
+
 // 🚀 Gzip 압축 - 모든 응답 자동 압축 (파일 크기 60-70% 감소)
 app.use(compression({ level: 6 }));
 
