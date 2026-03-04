@@ -111,40 +111,21 @@ self.addEventListener('fetch', event => {
     return;
   }
   
-  // 일반 요청에 대한 기본 캐시 전략 (share.html?id=... 를 위해 쿼리 스트링 무시)
+  // 일반 요청에 대한 기본 캐시 전략: Network-First
+  // 항상 서버에서 최신 파일을 받아 사용. 네트워크 실패 시에만 캐시 폴백.
   event.respondWith(
-    caches.match(event.request, { ignoreSearch: url.pathname === '/share.html' })
-      .then(response => {
-        // 캐시 히트 - 응답을 반환합니다.
-        if (response) {
-          return response;
-        }
-
-        // 중요: 요청을 복제합니다. 요청은 스트림이며 한 번만 소비될 수 있습니다.
-        // 캐시와 브라우저 fetch에서 모두 소비해야 하므로, 복제가 필요합니다.
-        const fetchRequest = event.request.clone();
-
-        return fetch(fetchRequest).then(
-          response => {
-            // 유효한 응답을 받았는지 확인합니다.
-            if(!response || response.status !== 200) { // Removed 'basic' type check to allow caching opaque responses if needed, but safer to just avoid caching cross-origin resources without CORS.
-              return response;
-            }
-
-            // 중요: 응답을 복제합니다. 응답은 스트림이며,
-            // 브라우저와 캐시가 모두 응답을 소비해야 하므로 두 개의 스트림을 위해 복제합니다.
-            const responseToCache = response.clone();
-
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          }
-        );
-      })
-    );
+    fetch(event.request).then(networkResponse => {
+      if (networkResponse && networkResponse.status === 200) {
+        const responseToCache = networkResponse.clone();
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, responseToCache);
+        });
+      }
+      return networkResponse;
+    }).catch(() => {
+      return caches.match(event.request, { ignoreSearch: url.pathname === '/share.html' });
+    })
+  );
 });
 
 self.addEventListener('activate', event => {

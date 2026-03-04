@@ -148,7 +148,8 @@ document.getElementById('detail-back').addEventListener('click', () => {
         setTimeout(() => {
             const synth = window.speechSynthesis;
             if (synth.speaking) {
-                synth.pause();
+                const isAndroidChrome = /Android/i.test(navigator.userAgent) && /Chrome/i.test(navigator.userAgent);
+                if (!isAndroidChrome) { synth.pause(); }
                 synth.cancel();
             }
         }, 200);

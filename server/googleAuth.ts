@@ -258,8 +258,7 @@ export async function setupGoogleAuth(app: Express) {
                       window.close();
                     }, 300);
                   } else {
-                    // 기본 리다이렉트
-                    window.location.href = '/#archive';
+                    window.close();
                   }
                 };
 
