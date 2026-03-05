@@ -4032,8 +4032,17 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Start fresh playback
-        resetSpeechState();
+        // 새로 재생 시작
+        // ⚠️ 중요: synth.cancel()을 부르지 않음 (YouTube 패턴)
+        // 이유: cancel() 직후 speak() 호출 시 Android WebView TTS 엔진이 "interrupted" 에러 발생
+        // isSpeaking=false 확인 후 진입하므로 TTS 엔진이 이미 유휴 상태 → cancel 불필요
+        utteranceQueue = [];
+        isSpeaking = false;
+        isPaused = false;
+        if (currentlySpeakingElement) {
+            currentlySpeakingElement.classList.remove('speaking');
+            currentlySpeakingElement = null;
+        }
         const sentences = currentContent.description.split(/[.?!]/).filter(s => s.trim());
         const spans = descriptionText.querySelectorAll('span');
 
