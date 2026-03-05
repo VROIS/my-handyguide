@@ -20,7 +20,7 @@
 
 const guideDetailPage = {
     // HTML 템플릿
-    getHTML: function() {
+    getHTML: function () {
         return `
     <!-- 풀 화면 상세보기 (상세페이지 컴포넌트) -->
     <div id="guideDetailPage" class="hidden">
@@ -72,7 +72,7 @@ const guideDetailPage = {
     },
 
     // CSS 스타일
-    getCSS: function() {
+    getCSS: function () {
         return `
         /* ⚠️ 상세페이지 컴포넌트 스타일 (2025-11-28 확보) */
         #guideDetailPage {
@@ -175,7 +175,7 @@ const guideDetailPage = {
         // 🔒 2025-12-11: 렌더 ID (경쟁 상태 방지)
         renderId: 0
     },
-    
+
     // 🔊 하드코딩 기본값 (오프라인 fallback)
     _defaultVoicePriorities: {
         'ko-KR': { default: ['Microsoft Heami', 'Yuna'] },
@@ -188,7 +188,7 @@ const guideDetailPage = {
     },
 
     // 초기화
-    init: function(options = {}) {
+    init: function (options = {}) {
         const self = this;
         this._state.synth = window.speechSynthesis;
         this._state.onClose = options.onClose || null;
@@ -232,15 +232,15 @@ const guideDetailPage = {
 
         console.log('[GuideDetailPage] Initialized');
     },
-    
+
     // 🔊 DB에서 음성 설정 로드
-    _loadVoiceConfigsFromDB: async function() {
+    _loadVoiceConfigsFromDB: async function () {
         if (this._state.voiceConfigsCache) return this._state.voiceConfigsCache;
         if (this._state.voiceConfigsLoading) {
             await new Promise(resolve => setTimeout(resolve, 500));
             return this._state.voiceConfigsCache || null;
         }
-        
+
         this._state.voiceConfigsLoading = true;
         try {
             const response = await fetch('/api/voice-configs');
@@ -264,20 +264,20 @@ const guideDetailPage = {
         this._state.voiceConfigsLoading = false;
         return this._state.voiceConfigsCache;
     },
-    
+
     // 🔊 플랫폼 감지
-    _detectPlatform: function() {
+    _detectPlatform: function () {
         const ua = navigator.userAgent;
         if (/iPhone|iPad|iPod|Mac/.test(ua)) return 'ios';
         if (/Android/.test(ua)) return 'android';
         if (/Windows/.test(ua)) return 'windows';
         return 'default';
     },
-    
+
     // 🔊 DB 기반 음성 우선순위 가져오기
-    _getVoicePriorityFromDB: function(langCode) {
+    _getVoicePriorityFromDB: function (langCode) {
         const platform = this._detectPlatform();
-        
+
         // DB 캐시 확인
         if (this._state.voiceConfigsCache && this._state.voiceConfigsCache[langCode]) {
             const config = this._state.voiceConfigsCache[langCode][platform] || this._state.voiceConfigsCache[langCode]['default'];
@@ -285,43 +285,43 @@ const guideDetailPage = {
                 return { priorities: config.priorities, excludeVoices: config.excludeVoices };
             }
         }
-        
+
         // 기본값 사용 (오프라인/로드 실패)
         const fallback = this._defaultVoicePriorities[langCode];
         if (fallback) {
             const priorities = fallback[platform] || fallback['default'] || fallback[Object.keys(fallback)[0]];
             return { priorities, excludeVoices: [] };
         }
-        
+
         return { priorities: [], excludeVoices: [] };
     },
 
     // 🌐 동적 콘텐츠 강제 재번역 (2025-12-24)
     _retranslationPending: false,
-    
-    _retranslateNewContent: function() {
+
+    _retranslateNewContent: function () {
         const self = this;
         // 🌐 2025-12-24: userLang 체크 제거 - Google Translate 드롭다운 활성화 여부만 확인
         return new Promise((resolve) => {
             const selectElement = document.querySelector('.goog-te-combo');
-            
+
             if (!selectElement || !selectElement.value) {
                 console.log('[GuideDetailPage Retranslate] Google Translate 드롭다운 비활성 - 스킵');
                 resolve();
                 return;
             }
-            
+
             const currentLang = selectElement.value;
             console.log('[GuideDetailPage Retranslate] 🔄 강제 재번역 시작:', currentLang);
             self._retranslationPending = true;
-            
+
             selectElement.value = '';
             selectElement.dispatchEvent(new Event('change'));
-            
+
             setTimeout(() => {
                 selectElement.value = currentLang;
                 selectElement.dispatchEvent(new Event('change'));
-                
+
                 setTimeout(() => {
                     console.log('[GuideDetailPage Retranslate] ✅ 재번역 완료');
                     self._retranslationPending = false;
@@ -331,10 +331,10 @@ const guideDetailPage = {
             }, 100);
         });
     },
-    
-    _waitForRetranslation: async function() {
+
+    _waitForRetranslation: async function () {
         if (!this._retranslationPending) return;
-        
+
         console.log('[GuideDetailPage TTS] 재번역 완료 대기 중...');
         await new Promise(resolve => {
             const handler = () => {
@@ -347,50 +347,50 @@ const guideDetailPage = {
     },
 
     // 🌐 번역 완료 감지 (MutationObserver)
-    _initTranslationWatcher: function() {
+    _initTranslationWatcher: function () {
         const self = this;
         const userLang = localStorage.getItem('appLanguage') || 'ko';
-        
+
         // 한국어면 번역 대기 불필요
         if (userLang === 'ko') {
             this._state.translationComplete = true;
             return;
         }
-        
+
         // 이미 번역된 상태인지 확인
-        const hasTranslateClass = document.body.classList.contains('translated-ltr') || 
-                                  document.body.classList.contains('translated-rtl');
+        const hasTranslateClass = document.body.classList.contains('translated-ltr') ||
+            document.body.classList.contains('translated-rtl');
         if (hasTranslateClass) {
             this._state.translationComplete = true;
             console.log('[GuideDetailPage] 이미 번역됨');
             return;
         }
-        
+
         // 번역 대기 모드
         this._state.translationComplete = false;
         console.log('[GuideDetailPage] 번역 대기 모드:', userLang);
-        
+
         // MutationObserver로 번역 완료 감지
-        this._state.translationObserver = new MutationObserver(function(mutations) {
-            const hasTranslated = document.body.classList.contains('translated-ltr') || 
-                                  document.body.classList.contains('translated-rtl');
+        this._state.translationObserver = new MutationObserver(function (mutations) {
+            const hasTranslated = document.body.classList.contains('translated-ltr') ||
+                document.body.classList.contains('translated-rtl');
             if (hasTranslated) {
                 console.log('[GuideDetailPage] 🌐 번역 완료 감지!');
                 self._state.translationComplete = true;
                 self._state.translationObserver.disconnect();
-                
+
                 // 번역 완료 이벤트 발생
                 window.dispatchEvent(new CustomEvent('guideTranslationComplete'));
             }
         });
-        
-        this._state.translationObserver.observe(document.body, { 
-            attributes: true, 
-            attributeFilter: ['class'] 
+
+        this._state.translationObserver.observe(document.body, {
+            attributes: true,
+            attributeFilter: ['class']
         });
-        
+
         // 3초 후 타임아웃 (오프라인 등)
-        setTimeout(function() {
+        setTimeout(function () {
             if (!self._state.translationComplete) {
                 console.log('[GuideDetailPage] 번역 타임아웃 - 원본 사용');
                 self._state.translationComplete = true;
@@ -403,13 +403,13 @@ const guideDetailPage = {
     },
 
     // 음성 목록 로드 (모든 언어)
-    _populateVoiceList: function() {
+    _populateVoiceList: function () {
         this._state.voices = this._state.synth.getVoices();
     },
-    
+
     // 언어별 음성 선택 (플랫폼별 최적 음성 우선순위)
     // ⚠️ 2025-12-07 DB 기반: _getVoicePriorityFromDB() 사용, excludeVoices 필터링
-    _getVoiceForLanguage: function(userLang) {
+    _getVoiceForLanguage: function (userLang) {
         // 짧은 형식 (ko, en) → 긴 형식 (ko-KR, en-US) 변환
         const langMap = {
             'ko': 'ko-KR',
@@ -420,55 +420,55 @@ const guideDetailPage = {
             'de': 'de-DE',
             'es': 'es-ES'
         };
-        
+
         const fullLang = langMap[userLang] || 'ko-KR';
         const langCode = fullLang.substring(0, 2);
-        
+
         // 🔊 DB 기반 음성 우선순위 가져오기
         const voiceConfig = this._getVoicePriorityFromDB(fullLang);
         const priorities = voiceConfig.priorities;
         const excludeVoices = voiceConfig.excludeVoices;
-        
+
         const allVoices = this._state.voices;
         let targetVoice = null;
-        
+
         // 우선순위대로 음성 찾기 (제외 목록 적용)
         for (const voiceName of priorities) {
-            targetVoice = allVoices.find(v => 
+            targetVoice = allVoices.find(v =>
                 v.name.includes(voiceName) && !excludeVoices.some(ex => v.name.includes(ex))
             );
             if (targetVoice) break;
         }
-        
+
         // 우선순위에 없으면 언어 코드로 찾기 (제외 목록 적용)
         if (!targetVoice) {
-            targetVoice = allVoices.find(v => 
+            targetVoice = allVoices.find(v =>
                 v.lang.replace('_', '-').startsWith(langCode) && !excludeVoices.some(ex => v.name.includes(ex))
             );
         }
-        
+
         // 디버깅 로그
         console.log('[TTS] userLang:', userLang, 'fullLang:', fullLang, 'langCode:', langCode);
         console.log('[TTS] DB priorities:', priorities, 'excludeVoices:', excludeVoices);
         console.log('[TTS] Selected voice:', targetVoice?.name, targetVoice?.lang);
-        
+
         return targetVoice || allVoices[0];
     },
 
     // 페이지 열기 (guideId로 API 호출)
-    open: async function(guideId) {
+    open: async function (guideId) {
         // 🔊 2025-12-11: 표준 초기화 - 이전 음성 즉시 중지 + 데이터 초기화
         this._stopAudio();
         this._state.currentGuideData = null;
         // 🔒 렌더 ID 증가 - 이전 콜백 무효화
         this._state.renderId++;
         const thisRenderId = this._state.renderId;
-        
+
         console.log('[GuideDetailPage] open() guideId:', guideId, 'renderId:', thisRenderId);
-        
+
         try {
             this._show();
-            
+
             if (this._els.description) {
                 this._els.description.textContent = '불러오는 중...';
             }
@@ -478,15 +478,15 @@ const guideDetailPage = {
 
             const response = await fetch(`/api/guides/${guideId}`, { credentials: 'include' });
             if (!response.ok) throw new Error('가이드를 불러올 수 없습니다.');
-            
+
             const guide = await response.json();
-            
+
             // 🔒 렌더 ID 체크 - 다른 항목이 열렸으면 무시
             if (thisRenderId !== this._state.renderId) {
                 console.log('[GuideDetailPage] 렌더 ID 불일치, 무시:', thisRenderId, '!=', this._state.renderId);
                 return;
             }
-            
+
             // 💾 2025-12-11: 저장 버튼용 데이터 보관 (프로필→로컬 복구 기능)
             this._state.currentGuideData = guide;
             this._render(guide, thisRenderId);
@@ -497,7 +497,7 @@ const guideDetailPage = {
     },
 
     // 데이터로 직접 열기 (API 호출 없이)
-    openWithData: function(data) {
+    openWithData: function (data) {
         // 💾 2025-12-09: 저장용 데이터 보관
         this._state.currentGuideData = data;
         this._show();
@@ -506,7 +506,7 @@ const guideDetailPage = {
 
     // 렌더링
     // 🎨 2025-12-11: 이미지 모드 / 음성 모드 분기 처리
-    _render: function(guide, renderId) {
+    _render: function (guide, renderId) {
         console.log('[GuideDetailPage] _render 호출:', {
             id: guide.id,
             locationName: guide.locationName,
@@ -518,14 +518,14 @@ const guideDetailPage = {
             locationInfo: !!this._els.locationInfo,
             voiceQueryInfo: !!this._els.voiceQueryInfo
         });
-        
+
         // 🎤 음성 모드 판별: 이미지 없고 voiceQuery 있으면 음성 모드
         const isVoiceGuide = (!guide.imageUrl && !guide.imageDataUrl) && (guide.voiceQuery || guide.title);
-        
+
         // 🎨 배경 이미지 설정
         const imageUrl = guide.imageUrl || guide.imageDataUrl || '/images/landing-logo.jpg';
         this._els.image.src = imageUrl;
-        
+
         // 음성 모드 또는 이미지 없을 때: 흐린 로고 배경
         if (!guide.imageUrl && !guide.imageDataUrl) {
             this._els.image.style.filter = 'blur(8px) brightness(0.7)';
@@ -534,9 +534,9 @@ const guideDetailPage = {
             this._els.image.style.filter = '';
             this._els.image.style.transform = '';
         }
-        
+
         this._els.description.textContent = guide.description || '내용 없음';
-        
+
         // 🎤 모드별 정보박스 표시 전환
         if (isVoiceGuide) {
             // 음성 모드: voiceQueryInfo 표시, locationInfo 숨김
@@ -560,64 +560,72 @@ const guideDetailPage = {
             console.log('[GuideDetailPage] 이미지 모드:', guide.locationName);
         }
 
-        // 🎤 저장된 음성 정보 보관 (토글 재생 시 사용)
+        // 🎤 저장된 음성 정보 보관 (▶ 버튼 클릭 시 _toggleAudio()에서 사용)
         this._state.savedVoiceLang = guide.voiceLang || null;
         this._state.savedVoiceName = guide.voiceName || null;
 
-        // 🔧 2026-01-19: 사용자 제스처 컨텍스트 유지를 위해 즉시 TTS 재생
-        // (비동기 체인 제거 - iOS Safari autoplay 정책 우회)
-        if (guide.description) {
-            this._playAudio(guide.description, guide.voiceLang, guide.voiceName, renderId);
+        // ═══════════════════════════════════════════════════════════════
+        // ⚠️ 2026-03-05: 인앱 TTS 순서 (순차적, 충돌 방지)
+        // 1. 텍스트 생성 완료 → 음성 버튼 즉시 ON (▶ 활성화)
+        // 2. 그 다음 구글 번역 실행 (비동기)
+        // 자동재생 안 함 — 사용자가 ▶ 버튼 누르면 _toggleAudio()로 재생
+        // ═══════════════════════════════════════════════════════════════
+
+        // 1단계: 음성 버튼 즉시 활성화 (play 아이콘 표시)
+        this._updateAudioButtonIcon(false); // false = ▶ play 아이콘
+        if (this._els.audioBtn) {
+            this._els.audioBtn.disabled = false;
+            this._els.audioBtn.style.opacity = '1';
         }
-        
-        // 🌐 번역은 백그라운드에서 비동기로 진행 (TTS와 별도)
+
+        // 2단계: 번역 실행 (텍스트 + 버튼 준비 완료 후)
         this._retranslateNewContent();
     },
 
     // 페이지 표시
-    _show: function() {
+    _show: function () {
         this._els.page.classList.remove('hidden');
         // 부모 페이지 스크롤 완전 차단 (html, body 모두)
         document.documentElement.style.overflow = 'hidden';
         document.body.style.overflow = 'hidden';
-        
+
         // 🌐 2025-12-04: 페이지 열 때마다 번역 상태 재확인
         this._refreshTranslationState();
     },
-    
+
     // 🌐 번역 상태 재확인 (언어 동적 변경 대응)
-    _refreshTranslationState: function() {
+    _refreshTranslationState: function () {
         const self = this;
         const userLang = localStorage.getItem('appLanguage') || 'ko';
-        
+
         // 한국어면 번역 대기 불필요
         if (userLang === 'ko') {
             this._state.translationComplete = true;
             return;
         }
-        
+
         // 이미 번역된 상태인지 확인
-        const hasTranslateClass = document.body.classList.contains('translated-ltr') || 
-                                  document.body.classList.contains('translated-rtl');
+        const hasTranslateClass = document.body.classList.contains('translated-ltr') ||
+            document.body.classList.contains('translated-rtl');
         if (hasTranslateClass) {
             this._state.translationComplete = true;
             console.log('[GuideDetailPage] 번역 완료 상태');
             return;
         }
-        
+
         // 번역 대기 모드 (아직 번역되지 않음)
         this._state.translationComplete = false;
         console.log('[GuideDetailPage] 번역 대기 모드 (재설정):', userLang);
-        
+
         // 기존 Observer 정리
         if (this._state.translationObserver) {
             this._state.translationObserver.disconnect();
         }
-        
+
         // 새로운 MutationObserver 설정
-        this._state.translationObserver = new MutationObserver(function(mutations) {
-            const hasTranslated = document.body.classList.contains('translated-ltr') || 
-                                  document.body.classList.contains('translated-rtl');
+        this._state.translationObserver = new MutationObserver(function (mutations) {
+            const hasTranslated = document.body.classList.contains('translated-ltr') ||
+                document.body.classList.contains('translated-rtl');
             if (hasTranslated) {
                 console.log('[GuideDetailPage] 🌐 번역 완료 감지 (재설정)!');
                 self._state.translationComplete = true;
@@ -625,21 +633,21 @@ const guideDetailPage = {
                 window.dispatchEvent(new CustomEvent('guideTranslationComplete'));
             }
         });
-        
-        this._state.translationObserver.observe(document.body, { 
-            attributes: true, 
-            attributeFilter: ['class'] 
+
+        this._state.translationObserver.observe(document.body, {
+            attributes: true,
+            attributeFilter: ['class']
         });
     },
 
     // 페이지 닫기
-    close: function() {
+    close: function () {
         this._stopAudio();
         this._els.page.classList.add('hidden');
         // 부모 페이지 스크롤 원복 (html, body 모두)
         document.documentElement.style.overflow = '';
         document.body.style.overflow = '';
-        
+
         if (this._state.onClose) {
             this._state.onClose();
         }
@@ -648,11 +656,11 @@ const guideDetailPage = {
     // 음성 재생 (문장별 하이라이트 + 자동 스크롤)
     // 🎤 voiceLang, voiceName: 저장된 음성 정보 (없으면 현재 appLanguage 기본값)
     // 🌐 2025-12-04: 번역 완료 대기 후 번역된 텍스트로 TTS 재생
-    _playAudio: async function(text, savedVoiceLang, savedVoiceName, renderId) {
+    _playAudio: async function (text, savedVoiceLang, savedVoiceName, renderId) {
         const self = this;
         const thisRenderId = renderId || this._state.renderId;
         this._stopAudio();
-        
+
         // 🌐 번역 완료 대기 (한국어가 아닌 경우)
         const userLang = localStorage.getItem('appLanguage') || 'ko';
         if (userLang !== 'ko' && !this._state.translationComplete) {
@@ -667,13 +675,13 @@ const guideDetailPage = {
                 setTimeout(resolve, 3500);
             });
         }
-        
+
         // 🌐 2025-12-24: 번역 클래스 감지 후 실제 텍스트 변환까지 추가 대기 (500ms)
         if (userLang !== 'ko') {
             await new Promise(r => setTimeout(r, 500));
             console.log('[TTS] 번역 텍스트 적용 대기 완료 (500ms)');
         }
-        
+
         // 🌐 Google Translate의 <font> 태그에서 번역된 텍스트 추출
         let currentText = text;
         const fontEl = this._els.description.querySelector('font');
@@ -683,31 +691,31 @@ const guideDetailPage = {
         } else {
             currentText = this._els.description.innerText || text;
         }
-        
+
         // <br> 태그 제거
         const cleanText = currentText.replace(new RegExp('<br\\s*/?>', 'gi'), ' ');
-        
+
         // 문장 분리
         const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
-        
+
         // 원본 저장
         this._state.originalText = cleanText;
-        
+
         this._state.currentUtterance = new SpeechSynthesisUtterance(cleanText);
-        
+
         // 🌐 2025-12-24: 앱 언어 무조건 우선 (저장된 언어 무시, 번역된 텍스트에 맞춤)
         const langFullMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
         const fullLang = langFullMap[userLang] || 'ko-KR';
-        
+
         console.log('[TTS] 재생 언어:', fullLang, '텍스트 길이:', cleanText.length);
-        
+
         // 🔴 2026-01-07: 음성 목록 로드 대기 강화 (삼성폰 Chrome 호환성)
         let voices = this._state.synth.getVoices();
         if (voices.length === 0) {
             console.log('[TTS] Waiting for voices to load... (삼성폰 호환 모드)');
             await new Promise(resolve => {
                 let resolved = false;
-                
+
                 // 방법 1: voiceschanged 이벤트 (권장)
                 const onVoicesChanged = () => {
                     if (resolved) return;
@@ -720,7 +728,7 @@ const guideDetailPage = {
                     }
                 };
                 self._state.synth.addEventListener('voiceschanged', onVoicesChanged);
-                
+
                 // 방법 2: 폴링 백업 (삼성폰에서 이벤트가 안 올 수 있음)
                 const checkVoices = () => {
                     if (resolved) return;
@@ -735,7 +743,7 @@ const guideDetailPage = {
                     }
                 };
                 setTimeout(checkVoices, 200);
-                
+
                 // 방법 3: 최대 대기 시간 (3초로 확장 - 삼성폰 저사양 대응)
                 setTimeout(() => {
                     if (!resolved) {
@@ -750,50 +758,50 @@ const guideDetailPage = {
         }
         this._state.voices = voices;
         console.log('[TTS] Voices loaded:', voices.length, '개');
-        
+
         // 🔧 음성이 아예 없으면 에러 메시지
         if (voices.length === 0) {
             console.error('[TTS] ⚠️ 음성을 찾을 수 없습니다. 브라우저 TTS를 지원하지 않거나 음성 데이터가 없습니다.');
             self._updateAudioButtonIcon(false);
             return;
         }
-        
+
         // 🎤 2025-12-11: 현재 앱 언어(appLanguage)에 맞는 음성 선택 (savedVoiceName 무시)
         let targetVoice = null;
         const shortLang = fullLang.substring(0, 2);
-        
+
         if (shortLang === 'ko') {
             // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
             const koVoices = voices.filter(v => v.lang.startsWith('ko'));
             // Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
             targetVoice = koVoices.find(v => v.name.includes('Yuna'))
-                       || koVoices.find(v => v.name.includes('Sora'))
-                       || koVoices.find(v => v.name.includes('유나'))
-                       || koVoices.find(v => v.name.includes('소라'))
-                       || koVoices.find(v => v.name.includes('Heami'))
-                       || koVoices[0];
+                || koVoices.find(v => v.name.includes('Sora'))
+                || koVoices.find(v => v.name.includes('유나'))
+                || koVoices.find(v => v.name.includes('소라'))
+                || koVoices.find(v => v.name.includes('Heami'))
+                || koVoices[0];
             console.log('[TTS] 한국어 음성:', targetVoice?.name);
         } else {
             // 다른 언어: 현재 앱 언어에 맞는 음성 사용 (savedVoiceName 무시)
             targetVoice = this._getVoiceForLanguage(shortLang === 'zh' ? 'zh-CN' : shortLang);
             console.log('[TTS] 앱 언어 음성:', fullLang, '→', targetVoice?.name);
         }
-        
+
         this._state.currentUtterance.voice = targetVoice;
         this._state.currentUtterance.lang = fullLang;
         this._state.currentUtterance.rate = 1.0;
-        
+
         let currentSentenceIndex = 0;
-        
+
         this._state.currentUtterance.onstart = () => {
             self._updateAudioButtonIcon(true);
         };
-        
+
         // 문장별 하이라이트 + 자동 스크롤
         this._state.currentUtterance.onboundary = (event) => {
             // 🔒 렌더 ID 체크 - 다른 항목이 열렸으면 무시
             if (thisRenderId !== self._state.renderId) return;
-            
+
             if (event.name === 'sentence') {
                 const highlightedHTML = sentences.map((sentence, idx) => {
                     if (idx === currentSentenceIndex) {
@@ -801,10 +809,10 @@ const guideDetailPage = {
                     }
                     return sentence;
                 }).join('');
-                
+
                 self._els.description.innerHTML = highlightedHTML;
                 currentSentenceIndex++;
-                
+
                 // 자동 스크롤
                 const currentSpan = self._els.description.querySelector('.current-sentence');
                 if (currentSpan) {
@@ -812,20 +820,20 @@ const guideDetailPage = {
                 }
             }
         };
-        
+
         this._state.currentUtterance.onend = () => {
             // 🔒 렌더 ID 체크 - 다른 항목이 열렸으면 무시
             if (thisRenderId !== self._state.renderId) return;
-            
+
             self._updateAudioButtonIcon(false);
             self._els.description.textContent = self._state.originalText;
         };
-        
+
         // 🔧 2026-01-07: 에러 핸들링 추가 (삼성폰 TTS 오류 대응)
         this._state.currentUtterance.onerror = (event) => {
             console.error('[TTS] ⚠️ 음성 재생 오류:', event.error);
             self._updateAudioButtonIcon(false);
-            
+
             // 사용자에게 알림 (네트워크 문제 또는 음성 지원 안됨)
             if (event.error === 'network') {
                 console.warn('[TTS] 네트워크 오류 - 인터넷 연결을 확인하세요');
@@ -835,7 +843,7 @@ const guideDetailPage = {
                 console.warn('[TTS] 이 기기에서 TTS가 지원되지 않습니다');
             }
         };
-        
+
         // 🔧 2026-01-07: 삼성폰 Chrome에서 자동 재생 차단 우회 (사용자 제스처 필요)
         try {
             this._state.synth.speak(this._state.currentUtterance);
@@ -846,7 +854,7 @@ const guideDetailPage = {
     },
 
     // 음성 정지
-    _stopAudio: function() {
+    _stopAudio: function () {
         // 🔒 2025-12-11: 이벤트 핸들러 먼저 제거 (race condition 방지)
         if (this._state.currentUtterance) {
             this._state.currentUtterance.onboundary = null;
@@ -866,7 +874,7 @@ const guideDetailPage = {
     },
 
     // 음성 토글 (저장된 음성 정보 사용)
-    _toggleAudio: function() {
+    _toggleAudio: function () {
         const text = this._els.description.textContent;
         if (!text || text === '불러오는 중...') return;
 
@@ -879,7 +887,7 @@ const guideDetailPage = {
     },
 
     // 오디오 버튼 아이콘 업데이트
-    _updateAudioButtonIcon: function(isPlaying) {
+    _updateAudioButtonIcon: function (isPlaying) {
         this._els.audioBtn.innerHTML = isPlaying ? `
             <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" viewBox="0 0 24 24" fill="currentColor">
                 <path fill-rule="evenodd" d="M6.75 5.25a.75.75 0 01.75-.75H9a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H7.5a.75.75 0 01-.75-.75V5.25zm7.5 0A.75.75 0 0115 4.5h1.5a.75.75 0 01.75.75v13.5a.75.75 0 01-.75.75H15a.75.75 0 01-.75-.75V5.25z" clip-rule="evenodd" />
@@ -892,14 +900,14 @@ const guideDetailPage = {
     },
 
     // 텍스트 토글
-    _toggleText: function() {
+    _toggleText: function () {
         this._state.isTextVisible = !this._state.isTextVisible;
         this._els.textOverlay.style.opacity = this._state.isTextVisible ? '1' : '0';
     },
 
     // 💾 2025-12-10: 로컬 보관함(IndexedDB)에 저장 + 보관함으로 이동
     // public/index.js handleSaveClick 동작 그대로 복사
-    _saveToLocal: async function() {
+    _saveToLocal: async function () {
         const data = this._state.currentGuideData;
         if (!data) {
             console.warn('[GuideDetailPage] 저장할 데이터 없음');
@@ -925,9 +933,9 @@ const guideDetailPage = {
 
             const savedId = await this._addToIndexedDB(guideData);
             console.log('[GuideDetailPage] IndexedDB 저장 완료, ID:', savedId);
-            
+
             this._showToast('보관함에 저장되었습니다', 'success');
-            
+
             // 페이지 닫고 보관함으로 이동
             setTimeout(() => {
                 this.close();
@@ -941,7 +949,7 @@ const guideDetailPage = {
                     window.location.href = '/#archive';
                 }
             }, 500);
-            
+
         } catch (error) {
             console.error('[GuideDetailPage] 저장 실패:', error);
             this._showToast('저장에 실패했습니다', 'error');
@@ -951,41 +959,40 @@ const guideDetailPage = {
     },
 
     // IndexedDB에 아이템 추가 (public/index.js addItem 복사)
-    _addToIndexedDB: function(item) {
+    _addToIndexedDB: function (item) {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open('MyAppDB', 1);
-            
+
             request.onupgradeneeded = (e) => {
                 const db = e.target.result;
                 if (!db.objectStoreNames.contains('archive')) {
                     db.createObjectStore('archive', { keyPath: 'id', autoIncrement: true });
                 }
             };
-            
+
             request.onsuccess = (e) => {
                 const db = e.target.result;
                 const tx = db.transaction('archive', 'readwrite');
                 const store = tx.objectStore('archive');
                 const addRequest = store.add(item);
-                
+
                 addRequest.onsuccess = () => resolve(addRequest.result);
                 addRequest.onerror = () => reject(addRequest.error);
             };
-            
+
             request.onerror = () => reject(request.error);
         });
     },
 
     // 💾 토스트 메시지 표시
-    _showToast: function(message, type = 'info') {
+    _showToast: function (message, type = 'info') {
         const toast = document.createElement('div');
-        toast.className = `fixed bottom-24 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg text-white text-sm z-[10000] transition-all duration-300 ${
-            type === 'success' ? 'bg-green-600' : 
+        toast.className = `fixed bottom-24 left-1/2 transform -translate-x-1/2 px-4 py-2 rounded-lg text-white text-sm z-[10000] transition-all duration-300 ${type === 'success' ? 'bg-green-600' :
             type === 'error' ? 'bg-red-600' : 'bg-gray-800'
-        }`;
+            }`;
         toast.textContent = message;
         document.body.appendChild(toast);
-        
+
         setTimeout(() => {
             toast.style.opacity = '0';
             setTimeout(() => toast.remove(), 300);

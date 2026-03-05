@@ -21,22 +21,22 @@ import { creditService } from "./creditService";
 export async function setupGoogleAuth(app: Express) {
   const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim();
   const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
-  
+
   if (!googleClientId || !googleClientSecret) {
     console.warn('⚠️  구글 OAuth 환경변수가 설정되지 않았습니다. 구글 로그인을 사용하려면 GOOGLE_CLIENT_ID와 GOOGLE_CLIENT_SECRET을 설정하세요.');
-    
+
     app.get("/api/auth/google", (req, res) => {
-      res.status(503).json({ 
-        error: "구글 로그인이 아직 설정되지 않았습니다. 관리자에게 문의하세요." 
+      res.status(503).json({
+        error: "구글 로그인이 아직 설정되지 않았습니다. 관리자에게 문의하세요."
       });
     });
-    
+
     app.get("/api/auth/google/callback", (req, res) => {
-      res.status(503).json({ 
-        error: "구글 로그인이 아직 설정되지 않았습니다." 
+      res.status(503).json({
+        error: "구글 로그인이 아직 설정되지 않았습니다."
       });
     });
-    
+
     return;
   }
 
@@ -44,7 +44,7 @@ export async function setupGoogleAuth(app: Express) {
   const domain = domains[0];
   const protocol = domain.includes('replit.dev') || domain.includes('replit.app') ? 'https' : 'http';
   const callbackURL = `${protocol}://${domain}/api/auth/google/callback`;
-  
+
   console.log('🔐 Google OAuth Callback URL:', callbackURL);
 
   passport.use(
@@ -60,7 +60,7 @@ export async function setupGoogleAuth(app: Express) {
           const firstName = profile.name?.givenName || '';
           const lastName = profile.name?.familyName || '';
           const profileImageUrl = profile.photos?.[0]?.value || '';
-          
+
           const userId = `google_${profile.id}`;
 
           await storage.upsertUser({
@@ -83,7 +83,7 @@ export async function setupGoogleAuth(app: Express) {
           // done 콜백에서 user 객체에 isNewUser 플래그 추가
           const existingUser = await storage.getUser(userId);
           const isNewUser = !existingUser?.referredBy; // referredBy가 없으면 신규
-          
+
           const user = {
             id: userId,
             email: email,
@@ -118,19 +118,19 @@ export async function setupGoogleAuth(app: Express) {
           console.error('구글 인증 콜백 오류:', err);
           return res.redirect("/archive?auth=failed");
         }
-        
+
         if (!user) {
           console.error('구글 인증 실패: 사용자 없음');
           return res.redirect("/archive?auth=failed");
         }
-        
+
         // 로그인 처리
         req.logIn(user, async (loginErr) => {
           if (loginErr) {
             console.error('구글 로그인 오류:', loginErr);
             return res.redirect("/archive?auth=failed");
           }
-          
+
           // 🎁 리워드 시스템: referralCode 쿠키 확인 및 처리 (2025-11-28)
           try {
             if (user.isNewUser) {
@@ -145,7 +145,7 @@ export async function setupGoogleAuth(app: Express) {
           } catch (refError) {
             console.error('Referral 처리 오류:', refError);
           }
-          
+
           // ⚠️ 2025.11.12: 공유페이지와 100% 동일한 디자인
           res.send(`
             <!DOCTYPE html>
@@ -228,57 +228,44 @@ export async function setupGoogleAuth(app: Express) {
                   </svg>
                 </div>
                 <h1>로그인 성공!</h1>
-                <p id="message">잠시만 기다려주세요...</p>
-                <button id="closeBtn">인증 완료</button>
-                <p id="autoCloseMsg">이 창은 자동으로 닫힙니다</p>
+                <p id="message">인증이 완료되었습니다</p>
+                <button id="closeBtn" onclick="closeAndReturn()" style="display:inline-block;">앱으로 돌아가기</button>
+                <p id="autoCloseMsg" style="display:block;">잠시 후 자동으로 돌아갑니다...</p>
               </div>
               <script>
-                const isMobile = () => {
-                  const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-                  const isSmallScreen = window.innerWidth < 768;
-                  const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                  return (hasTouch && isSmallScreen) || mobileUA;
-                };
+                // ═══════════════════════════════════════════════════════════════
+                // ⚠️ 2026-03-05: 세션 유지 원칙 + 버튼 먹통 해결
+                // - 절대 리다이렉트 금지 (window.location.href 사용 금지)
+                // - window.close() → 실패 시 history.back() fallback
+                // - 버튼 항상 표시 + onclick 직접 사용
+                // ═══════════════════════════════════════════════════════════════
 
-                const closeWindow = () => {
-                  // sessionStorage에서 리다이렉트 URL 먼저 확인 (프로필 페이지 등에서 직접 로그인한 경우)
-                  const redirectUrl = sessionStorage.getItem('authRedirect');
-                  if (redirectUrl) {
-                    sessionStorage.removeItem('authRedirect');
-                    window.location.href = redirectUrl;
-                    return;
-                  }
-                  
-                  if (window.opener && !window.opener.closed) {
-                    // 부모 창에 메시지 전달
-                    window.opener.postMessage({ type: 'oauth_success' }, window.location.origin);
-                    
-                    // 메시지 전달 후 창 닫기 (약간의 delay로 postMessage 처리 보장)
-                    setTimeout(() => {
-                      window.close();
-                    }, 300);
-                  } else {
-                    window.close();
-                  }
-                };
+                function closeAndReturn() {
+                  // 1. 부모 창에 인증 성공 메시지 전달
+                  try {
+                    if (window.opener && !window.opener.closed) {
+                      window.opener.postMessage({ type: 'oauth_success' }, window.location.origin);
+                    }
+                  } catch(e) { console.log('postMessage 실패:', e); }
 
-                if (isMobile()) {
-                  const mobileRedirectUrl = sessionStorage.getItem('authRedirect');
-                  if (mobileRedirectUrl) {
-                    // /beta 등 리다이렉트 플로우: 모바일도 자동 이동
-                    document.getElementById('autoCloseMsg').style.display = 'block';
-                    setTimeout(closeWindow, 500);
-                  } else {
-                    // 일반 인증 모달 플로우: 버튼 표시
-                    document.getElementById('message').textContent = '아래 버튼을 눌러 돌아가세요';
-                    document.getElementById('closeBtn').style.display = 'inline-block';
-                    document.getElementById('closeBtn').addEventListener('click', closeWindow);
-                  }
-                } else {
-                  // PC: 자동 닫기
-                  document.getElementById('autoCloseMsg').style.display = 'block';
-                  setTimeout(closeWindow, 500);
+                  // 2. window.close() 시도
+                  window.close();
+
+                  // 3. close()가 실패하면 (Android WebView) history.back()으로 앱 복귀
+                  setTimeout(function() {
+                    history.back();
+                  }, 300);
+
+                  // 4. history.back()도 실패하면 (히스토리 없음) 메시지 표시
+                  setTimeout(function() {
+                    document.getElementById('autoCloseMsg').textContent = '앱으로 돌아가서 계속 사용하세요';
+                  }, 1000);
                 }
+
+                // 1.5초 후 자동 닫기/복귀 시도
+                setTimeout(function() {
+                  closeAndReturn();
+                }, 1500);
               </script>
             </body>
             </html>

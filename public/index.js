@@ -10,36 +10,36 @@ document.addEventListener('DOMContentLoaded', () => {
         sessionId = crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).substr(2);
         sessionStorage.setItem('activity_session_id', sessionId);
     }
-    
+
     // 활동 로그 전송 (비동기, 실패해도 무시)
     fetch('/api/activity', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ sessionId })
-    }).catch(() => {}); // 에러 무시
-    
+    }).catch(() => { }); // 에러 무시
+
     // 🌐 언어 선택 바인딩 (admin-settings.html과 동일)
     LanguageHelper.bindLanguageSelect('languageSelect');
-    
+
     // 📳 햅틱 피드백 함수 (감각 보상 이론 적용)
     function triggerHaptic(pattern = 50) {
         if (navigator.vibrate) {
             navigator.vibrate(pattern);
         }
     }
-    
+
     // 📳 모든 interactive-btn에 햅틱 피드백 적용
     document.querySelectorAll('.interactive-btn').forEach(btn => {
         btn.addEventListener('click', () => triggerHaptic(50));
     });
-    
+
     // DOM Elements
     const video = document.getElementById('camera-feed');
     const canvas = document.getElementById('capture-canvas');
     const uploadInput = document.getElementById('upload-input');
     const toastContainer = document.getElementById('toastContainer');
-    
+
     // Share Modal Elements (Now used for loading state)
     const shareModal = document.getElementById('shareModal');
     const shareModalContent = document.getElementById('shareModalContent');
@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const userPushToggle = document.getElementById('user-push-toggle');
     const userPushStatusText = document.getElementById('user-push-status-text');
     const userAdminAuthBtn = document.getElementById('userSettingsAdminAuthBtn');
-    
+
     // User Settings Modals
     const userAdminAuthModal = document.getElementById('user-admin-auth-modal');
     const userAdminPassword = document.getElementById('user-admin-password');
@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const userQrCodeModal = document.getElementById('user-qr-code-modal');
     const userQrCloseBtn = document.getElementById('userQrCloseBtn');
     const userCopyQrButton = document.getElementById('user-copy-qr-button');
-    
+
     // Notification Modal Elements
     const notificationModal = document.getElementById('notificationModal');
     const notificationList = document.getElementById('notificationList');
@@ -129,19 +129,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeNotificationModalBtn = document.getElementById('closeNotificationModalBtn');
     const notificationBadge = document.getElementById('notificationBadge');
     let notificationModalOpenedFromProfile = false;
-    
+
     // Infographic Modal Elements
     const infographicModal = document.getElementById('infographicModal');
     const infographicImage = document.getElementById('infographicImage');
     const closeInfographicModalBtn = document.getElementById('closeInfographicModalBtn');
     const featureCard1 = document.getElementById('featureCard1');
-    
+
     // Video Modal Elements
     const videoModal = document.getElementById('videoModal');
     const featureVideo = document.getElementById('featureVideo');
     const closeVideoModalBtn = document.getElementById('closeVideoModalBtn');
     const featureCard2 = document.getElementById('featureCard2');
-    
+
     // Admin Settings Page Elements
     const adminSettingsPage = document.getElementById('adminSettingsPage');
     const adminSettingsBackBtn = document.getElementById('adminSettingsBackBtn');
@@ -165,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition = SpeechRecognition ? new SpeechRecognition() : null;
     let isRecognizing = false;
-    
+
     // 🚨 2026-01-24: AI 중복 호출 방지 플래그 (비용 절감)
     // - 모든 버튼(촬영/마이크/업로드)에서 공유
     // - AI 호출 시작 시 true → 응답 완료/오류 시 false
@@ -174,7 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let stream = null;
     let isCameraActive = false; // To prevent camera re-initialization
-    
+
     // TTS State
     const synth = window.speechSynthesis;
     let utteranceQueue = [];
@@ -182,7 +182,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let isPaused = false;
     let currentlySpeakingElement = null;
     let lastAudioClickTime = 0;
-    
+
     // ═══════════════════════════════════════════════════════════════
     // 🔊 DB 기반 음성 설정 시스템 (2025-12-07)
     // 목적: 하드코딩 제거, DB에서 음성 우선순위 로드
@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ═══════════════════════════════════════════════════════════════
     let voiceConfigsCache = null;
     let voiceConfigsLoading = false;
-    
+
     // 하드코딩 기본값 (오프라인 fallback)
     const DEFAULT_VOICE_PRIORITIES = {
         'ko-KR': { default: ['Microsoft Heami', 'Yuna'] },
@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'de-DE': { default: ['Anna', 'Microsoft Hedda', 'Google Deutsch', 'German'] },
         'es-ES': { default: ['Monica', 'Microsoft Helena', 'Google español', 'Spanish'] }
     };
-    
+
     // DB에서 음성 설정 로드 (앱 시작 시 1회)
     async function loadVoiceConfigsFromDB() {
         if (voiceConfigsCache) return voiceConfigsCache;
@@ -209,7 +209,7 @@ document.addEventListener('DOMContentLoaded', () => {
             await new Promise(resolve => setTimeout(resolve, 500));
             return voiceConfigsCache || null;
         }
-        
+
         voiceConfigsLoading = true;
         try {
             const response = await fetch('/api/voice-configs');
@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
         voiceConfigsLoading = false;
         return voiceConfigsCache;
     }
-    
+
     // 플랫폼 감지 (ios, android, windows, default)
     function detectPlatform() {
         const ua = navigator.userAgent;
@@ -242,11 +242,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (/Windows/.test(ua)) return 'windows';
         return 'default';
     }
-    
+
     // DB 기반 음성 우선순위 가져오기
     function getVoicePriorityFromDB(langCode) {
         const platform = detectPlatform();
-        
+
         // DB 캐시 확인
         if (voiceConfigsCache && voiceConfigsCache[langCode]) {
             const config = voiceConfigsCache[langCode][platform] || voiceConfigsCache[langCode]['default'];
@@ -254,20 +254,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 return { priorities: config.priorities, excludeVoices: config.excludeVoices };
             }
         }
-        
+
         // 기본값 사용 (오프라인/로드 실패)
         const fallback = DEFAULT_VOICE_PRIORITIES[langCode];
         if (fallback) {
             const priorities = fallback[platform] || fallback['default'] || fallback[Object.keys(fallback)[0]];
             return { priorities, excludeVoices: [] };
         }
-        
+
         return { priorities: [], excludeVoices: [] };
     }
-    
+
     // 앱 시작 시 음성 설정 로드
     loadVoiceConfigsFromDB();
-    
+
     // ═══════════════════════════════════════════════════════════════
     // 🌐 구글 번역 완료 대기 시스템 (2025-12-06)
     // 목적: 모든 TTS는 구글 번역 완료 후에 재생
@@ -278,28 +278,28 @@ document.addEventListener('DOMContentLoaded', () => {
         observer: null,
         timeoutId: null
     };
-    
+
     function initTranslationWatcher() {
         const userLang = localStorage.getItem('appLanguage') || 'ko';
-        
+
         if (userLang === 'ko') {
             translationState.complete = true;
             console.log('[Translation] 한국어 - 번역 대기 불필요');
             return;
         }
-        
+
         const hasTranslated = document.body.classList.contains('translated-ltr') ||
-                              document.body.classList.contains('translated-rtl');
+            document.body.classList.contains('translated-rtl');
         if (hasTranslated) {
             translationState.complete = true;
             console.log('[Translation] 이미 번역 완료됨');
             return;
         }
-        
+
         translationState.complete = false;
         translationState.observer = new MutationObserver((mutations) => {
             const hasTranslatedNow = document.body.classList.contains('translated-ltr') ||
-                                     document.body.classList.contains('translated-rtl');
+                document.body.classList.contains('translated-rtl');
             if (hasTranslatedNow) {
                 console.log('[Translation] 🌐 번역 완료 감지!');
                 translationState.complete = true;
@@ -307,12 +307,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.dispatchEvent(new CustomEvent('appTranslationComplete'));
             }
         });
-        
-        translationState.observer.observe(document.body, { 
-            attributes: true, 
-            attributeFilter: ['class'] 
+
+        translationState.observer.observe(document.body, {
+            attributes: true,
+            attributeFilter: ['class']
         });
-        
+
         translationState.timeoutId = setTimeout(() => {
             if (!translationState.complete) {
                 console.log('[Translation] 번역 타임아웃 - 원본 사용');
@@ -322,13 +322,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }, 3000);
     }
-    
+
     async function waitForTranslation() {
         const userLang = localStorage.getItem('appLanguage') || 'ko';
         if (userLang === 'ko' || translationState.complete) {
             return;
         }
-        
+
         console.log('[TTS] 번역 완료 대기 중...');
         await new Promise(resolve => {
             const handler = () => {
@@ -339,41 +339,41 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(resolve, 3500);
         });
     }
-    
+
     initTranslationWatcher();
-    
+
     // ═══════════════════════════════════════════════════════════════
     // 🌐 동적 콘텐츠 강제 재번역 함수 (2025-12-24)
     // 문제: Google Translate는 동적으로 추가된 요소를 자동 번역하지 않음
     // 해결: 언어 드롭다운을 토글하여 강제로 재번역 트리거
     // ═══════════════════════════════════════════════════════════════
     let retranslationPending = false;
-    
+
     async function retranslateNewContent() {
         // 🌐 2025-12-24: userLang 체크 제거 - Google Translate 드롭다운 활성화 여부만 확인
         // 콘텐츠가 외국어이고 앱 언어가 한국어여도 번역이 필요함
         return new Promise((resolve) => {
             const selectElement = document.querySelector('.goog-te-combo');
-            
+
             if (!selectElement || !selectElement.value) {
                 console.log('[Retranslate] Google Translate 드롭다운 비활성 - 스킵');
                 resolve();
                 return;
             }
-            
+
             const currentLang = selectElement.value;
             console.log('[Retranslate] 🔄 강제 재번역 시작:', currentLang);
             retranslationPending = true;
-            
+
             // 1. 원래 언어로 리셋
             selectElement.value = '';
             selectElement.dispatchEvent(new Event('change'));
-            
+
             // 2. 잠시 후 다시 번역 언어로 변경
             setTimeout(() => {
                 selectElement.value = currentLang;
                 selectElement.dispatchEvent(new Event('change'));
-                
+
                 // 3. 번역 완료 대기 (MutationObserver 또는 타임아웃)
                 setTimeout(() => {
                     console.log('[Retranslate] ✅ 재번역 완료');
@@ -384,10 +384,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 100);
         });
     }
-    
+
     async function waitForRetranslation() {
         if (!retranslationPending) return;
-        
+
         console.log('[TTS] 재번역 완료 대기 중...');
         await new Promise(resolve => {
             const handler = () => {
@@ -398,31 +398,31 @@ document.addEventListener('DOMContentLoaded', () => {
             setTimeout(resolve, 2000); // 최대 2초 대기
         });
     }
-    
+
     // ═══════════════════════════════════════════════════════════════
     // 🌐 사용자 언어 감지 (localStorage 기반)
     // 목적: 추천모음 클릭/공유 시 해당 언어로 공유페이지 자동 번역
     // 2026-01-22: DB 동기화 제거 → localStorage만 사용 (버그 해결)
     // ═══════════════════════════════════════════════════════════════
-    
+
     function getCurrentUserLang() {
         // 1. localStorage 확인 (랜딩페이지에서 저장됨)
         const storedLang = localStorage.getItem('appLanguage');
         if (storedLang && storedLang !== 'ko') {
             return storedLang;
         }
-        
+
         // 2. 기본값 한국어
         return 'ko';
     }
-    
+
     // URL에 언어 파라미터 추가 (한국어 제외)
     function addLangToUrl(url) {
         const lang = getCurrentUserLang();
         if (lang === 'ko') return url; // 한국어면 그대로
         return `${url}?lang=${lang}`;
     }
-    
+
     // ═══════════════════════════════════════════════════════════════
     // 🚀 전역 디바운스 시스템 (2025-10-05)
     // 목적: 버튼 버벅거림 완전 제거 - 손님 30명 테스트 대비
@@ -431,11 +431,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function debounceClick(buttonId, callback, delay = 500) {
         const now = Date.now();
         const lastClick = buttonDebounceMap.get(buttonId) || 0;
-        
+
         if (now - lastClick < delay) {
             return false; // 클릭 무시
         }
-        
+
         buttonDebounceMap.set(buttonId, now);
         callback();
         return true;
@@ -512,7 +512,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             email: user.email,
                             provider: user.provider
                         }));
-                    } catch(e) {}
+                    } catch (e) { }
                     return user;
                 }
                 localStorage.removeItem('cachedUser');
@@ -524,14 +524,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     const parsedUser = JSON.parse(cached);
                     console.log('📦 캐시된 인증 사용:', parsedUser.email || parsedUser.id);
                     return parsedUser;
-                } catch(e) {}
+                } catch (e) { }
             }
             return null;
         } catch (error) {
             console.error('Auth check error:', error);
             const cached = localStorage.getItem('cachedUser');
             if (cached) {
-                try { return JSON.parse(cached); } catch(e) {}
+                try { return JSON.parse(cached); } catch (e) { }
             }
             return null;
         }
@@ -583,7 +583,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 프로모션 종료 후 아래 return true를 삭제하면 원래대로 복원됨
         console.log('🎁 [프로모션] 사용량 제한 비활성화 - 무제한 허용');
         return true;
-        
+
         /* ========== 🔒 프로모션 종료 후 아래 주석 해제 ==========
         // 1. 사용자 인증 상태 확인 (서버 기반)
         const user = await checkUserAuth();
@@ -636,7 +636,7 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     async function deductUsage(type = 'detail') {
         const user = await checkUserAuth();
-        
+
         // 서버에서 관리자로 확인되면 차감 안 함
         if (user && user.isAdmin) return;
 
@@ -649,7 +649,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // ✅ 가입자 크레딧 차감은 서버에서 자동 처리됨 (이중 차감 방지)
     }
     let selectedItemIds = []; // ✅ Array로 변경 (클릭 순서 보존!)
-    
+
     // ═══════════════════════════════════════════════════════════════
     // 🗺️ Google Maps 상태 (2025-10-26)
     // ═══════════════════════════════════════════════════════════════
@@ -657,15 +657,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let googleMapsApiKey = '';
     let geocoder = null;
     let cameFromArchive = false;
-    
+
     // ═══════════════════════════════════════════════════════════════
     // 🗺️ Google Maps API 동적 로딩 (2025-10-26)
     // ═══════════════════════════════════════════════════════════════
-    
+
     // API 키 가져오기
     async function loadGoogleMapsApiKey() {
         if (googleMapsApiKey) return googleMapsApiKey;
-        
+
         try {
             const response = await fetch('/api/config');
             const config = await response.json();
@@ -676,20 +676,20 @@ document.addEventListener('DOMContentLoaded', () => {
             return '';
         }
     }
-    
+
     // Google Maps API 동적 로드
     function loadGoogleMapsAPI(callback) {
         if (googleMapsLoaded) {
             if (callback) callback();
             return;
         }
-        
+
         loadGoogleMapsApiKey().then(apiKey => {
             if (!apiKey) {
                 console.error('Google Maps API 키가 없습니다.');
                 return;
             }
-            
+
             const script = document.createElement('script');
             script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
             script.async = true;
@@ -706,35 +706,35 @@ document.addEventListener('DOMContentLoaded', () => {
             document.head.appendChild(script);
         });
     }
-    
+
     // 📍 주변 유명 랜드마크 찾기 (GPS → "에펠탑", "루브르 박물관" 등)
     async function getNearbyLandmark(lat, lng) {
         console.log('🔍 랜드마크 검색 시작:', lat, lng);
-        
+
         if (!googleMapsLoaded || !window.google) {
             console.warn('⚠️ Google Maps가 로드되지 않음');
             return null;
         }
-        
+
         return new Promise((resolve) => {
             // Places API Nearby Search 사용
             const map = new google.maps.Map(document.createElement('div'));
             const service = new google.maps.places.PlacesService(map);
             const location = new google.maps.LatLng(lat, lng);
-            
+
             console.log('🔍 Places Nearby Search 호출 (반경 100m)...');
             const request = {
                 location: location,
                 radius: 100,
                 rankBy: google.maps.places.RankBy.PROMINENCE
             };
-            
+
             service.nearbySearch(request, (places, status) => {
                 console.log('📡 Places API 응답:', status);
-                
+
                 if (status === google.maps.places.PlacesServiceStatus.OK && places && places.length > 0) {
                     // 랜드마크/관광지 우선 검색
-                    const nearbyPlace = places.find(place => 
+                    const nearbyPlace = places.find(place =>
                         place.types.includes('tourist_attraction') ||
                         place.types.includes('museum') ||
                         place.types.includes('church') ||
@@ -742,20 +742,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         place.types.includes('lodging') ||
                         place.types.includes('point_of_interest')
                     ) || places[0];
-                    
+
                     const placeName = nearbyPlace.name;
                     console.log('🎯 근처 장소:', placeName, '(타입:', nearbyPlace.types.join(', ') + ')');
                     resolve(placeName);
                 } else {
                     // Places API 실패 → Geocoding Fallback
                     console.log('📍 Places API 실패, Geocoding으로 전환');
-                    
+
                     if (!geocoder) {
                         console.warn('⚠️ Geocoder 초기화 안 됨');
                         resolve(null);
                         return;
                     }
-                    
+
                     geocoder.geocode({ location: { lat, lng } }, (geoResults, geoStatus) => {
                         if (geoStatus === 'OK' && geoResults[0]) {
                             const city = geoResults[0].address_components.find(
@@ -772,7 +772,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
-    
+
     // --- IndexedDB Setup ---
     const DB_NAME = 'TravelGuideDB';
     const DB_VERSION = 2; // Updated for shareLinks store
@@ -790,12 +790,12 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
-                
+
                 // Create archive store if not exists
                 if (!db.objectStoreNames.contains(STORE_NAME)) {
                     db.createObjectStore(STORE_NAME, { keyPath: 'id' });
                 }
-                
+
                 // Create shareLinks store for version 2
                 if (!db.objectStoreNames.contains(SHARE_LINKS_STORE)) {
                     const shareStore = db.createObjectStore(SHARE_LINKS_STORE, { keyPath: 'id' });
@@ -808,7 +808,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function addItem(item) {
         return new Promise(async (resolve, reject) => {
             if (!db) return reject("DB not open");
-            
+
             // Generate a unique ID for both IndexedDB and server usage.
             const uniqueId = item.id || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
             const itemWithId = { ...item, id: uniqueId };
@@ -816,7 +816,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const transaction = db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
             const request = store.add(itemWithId);
-            
+
             request.onsuccess = () => resolve(request.result);
             request.onerror = (event) => reject("Error adding item: " + event.target.error);
         });
@@ -832,7 +832,7 @@ document.addEventListener('DOMContentLoaded', () => {
             request.onerror = (event) => reject("Error getting items: " + event.target.error);
         });
     }
-    
+
     function deleteItems(ids) {
         return new Promise((resolve, reject) => {
             if (!db) return reject("DB not open");
@@ -905,7 +905,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#039;');
         };
-        
+
         // 갤러리 그리드 아이템 생성 (2열)
         const galleryItemsHTML = guideItems.map((item, index) => `
             <div class="gallery-item" data-id="${index}">
@@ -938,12 +938,12 @@ document.addEventListener('DOMContentLoaded', () => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>${escapeHTML(title)} - 손안에 가이드</title>
     <link rel="manifest" href="data:application/json;base64,${utf8ToBase64(JSON.stringify({
-        name: title,
-        short_name: title,
-        start_url: '.',
-        display: 'standalone',
-        theme_color: '#4285F4'
-    }))}">
+            name: title,
+            short_name: title,
+            start_url: '.',
+            display: 'standalone',
+            theme_color: '#4285F4'
+        }))}">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -1520,12 +1520,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Download featured shareLink HTML
-    window.downloadFeaturedHTML = async function(shareLinkId) {
+    window.downloadFeaturedHTML = async function (shareLinkId) {
         try {
             const transaction = db.transaction([SHARE_LINKS_STORE], 'readonly');
             const store = transaction.objectStore(SHARE_LINKS_STORE);
             const request = store.get(shareLinkId);
-            
+
             request.onsuccess = () => {
                 const shareLink = request.result;
                 if (shareLink) {
@@ -1570,14 +1570,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }, duration);
     }
-    
+
     // --- Page Control ---
     function showPage(pageToShow) {
         [featuresPage, mainPage, detailPage, archivePage, settingsPage, adminSettingsPage].forEach(page => {
             if (page) page.classList.toggle('visible', page === pageToShow);
         });
     }
-    
+
     function showMainPage() {
         cameFromArchive = false; // Reset navigation state
         // ✅ 페이지 이동 시 음성 즉시 정지 - 2025.10.02 확보됨
@@ -1598,7 +1598,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 카메라 상태 복원 (Featured 페이지에서 돌아온 경우)
         const cameraWasActive = localStorage.getItem('cameraWasActive') === 'true';
-        
+
         if (stream && !isCameraActive) {
             resumeCamera();
         } else if (!stream && cameraWasActive) {
@@ -1631,7 +1631,7 @@ document.addEventListener('DOMContentLoaded', () => {
             micBtn?.classList.remove('mic-listening');
             detailMicBtn?.classList.remove('mic-listening');
         }
-        if (isSelectionMode) { 
+        if (isSelectionMode) {
             toggleSelectionMode(false);
         }
         showPage(archivePage); // ⚡ 화면 먼저 표시 (즉시)
@@ -1640,11 +1640,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function showSettingsPage() {
         pauseCamera();
-        
+
         // 사용자 설정 페이지 초기화
         initUserSettingsLegalContent();
         initUserPushToggle();
-        
+
         showPage(settingsPage);
     }
 
@@ -1665,7 +1665,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 목적: 프로필 버튼 배지 + 알림 모달 (YouTube 스타일)
     // ═══════════════════════════════════════════════════════════════
     let notificationPollingInterval = null;
-    
+
     async function fetchUnreadNotificationCount() {
         try {
             const response = await fetch('/api/notifications/unread-count', { credentials: 'include' });
@@ -1679,7 +1679,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return 0;
         }
     }
-    
+
     async function updateNotificationBadge() {
         const count = await fetchUnreadNotificationCount();
         if (notificationBadge) {
@@ -1691,7 +1691,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-    
+
     async function fetchNotifications() {
         try {
             const response = await fetch('/api/notifications', { credentials: 'include' });
@@ -1705,24 +1705,24 @@ document.addEventListener('DOMContentLoaded', () => {
             return [];
         }
     }
-    
+
     function renderNotifications(notifications) {
         if (!notificationList || !emptyNotificationMessage) return;
-        
+
         if (notifications.length === 0) {
             notificationList.classList.add('hidden');
             emptyNotificationMessage.classList.remove('hidden');
             return;
         }
-        
+
         notificationList.classList.remove('hidden');
         emptyNotificationMessage.classList.add('hidden');
-        
+
         notificationList.innerHTML = notifications.map(notification => {
             const isRead = notification.isRead;
             const timeAgo = getTimeAgo(new Date(notification.createdAt));
             const typeIcon = getNotificationIcon(notification.type);
-            
+
             return `
                 <div class="notification-item flex items-start gap-3 p-3 rounded-lg ${isRead ? 'opacity-60' : 'bg-blue-50/50'}"
                      data-notification-id="${notification.id}"
@@ -1745,22 +1745,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             `;
         }).join('');
-        
+
         // X 버튼 클릭 이벤트 (알림 삭제)
         notificationList.querySelectorAll('.notification-delete-btn').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.stopPropagation();
                 const notificationId = parseInt(btn.dataset.notificationId);
-                
+
                 await deleteNotification(notificationId);
                 updateNotificationBadge();
-                
+
                 const notifications = await fetchNotifications();
                 renderNotifications(notifications);
             });
         });
     }
-    
+
     function getNotificationIcon(type) {
         switch (type) {
             case 'reward':
@@ -1777,7 +1777,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>';
         }
     }
-    
+
     function getTimeAgo(date) {
         const now = new Date();
         const diffMs = now - date;
@@ -1785,14 +1785,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const diffMin = Math.floor(diffSec / 60);
         const diffHour = Math.floor(diffMin / 60);
         const diffDay = Math.floor(diffHour / 24);
-        
+
         if (diffSec < 60) return '방금 전';
         if (diffMin < 60) return `${diffMin}분 전`;
         if (diffHour < 24) return `${diffHour}시간 전`;
         if (diffDay < 7) return `${diffDay}일 전`;
         return date.toLocaleDateString('ko-KR');
     }
-    
+
     async function markNotificationRead(notificationId) {
         try {
             await fetch('/api/notifications/mark-read', {
@@ -1805,7 +1805,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn('알림 읽음 처리 실패:', error);
         }
     }
-    
+
     async function deleteNotification(notificationId) {
         try {
             await fetch(`/api/notifications/${notificationId}`, {
@@ -1817,7 +1817,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn('알림 삭제 실패:', error);
         }
     }
-    
+
     async function deleteAllNotifications() {
         try {
             await fetch('/api/notifications/delete-all', {
@@ -1833,22 +1833,22 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn('전체 삭제 실패:', error);
         }
     }
-    
+
     async function openNotificationModal() {
         if (!notificationModal) return;
-        
+
         notificationModal.classList.remove('hidden');
-        
+
         // 알림 로딩
         const notifications = await fetchNotifications();
         renderNotifications(notifications);
     }
-    
+
     async function closeNotificationModal() {
         if (!notificationModal) return;
         notificationModal.classList.add('hidden');
         notificationModalOpenedFromProfile = false;
-        
+
         // 모달 닫을 때 모든 알림 읽음 처리
         try {
             await fetch('/api/notifications/mark-read', {
@@ -1864,11 +1864,11 @@ document.addEventListener('DOMContentLoaded', () => {
             console.warn('알림 읽음 처리 실패:', error);
         }
     }
-    
+
     function startNotificationPolling() {
         // 즉시 한 번 실행
         updateNotificationBadge();
-        
+
         // 30초마다 폴링
         if (notificationPollingInterval) {
             clearInterval(notificationPollingInterval);
@@ -1877,24 +1877,24 @@ document.addEventListener('DOMContentLoaded', () => {
             updateNotificationBadge();
         }, 30000);
     }
-    
+
     function stopNotificationPolling() {
         if (notificationPollingInterval) {
             clearInterval(notificationPollingInterval);
             notificationPollingInterval = null;
         }
     }
-    
+
     // 알림 모달 이벤트 리스너
     closeNotificationModalBtn?.addEventListener('click', closeNotificationModal);
-    
+
     // 모달 바깥 클릭 시 닫기
     notificationModal?.addEventListener('click', (e) => {
         if (e.target === notificationModal) {
             closeNotificationModal();
         }
     });
-    
+
     // 인포그래픽 모달 함수
     function openInfographicModal(imageSrc) {
         if (infographicModal && infographicImage) {
@@ -1903,39 +1903,39 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.style.overflow = 'hidden';
         }
     }
-    
+
     function closeInfographicModal() {
         if (infographicModal) {
             infographicModal.classList.add('hidden');
             document.body.style.overflow = '';
         }
     }
-    
+
     // 인포그래픽 모달 이벤트 리스너
     closeInfographicModalBtn?.addEventListener('click', closeInfographicModal);
-    
+
     // 인포그래픽 모달 바깥 클릭 시 닫기
     infographicModal?.addEventListener('click', (e) => {
         if (e.target === infographicModal || e.target.classList.contains('relative')) {
             closeInfographicModal();
         }
     });
-    
+
     // Feature Card 1 클릭 시 인포그래픽 모달 열기
     featureCard1?.addEventListener('click', () => {
         openInfographicModal('/images/infographic-feature1.png');
     });
-    
+
     // 동영상 모달 함수
     let videoAutoCloseTimer = null;
-    
+
     function openVideoModal() {
         if (videoModal && featureVideo) {
             videoModal.classList.remove('hidden');
             document.body.style.overflow = 'hidden';
             featureVideo.currentTime = 0;
             featureVideo.play().catch(err => console.log('Video play error:', err));
-            
+
             // 8초 후 자동 닫힘
             if (videoAutoCloseTimer) clearTimeout(videoAutoCloseTimer);
             videoAutoCloseTimer = setTimeout(() => {
@@ -1943,13 +1943,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }, 8000);
         }
     }
-    
+
     function closeVideoModal() {
         if (videoModal && featureVideo) {
             videoModal.classList.add('hidden');
             document.body.style.overflow = '';
             featureVideo.pause();
-            
+
             // 타이머 정리
             if (videoAutoCloseTimer) {
                 clearTimeout(videoAutoCloseTimer);
@@ -1957,22 +1957,22 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-    
+
     // 동영상 모달 이벤트 리스너
     closeVideoModalBtn?.addEventListener('click', closeVideoModal);
-    
+
     // 동영상 모달 바깥 클릭 시 닫기
     videoModal?.addEventListener('click', (e) => {
         if (e.target === videoModal || e.target.classList.contains('relative')) {
             closeVideoModal();
         }
     });
-    
+
     // Feature Card 2 클릭 시 동영상 모달 열기
     featureCard2?.addEventListener('click', () => {
         openVideoModal();
     });
-    
+
     // 프로필 버튼 클릭 → 읽지 않은 알림이 있으면 모달 먼저, 없으면 바로 프로필 페이지
     profileBtn?.addEventListener('click', async () => {
         const user = await checkUserAuth();
@@ -1980,14 +1980,14 @@ document.addEventListener('DOMContentLoaded', () => {
             window.open('/profile.html', '_blank');
             return;
         }
-        
+
         try {
             const response = await fetch('/api/notifications/unread-count', {
                 credentials: 'include'
             });
             const data = await response.json();
             const unreadCount = data.count || 0;
-            
+
             if (unreadCount > 0) {
                 notificationModalOpenedFromProfile = true;
                 openNotificationModal();
@@ -2005,11 +2005,11 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // 2026-01-22: DB 언어 로드 제거 → localStorage만 사용
             await openDB();
-        } catch(e) {
+        } catch (e) {
             console.error("Failed to open database", e);
             showToast("데이터베이스를 열 수 없습니다. 앱이 정상적으로 작동하지 않을 수 있습니다.");
         }
-        
+
         // OAuth 인증 실패 체크 (UX 개선)
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.get('auth') === 'failed') {
@@ -2019,7 +2019,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.history.replaceState({}, '', window.location.pathname + window.location.hash);
             localStorage.removeItem('pendingShareUrl'); // 실패한 URL 삭제
         }
-        
+
         // 인증 완료 후 대기 중인 공유 URL 확인
         console.log('🔍 Checking for pending share URL...');
         const pendingUrl = localStorage.getItem('pendingShareUrl');
@@ -2036,14 +2036,14 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             console.log('❌ No pending URL found');
         }
-        
+
         // ✨ 보관함 직접 접속 (#archive) 처리 (2025-10-28)
         if (window.location.hash === '#archive') {
             console.log('📁 Direct archive access detected');
             showArchivePage();
         }
         // The landing page animation will handle showing the features page initially.
-        
+
         if (recognition) {
             recognition.continuous = false;
             // 🌐 선택된 언어에 맞춰 음성 인식 언어 설정
@@ -2052,7 +2052,7 @@ document.addEventListener('DOMContentLoaded', () => {
             recognition.maxAlternatives = 1;
             // 🎤 2026-01-19: 이벤트 핸들러는 함수 호출 시 등록 (배포본 방식으로 롤백)
         }
-        
+
         // 🌐 언어 코드 매핑 함수 (ko → ko-KR, fr → fr-FR 등)
         function getRecognitionLang() {
             const userLang = localStorage.getItem('appLanguage') || 'ko';
@@ -2067,18 +2067,18 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             return langMap[userLang] || 'ko-KR';
         }
-        
+
         // 🌐 전역 함수로 등록 (언어 변경 시 호출)
-        window.updateRecognitionLang = function() {
+        window.updateRecognitionLang = function () {
             if (recognition) {
                 recognition.lang = getRecognitionLang();
                 console.log('🌐 음성 인식 언어 변경:', recognition.lang);
             }
         };
-        
+
         // 인증 성공 후 authModal 자동 닫기 (2025-10-26)
         checkAuthStatusAndCloseModal();
-        
+
         // 페이지 포커스 시 인증 상태 재확인 (OAuth 리다이렉트 대응)
         window.addEventListener('focus', checkAuthStatusAndCloseModal);
         window.addEventListener('visibilitychange', () => {
@@ -2086,7 +2086,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 checkAuthStatusAndCloseModal();
             }
         });
-        
+
         // ⚠️ 2025.11.06: OAuth 팝업 완료 메시지 수신
         window.addEventListener('message', (event) => {
             // 보안: origin 체크 (같은 도메인만 허용)
@@ -2094,15 +2094,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn('⚠️ Unauthorized message origin:', event.origin);
                 return;
             }
-            
+
             if (event.data.type === 'oauth_success') {
                 console.log('✅ OAuth 팝업 성공 메시지 수신!');
-                
+
                 // 인증 모달 닫기
                 authModal?.classList.add('hidden');
                 authModal?.classList.add('pointer-events-none');
                 authModal?.classList.remove('pointer-events-auto');
-                
+
                 // pendingShareUrl로 새 창에서 열기
                 const pendingUrl = localStorage.getItem('pendingShareUrl');
                 if (pendingUrl) {
@@ -2116,7 +2116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
-        
+
         // ⚠️ 2025.11.12: OAuth 새 탭 완료 시 storage 이벤트 감지
         window.addEventListener('storage', (event) => {
             if (event.key === 'auth_success' && event.newValue === 'true') {
@@ -2126,15 +2126,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 handleStartFeaturesClick();
             }
         });
-        
+
         // 🔔 알림 배지 폴링 시작 (2025-12-06)
         startNotificationPolling();
     }
-    
+
     // 인증 상태 확인 및 모달 자동 닫기
     async function checkAuthStatusAndCloseModal() {
         console.log('🟡 Checking auth status...');
-        
+
         // ⚠️ 2025.11.06: OAuth 리다이렉트 후 플래그 확인 (모바일 대응)
         const authSuccess = localStorage.getItem('auth_success');
         if (authSuccess === 'true') {
@@ -2144,7 +2144,7 @@ document.addEventListener('DOMContentLoaded', () => {
             authModal?.classList.remove('pointer-events-auto');
             localStorage.removeItem('auth_success');
             console.log('✅ Auth modal closed - OAuth redirect successful');
-            
+
             // pendingShareUrl 확인하여 새 창에서 열기
             const pendingUrl = localStorage.getItem('pendingShareUrl');
             if (pendingUrl) {
@@ -2154,7 +2154,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return; // 플래그로 처리했으면 API 호출 스킵
         }
-        
+
         try {
             const response = await fetch('/api/auth/user', { credentials: 'include' });
             console.log('🟡 Auth response:', response.ok, response.status);
@@ -2174,9 +2174,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ lang: localStorage.getItem('appLanguage') || 'ko' })
-                    }).catch(() => {});
+                    }).catch(() => { });
                 }
-                
+
                 // 대기 중인 공유 URL이 있으면 새 창에서 열기
                 const pendingUrl = localStorage.getItem('pendingShareUrl');
                 if (pendingUrl) {
@@ -2192,7 +2192,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('⚠️ Auth check error:', error);
         }
     }
-    
+
     async function handleStartFeaturesClick() {
         // 🎁 2026-01-07: 프로모션 - 인증 필수 (미인증 시 모달 표시)
         const user = await checkUserAuth();
@@ -2208,22 +2208,22 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('로그인하시면 무료로 사용하실 수 있어요!');
             return; // 인증 완료 후 다시 호출됨
         }
-        
+
         console.log('✅ 인증 완료 → 메인 페이지 진입');
         showPage(mainPage);
         cameraStartOverlay.classList.add('hidden');
-    
+
         if (synth && !synth.speaking) {
             const unlockUtterance = new SpeechSynthesisUtterance('');
             synth.speak(unlockUtterance);
             synth.cancel();
         }
-    
+
         mainLoader.classList.remove('hidden');
-        
+
         // 🚀 2026-01-24: Gemini 사전 워밍업 (카메라와 병렬 실행)
         gemini.warmupGemini().catch(e => console.warn('Gemini 워밍업 실패:', e));
-    
+
         try {
             if (!stream) {
                 await startCamera();
@@ -2268,7 +2268,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     return reject(fallbackErr);
                 }
             }
-            
+
             stream = cameraStream;
             video.srcObject = stream;
             video.play().catch(e => console.error("Video play failed:", e));
@@ -2302,30 +2302,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function capturePhoto() {
         if (!video.videoWidth || !video.videoHeight) return;
-        
+
         // 🚨 2026-01-24: AI 처리 중이면 촬영 무시
         if (isAIProcessing) {
             console.log('🚨 [촬영차단] AI 처리 중 - 클릭 무시');
             return;
         }
-        
+
         // 🔒 사용량 제한 체크 (AI 호출 전)
         const canProceed = await checkUsageLimit('detail');
         if (!canProceed) return;
-        
+
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         const context = canvas.getContext('2d');
         if (context) {
             context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            
+
             // 📍 브라우저 위치 권한 요청 (백그라운드 실행)
             requestBrowserLocation();
-            
+
             processImage(canvas.toDataURL('image/jpeg'), shootBtn);
         }
     }
-    
+
     // ═══════════════════════════════════════════════════════════════
     // 📍 브라우저 위치 권한 요청 (2025-10-26)
     // ═══════════════════════════════════════════════════════════════
@@ -2385,7 +2385,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.currentGPS = null;
         }
     }
-    
+
     // 📍 위치 정보 UI 업데이트 함수
     function updateLocationInfoUI(text) {
         const locationInfo = document.getElementById('locationInfo');
@@ -2412,7 +2412,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 event.target.value = '';
                 return;
             }
-            
+
             // 🔒 사용량 제한 체크 (AI 호출 전)
             const canProceed = await checkUsageLimit('detail');
             if (!canProceed) {
@@ -2431,7 +2431,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             locationName: null
                         };
                         console.log('📍 EXIF GPS 추출 성공:', window.currentGPS);
-                        
+
                         // 🗺️ Step 1.5: 주변 유명 랜드마크 찾기 (GPS → "에펠탑" 등)
                         loadGoogleMapsAPI(async () => {
                             console.log('🗺️ callback 실행됨 (EXIF GPS)');
@@ -2451,25 +2451,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else {
                         console.log('ℹ️ EXIF GPS 정보 없음 → 브라우저 위치 요청');
                         window.currentGPS = null;
-                        
+
                         // 📍 EXIF GPS 없으면 브라우저 위치 사용 (백그라운드)
                         requestBrowserLocation();
                     }
                 } else {
                     console.warn('⚠️ exifr 라이브러리 로딩 실패 → 브라우저 위치 요청');
                     window.currentGPS = null;
-                    
+
                     // 📍 브라우저 위치 요청 (백그라운드)
                     requestBrowserLocation();
                 }
             } catch (error) {
                 console.error('GPS 추출 오류:', error);
                 window.currentGPS = null;
-                
+
                 // 📍 오류 시에도 브라우저 위치 요청 (백그라운드)
                 requestBrowserLocation();
             }
-            
+
             // 📷 Step 2: 이미지 처리 (기존 로직)
             const reader = new FileReader();
             reader.onload = (e) => processImage(e.target?.result, uploadBtn);
@@ -2486,19 +2486,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         isAIProcessing = true;
         console.log('🔒 [AI시작] isAIProcessing = true (이미지)');
-        
+
         sourceButton.disabled = true;
         cameFromArchive = false;
         if (synth.speaking || synth.pending) synth.cancel();
         resetSpeechState();
 
         showDetailPage();
-        
+
         // 🎨 이미지 모드: 음성 모드 요소 숨기기
         detailPage.classList.remove('bg-friendly');
         if (voiceModeLogo) voiceModeLogo.classList.add('hidden');
         if (voiceQueryInfo) voiceQueryInfo.classList.add('hidden');
-        
+
         // 📍 위치창 즉시 표시 (로딩 중 상태)
         const locationInfo = document.getElementById('locationInfo');
         const locationNameEl = document.getElementById('locationName');
@@ -2507,9 +2507,9 @@ document.addEventListener('DOMContentLoaded', () => {
             locationInfo.classList.remove('hidden');
             console.log('📍 위치창 표시 (로딩 중)');
         }
-        
+
         currentContent = { imageDataUrl: dataUrl, description: '' };
-        
+
         // 🎨 2026-01-24: blur→clear 애니메이션 (이미지 로딩 UX 개선)
         // 이미지 로드 완료 후 blur 적용 → 0.1초 후 blur 제거 (검은색 방지)
         resultImage.src = dataUrl;
@@ -2548,16 +2548,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 🚀 2026-01-24: 구형 기기 대응 - 이미지 처리 완료 후 딜레이 (200ms)
             await new Promise(resolve => setTimeout(resolve, 200));
-            
+
             const responseStream = gemini.generateDescriptionStream(base64Image);
-            
+
             clearInterval(loadingInterval);
             loader.classList.add('hidden');
             textOverlay.classList.remove('hidden');
             textOverlay.classList.add('animate-in');
             loadingHeader.classList.add('hidden');
             detailFooter.classList.remove('hidden');
-            
+
             // 📍 2025-12-11: 위치정보 표시 (이미지 모드) - 항상 표시, 데이터 없으면 빈칸
             const locationInfo = document.getElementById('locationInfo');
             const locationNameEl = document.getElementById('locationName');
@@ -2593,7 +2593,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
-            
+
             if (sentenceBuffer.trim()) {
                 const sentence = sentenceBuffer.trim();
                 const span = document.createElement('span');
@@ -2601,7 +2601,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 descriptionText.appendChild(span);
                 queueForSpeech(sentence, span);
             }
-            
+
             // 🔒 AI 호출 성공 후 사용량 차감
             await deductUsage('detail');
 
@@ -2615,27 +2615,27 @@ document.addEventListener('DOMContentLoaded', () => {
             descriptionText.innerText = errorMessage;
             updateAudioButton('disabled');
         } finally {
-             sourceButton.disabled = false;
-             // 🚨 2026-01-24: AI 처리 완료 - 플래그 해제
-             isAIProcessing = false;
-             console.log('🔓 [AI완료] isAIProcessing = false (이미지)');
+            sourceButton.disabled = false;
+            // 🚨 2026-01-24: AI 처리 완료 - 플래그 해제
+            isAIProcessing = false;
+            console.log('🔓 [AI완료] isAIProcessing = false (이미지)');
         }
     }
-    
+
     async function handleMicButtonClick() {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
         if (isRecognizing) return recognition.stop();
-        
+
         // 🔊 마이크 시작 전 음성 재생 즉시 중지
         if (synth.speaking || synth.pending) {
             synth.cancel();
             resetSpeechState();
         }
-        
+
         // 🔒 사용량 제한 체크 (AI 호출 전)
         const canProceed = await checkUsageLimit('detail');
         if (!canProceed) return;
-        
+
         isRecognizing = true;
         micBtn.classList.add('mic-listening');
         recognition.start();
@@ -2668,30 +2668,30 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             showToast(messages[event.error] || '음성 인식 중 오류가 발생했습니다.');
         };
-        
+
         recognition.onend = () => {
             clearTimeout(micTimeout);
             isRecognizing = false;
             micBtn?.classList.remove('mic-listening');
         };
     }
-    
+
     // 🎤 상세페이지에서 다시 질문하기 (페이지 이동 없이)
     // 🎤 2026-01-19: 배포본 방식으로 롤백 - 함수 호출 시 이벤트 핸들러 등록
     async function handleDetailMicClick() {
         if (!recognition) return showToast("음성 인식이 지원되지 않는 브라우저입니다.");
         if (isRecognizing) return recognition.stop();
-        
+
         // 🔊 마이크 시작 전 음성 재생 즉시 중지
         if (synth.speaking || synth.pending) {
             synth.cancel();
             resetSpeechState();
         }
-        
+
         // 🔒 사용량 제한 체크 (AI 호출 전)
         const canProceed = await checkUsageLimit('detail');
         if (!canProceed) return;
-        
+
         isRecognizing = true;
         detailMicBtn?.classList.add('mic-listening');
         recognition.start();
@@ -2724,14 +2724,14 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             showToast(messages[event.error] || '음성 인식 중 오류가 발생했습니다.');
         };
-        
+
         recognition.onend = () => {
             clearTimeout(micTimeout);
             isRecognizing = false;
             detailMicBtn?.classList.remove('mic-listening');
         };
     }
-    
+
     async function processTextQuery(prompt) {
         // 🎤 마이크 즉시 정지 
         if (recognition && isRecognizing) {
@@ -2740,13 +2740,13 @@ document.addEventListener('DOMContentLoaded', () => {
             micBtn?.classList.remove('mic-listening');
             detailMicBtn?.classList.remove('mic-listening');
         }
-        
+
         cameFromArchive = false;
         if (synth.speaking || synth.pending) synth.cancel();
         resetSpeechState();
-        
+
         showDetailPage();
-        
+
         detailPage.classList.add('bg-friendly');
         saveBtn.disabled = true;
 
@@ -2755,10 +2755,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         resultImage.src = '';
         resultImage.classList.add('hidden');
-        
+
         // 🎨 로고 워터마크 표시 (음성 모드)
         if (voiceModeLogo) voiceModeLogo.classList.remove('hidden');
-        
+
         // 🎤 질문 키워드 표시 (위치 대신)
         if (voiceQueryInfo && voiceQueryText) {
             voiceQueryText.textContent = prompt;
@@ -2767,7 +2767,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 위치 정보는 숨김
         const locationInfo = document.getElementById('locationInfo');
         if (locationInfo) locationInfo.classList.add('hidden');
-        
+
         loader.classList.remove('hidden');
         textOverlay.classList.add('hidden');
         textOverlay.classList.remove('animate-in');
@@ -2787,7 +2787,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const responseStream = gemini.generateTextStream(prompt);
-            
+
             clearInterval(loadingInterval);
             loader.classList.add('hidden');
             textOverlay.classList.remove('hidden');
@@ -2798,7 +2798,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let sentenceBuffer = '';
             for await (const chunk of responseStream) {
                 const chunkText = chunk.text;
-                if(chunkText) {
+                if (chunkText) {
                     currentContent.description += chunkText;
                     sentenceBuffer += chunkText;
 
@@ -2824,13 +2824,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 descriptionText.appendChild(span);
                 queueForSpeech(sentence, span);
             }
-            
+
             // 🎤 음성 가이드 저장 버튼 활성화
             saveBtn.disabled = false;
-            
+
             // 🔒 AI 호출 성공 후 사용량 차감
             await deductUsage('detail');
-            
+
         } catch (err) {
             console.error("답변 오류:", err);
             clearInterval(loadingInterval);
@@ -2849,18 +2849,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const userLang = localStorage.getItem('appLanguage') || 'ko';
         const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
         const langCode = langCodeMap[userLang] || 'ko-KR';
-        
+
         let voiceName = null;
-        
+
         // 🔊 DB 기반 음성 우선순위 사용
         const voiceConfig = getVoicePriorityFromDB(langCode);
         const priorities = voiceConfig.priorities;
         const excludeVoices = voiceConfig.excludeVoices;
-        
+
         const allVoices = synth.getVoices();
-        
+
         for (const name of priorities) {
-            const found = allVoices.find(v => 
+            const found = allVoices.find(v =>
                 v.name.includes(name) && !excludeVoices.some(ex => v.name.includes(ex))
             );
             if (found) {
@@ -2868,13 +2868,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
             }
         }
-        
+
         // 음성 목록이 아직 로드 안 됐으면 우선순위 첫 번째 이름 사용
         if (!voiceName && priorities.length > 0) {
             voiceName = priorities[0];
             console.log('🎤 [음성] getVoices() 빈 배열 → 기본값 사용:', voiceName);
         }
-        
+
         return { voiceLang: langCode, voiceName: voiceName };
     }
 
@@ -2882,11 +2882,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // 🎤 음성 가이드: imageDataUrl 없어도 저장 가능 (voiceQuery로 대체)
         if (!currentContent.description) return;
         if (!currentContent.imageDataUrl && !currentContent.voiceQuery) return;
-        
+
         // 🔊 2025-12-15: 음성 재생 중이면 먼저 정지
         synth.cancel();
         resetSpeechState();
-        
+
         saveBtn.disabled = true;
 
         try {
@@ -2897,19 +2897,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentContent.locationName = window.currentGPS.locationName;
                 console.log('📍 GPS 데이터 저장:', window.currentGPS);
             }
-            
+
             // 🎤 현재 TTS 음성 정보 저장 (저장 시점의 음성 유지)
             const voiceInfo = getCurrentVoiceInfo();
             currentContent.voiceLang = voiceInfo.voiceLang;
             currentContent.voiceName = voiceInfo.voiceName;
             console.log('🎤 음성 정보 저장:', voiceInfo);
-            
+
             // ✅ 2025-12-15: 서버 먼저 저장 → 성공 시에만 로컬 저장 (DB 일관성 보장)
             // 1. 서버 DB 먼저 저장
             console.log('📦 guides DB 저장 시작...');
             const userLang = localStorage.getItem('appLanguage') || 'ko';
             const tempLocalId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-            
+
             const response = await fetch('/api/guides/batch', {
                 method: 'POST',
                 headers: {
@@ -2934,20 +2934,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     ]
                 })
             });
-            
+
             if (!response.ok) {
                 throw new Error('서버 저장 실패');
             }
-            
+
             const result = await response.json();
             const serverId = result.guideIds?.[0];
-            
+
             if (!serverId) {
                 throw new Error('서버 ID를 받지 못했습니다');
             }
-            
+
             console.log(`✅ guides DB 저장 완료: serverId=${serverId}`);
-            
+
             // 2. 서버 저장 성공 후 IndexedDB 저장 (serverId 포함!)
             const itemToSave = {
                 ...currentContent,
@@ -2956,22 +2956,22 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             await addItem(itemToSave);
             console.log('📦 IndexedDB 저장 완료 (serverId 포함):', serverId);
-            
+
             // 3. 저장 완료
             showToast("저장 완료!");
-            
+
             // GPS 데이터 초기화
             window.currentGPS = null;
-            
+
             // 버튼 활성화
             saveBtn.disabled = false;
-        } catch(e) {
+        } catch (e) {
             console.error("Failed to save to archive:", e);
             showToast("저장에 실패했습니다. 네트워크 연결을 확인해주세요.");
             saveBtn.disabled = false;
         }
     }
-    
+
     // ⚠️ 2025.11.02: 선택 모드 토글 - 다운로드 버튼 표시/숨김 추가
     function toggleSelectionMode(forceState) {
         if (typeof forceState === 'boolean') {
@@ -2999,7 +2999,7 @@ document.addEventListener('DOMContentLoaded', () => {
             downloadSelectedBtnContainer?.classList.add('hidden'); // 다운로드 버튼 숨김
             console.log('❌ [Selection Mode] Download button hidden');
             selectedItemIds = []; // ✅ Array 초기화
-            
+
             // Remove selection styling from all items
             document.querySelectorAll('.archive-item').forEach(item => {
                 item.classList.remove('selected');
@@ -3010,7 +3010,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ⚠️ 2025.11.02: 다운로드 버튼 활성화/비활성화 추가
     function updateSelectionUI() {
         selectionCount.textContent = `${selectedItemIds.length}개 선택`; // ✅ .size → .length
-        
+
         // 다운로드 버튼 활성화/비활성화
         const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
         if (downloadSelectedBtn) {
@@ -3065,7 +3065,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ║  - 클립보드 복사 에러                                                         ║
     // ║                                                                               ║
     // ╚═══════════════════════════════════════════════════════════════════════════════╝
-    
+
     // ═══════════════════════════════════════════════════════════════════════════════
     // 🔗 공유 링크 생성 시스템 (Share Link Creation System)
     // ═══════════════════════════════════════════════════════════════════════════════
@@ -3090,7 +3090,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ═══════════════════════════════════════════════════════════════════════════════
 
     let currentShareItems = []; // 현재 공유할 아이템들 (모달 재사용 시 필요)
-    
+
     /**
      * 🎯 공유 기능 시작 함수
      * 
@@ -3120,7 +3120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // ✅ 현재 공유할 아이템 저장 (모달에서 사용)
         currentShareItems = allItems;
-        
+
         // 🔄 모달 초기화 및 열기 (중요: 매번 초기화!)
         resetShareModal();
         shareModal.classList.remove('hidden');
@@ -3186,21 +3186,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
             </div>
         `;
-        
+
         // 이벤트 리스너 다시 등록
         const closeBtn = document.getElementById('closeShareModalBtn');
         const copyBtn = document.getElementById('copyShareLinkBtn');
-        
+
         if (closeBtn) {
             closeBtn.onclick = () => {
                 shareModal.classList.add('hidden');
             };
         }
-        
+
         if (copyBtn) {
             copyBtn.onclick = () => createAndCopyShareLink();
         }
-        
+
         // ⚠️ 2025-10-05: 모달 배경 클릭 시 닫기 (모달 내용 클릭은 무시)
         shareModal.addEventListener('click', (e) => {
             if (e.target === shareModal) {
@@ -3257,16 +3257,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             // 📅 메타데이터 자동 생성
-            const today = new Date().toLocaleDateString('ko-KR', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+            const today = new Date().toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
             });
-            
+
             // 👤 사용자 정보 가져오기 (서버에서)
             let senderName = '여행자';
             let locationName = '파리, 프랑스';
-            
+
             try {
                 const userResponse = await fetch('/api/auth/user', { credentials: 'include' });
                 if (userResponse.ok) {
@@ -3280,7 +3280,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } catch (e) {
                 console.warn('사용자 정보 로드 실패:', e);
             }
-            
+
             // 📍 위치 정보 가져오기 (첫 번째 가이드에서)
             if (currentShareItems[0]?.locationName) {
                 locationName = currentShareItems[0].locationName;
@@ -3291,11 +3291,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const guideIds = currentShareItems
                 .map(item => item.serverId || item.id) // serverId 우선, 없으면 id 사용
                 .filter(id => id); // null/undefined 제거
-            
+
             if (guideIds.length !== currentShareItems.length) {
                 console.warn(`⚠️ 일부 아이템에 serverId 없음: ${currentShareItems.length - guideIds.length}개 누락`);
             }
-            
+
             const requestData = {
                 name: linkName,
                 guideIds: guideIds,
@@ -3333,10 +3333,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 🔄 선택 모드 해제
             if (isSelectionMode) toggleSelectionMode(false);
-            
+
             // 🔄 보관함 새로고침 (새 공유 링크 반영)
             await renderArchive();
-            
+
             // ✅ 2025-10-05: 모달 안에 성공 메시지 크게 표시 (3초간)
             // 목적: 사용자가 링크가 생성되었다는 것을 명확히 인지
             shareModalContent.innerHTML = `
@@ -3362,7 +3362,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     `}
                 </div>
             `;
-            
+
             // 3초 후 자동으로 모달 닫기
             setTimeout(() => {
                 shareModal.classList.add('hidden');
@@ -3393,10 +3393,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             // 메타데이터 자동 생성
-            const today = new Date().toLocaleDateString('ko-KR', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
+            const today = new Date().toLocaleDateString('ko-KR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
             });
 
             // 링크 이름 자동 생성
@@ -3407,10 +3407,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const guideIds = selectedItems
                 .map(item => item.serverId || item.id) // serverId 우선
                 .filter(id => id);
-            
+
             // 위치 정보 가져오기 (첫 번째 가이드에서)
             const locationName = selectedItems[0]?.locationName || '파리, 프랑스';
-            
+
             const requestData = {
                 name: linkName,
                 guideIds: guideIds,
@@ -3441,10 +3441,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 선택 모드 해제
             if (isSelectionMode) toggleSelectionMode(false);
-            
+
             // 보관함 새로고침
             await renderArchive();
-            
+
             showToast('✅ 가이드 페이지가 열렸습니다!');
 
         } catch (error) {
@@ -3480,10 +3480,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // URL 타임스탬프로 브라우저 HTTP 캐시 우회
             const response = await fetch(`/api/share/featured/list?t=${Date.now()}`);
             if (!response.ok) return;
-            
+
             const data = await response.json();
             const featuredPages = data.pages || [];
-            
+
             // 바로 렌더링 (localStorage 캐시 사용 안 함)
             renderFeaturedGallery(featuredPages);
         } catch (error) {
@@ -3491,7 +3491,7 @@ document.addEventListener('DOMContentLoaded', () => {
             featuredGallery?.classList.add('hidden');
         }
     }
-    
+
     // Featured Gallery 렌더링 함수 (캐싱 및 API 호출 모두 사용)
     function renderFeaturedGallery(featuredPages) {
         if (featuredPages.length > 0) {
@@ -3546,13 +3546,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // ⚠️ 2025.11.02: Featured 갤러리 다운로드 버튼 핸들러
     // 🌐 2025.12.03 언어 파라미터 추가 - 외부공유 시 사용자 언어로 자동 번역
     // 핵심: 공유 페이지 링크를 클립보드에 복사 + 공유 모달 2번째 팝업 표시
-    window.handleFeaturedDownload = async function(shareUrl, index) {
+    window.handleFeaturedDownload = async function (shareUrl, index) {
         console.log('📥 Featured Gallery download clicked:', shareUrl, 'index:', index);
-        
+
         // 🌐 사용자 언어 파라미터 추가 (한국어 제외)
         const translatedUrl = addLangToUrl(shareUrl);
         console.log('🌐 Translated URL for sharing:', translatedUrl);
-        
+
         // 📋 클립보드에 복사 시도 (언어 파라미터 포함)
         let copySuccess = false;
         try {
@@ -3562,7 +3562,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (clipboardError) {
             console.warn('클립보드 복사 실패 (권한 없음):', clipboardError);
         }
-        
+
         // ✅ 공유 모달 2번째 팝업 표시 (성공 메시지)
         const escapedUrl = translatedUrl.replace(/'/g, "\\'");
         shareModalContent.innerHTML = `
@@ -3588,7 +3588,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `}
             </div>
         `;
-        
+
         // 수동 복사 버튼 이벤트 리스너 (클립보드 실패 시)
         if (!copySuccess) {
             const manualBtn = document.getElementById('manualCopyBtn');
@@ -3607,10 +3607,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             }
         }
-        
+
         // 모달 표시
         shareModal.classList.remove('hidden');
-        
+
         // 3초 후 자동으로 모달 닫기
         setTimeout(() => {
             shareModal.classList.add('hidden');
@@ -3621,23 +3621,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // ⚠️ 2025.11.12 UX FIX: Direct URL 방식 - iOS Safari 팝업 차단 우회
     // 🌐 2025.12.03 언어 파라미터 추가 - 사용자 언어로 공유페이지 자동 번역
     // 핵심: 인증 체크 후 직접 URL로 window.open() (about:blank 제거!)
-    window.handleFeaturedClick = async function(shareUrl) {
+    window.handleFeaturedClick = async function (shareUrl) {
         console.log('🔵 Featured Gallery clicked:', shareUrl);
-        
+
         // 🌐 사용자 언어 파라미터 추가 (한국어 제외)
         const translatedUrl = addLangToUrl(shareUrl);
         console.log('🌐 Translated URL:', translatedUrl);
-        
+
         try {
             // 1️⃣ 인증 상태 확인
             const response = await fetch('/api/auth/user', { credentials: 'include' });
             console.log('🔵 Auth status:', response.ok, response.status);
-            
+
             if (response.ok) {
                 // 2️⃣ 인증됨 → 직접 URL로 새 창 열기 (iOS Safari 호환!)
                 console.log('✅ Authenticated! Opening shared page in new window:', translatedUrl);
                 const newWindow = window.open(translatedUrl, '_blank');
-                
+
                 if (!newWindow) {
                     console.error('❌ 팝업 차단됨! (Fallback: 현재 탭 리다이렉트)');
                     window.location.href = translatedUrl;
@@ -3648,7 +3648,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('💾 Saving original URL to localStorage (no language param):', shareUrl);
                 localStorage.setItem('pendingShareUrl', shareUrl);
                 console.log('✅ Saved! localStorage value:', localStorage.getItem('pendingShareUrl'));
-                
+
                 // 인증 모달 표시
                 const authModal = document.getElementById('authModal');
                 if (authModal) {
@@ -3665,7 +3665,7 @@ document.addEventListener('DOMContentLoaded', () => {
             console.log('💾 Saving original URL to localStorage (no language param):', shareUrl);
             localStorage.setItem('pendingShareUrl', shareUrl);
             console.log('✅ Saved! localStorage value:', localStorage.getItem('pendingShareUrl'));
-            
+
             // 인증 모달 표시
             const authModal = document.getElementById('authModal');
             if (authModal) {
@@ -3681,17 +3681,17 @@ document.addEventListener('DOMContentLoaded', () => {
     async function renderArchive() {
         try {
             const items = await getAllItems();
-            
+
             // Featured Gallery 로드
             loadFeaturedGallery();
-            
+
             if (items.length === 0) {
                 archiveGrid.classList.add('hidden');
                 emptyArchiveMessage.classList.remove('hidden');
             } else {
                 emptyArchiveMessage.classList.add('hidden');
                 archiveGrid.classList.remove('hidden');
-                
+
                 archiveGrid.innerHTML = items.map(item => `
                     <div class="archive-item relative ${selectedItemIds.includes(item.id) ? 'selected ring-2 ring-blue-500' : ''}"
                          data-id="${item.id}" 
@@ -3773,8 +3773,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             cameFromArchive = true;
             // 🎤 저장된 voiceLang, voiceName, voiceQuery 포함
-            currentContent = { 
-                imageDataUrl: item.imageDataUrl, 
+            currentContent = {
+                imageDataUrl: item.imageDataUrl,
                 description: item.description,
                 voiceLang: item.voiceLang || null,
                 voiceName: item.voiceName || null,
@@ -3785,12 +3785,12 @@ document.addEventListener('DOMContentLoaded', () => {
             // 🔊 2025-12-11: 표준 초기화 - 이전 음성 즉시 중지 (showDetailPage 전에!)
             synth.cancel();
             resetSpeechState();
-            
+
             showDetailPage(true);
 
             // 🎤 음성 가이드 vs 이미지 가이드 분기
             const isVoiceGuide = !item.imageDataUrl && item.voiceQuery;
-            
+
             if (item.imageDataUrl) {
                 resultImage.src = item.imageDataUrl;
                 resultImage.classList.remove('hidden');
@@ -3813,13 +3813,13 @@ document.addEventListener('DOMContentLoaded', () => {
             textOverlay.classList.remove('hidden', 'animate-in');
             loadingHeader.classList.add('hidden');
             detailFooter.classList.remove('hidden');
-            
+
             // ✅ 음성 자동재생 로직 - 2025.10.02 확보됨
             // 핵심: 문장 분할 → span 생성 → queueForSpeech 호출 순서
             synth.cancel();
             resetSpeechState();
             descriptionText.innerHTML = '';
-            
+
             // 📍 위치 정보 표시 (음성 가이드가 아닐 때만)
             const locationInfo = document.getElementById('locationInfo');
             const locationName = document.getElementById('locationName');
@@ -3829,10 +3829,10 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (locationInfo) {
                 locationInfo.classList.add('hidden');
             }
-            
+
             const description = item.description || '';
             const sentences = description.match(/[^.?!]+[.?!]+/g) || [description];
-            
+
             // 🌐 2025-12-24: DOM에 콘텐츠 먼저 추가
             const spans = [];
             sentences.forEach(sentence => {
@@ -3842,15 +3842,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 descriptionText.appendChild(span);
                 spans.push({ text: sentence.trim(), span });
             });
-            
+
             // 🌐 2025-12-24: 재번역 완료 후 TTS 큐에 추가
             await retranslateNewContent();
-            
+
             // 재번역 완료 후 TTS 큐에 추가
             spans.forEach(({ text, span }) => {
                 queueForSpeech(text, span);
             });
-            
+
             updateAudioButton('play');
 
         } catch (error) {
@@ -3871,14 +3871,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (cameFromArchive) {
             // 🌐 구글 번역 완료 대기 (번역된 텍스트로 TTS 재생)
             await waitForTranslation();
-            
+
             // 🌐 2025-12-24: 동적 콘텐츠 재번역 완료 대기 (언어 무관)
             await waitForRetranslation();
             if (retranslationPending) {
                 console.log('[TTS] 재번역 완료 후 TTS 시작');
             }
         }
-        
+
         if (utteranceQueue.length === 0) {
             isSpeaking = false;
             updateAudioButton('play');
@@ -3891,16 +3891,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const { text, element } = utteranceQueue.shift();
         isSpeaking = true;
-        
+
         if (currentlySpeakingElement) {
             currentlySpeakingElement.classList.remove('speaking');
         }
         element.classList.add('speaking');
         currentlySpeakingElement = element;
-        
+
         // 🔄 2025-01-21: 하이라이트된 문장으로 자동 스크롤 (부드럽게)
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        
+
         // 🌐 2025-12-24: Google Translate의 <font> 태그에서 번역된 텍스트 추출
         // Google Translate는 번역된 텍스트를 <font> 태그로 감쌈
         let translatedText = text;
@@ -3915,64 +3915,64 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         const utterance = new SpeechSynthesisUtterance(translatedText);
         console.log('[TTS] 번역된 텍스트 사용:', translatedText.substring(0, 30) + '...');
-        
+
         // 🌐 2025-12-24: 앱 언어 최우선 (저장된 언어 무시, 번역된 텍스트에 맞춤)
         const userLang = localStorage.getItem('appLanguage') || 'ko';
         const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
         const langCode = langCodeMap[userLang] || 'ko-KR';
-        
+
         console.log('[TTS] 앱 언어 우선:', userLang, '→', langCode);
-        
+
         // 🌐 앱 언어 기준 음성 선택 (저장된 voiceName 무시)
         {
             // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
             const allVoices = synth.getVoices();
             let targetVoice = null;
-            
+
             if (langCode === 'ko-KR') {
                 const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
                 // Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
                 targetVoice = koVoices.find(v => v.name.includes('Yuna'))
-                           || koVoices.find(v => v.name.includes('Sora'))
-                           || koVoices.find(v => v.name.includes('유나'))
-                           || koVoices.find(v => v.name.includes('소라'))
-                           || koVoices.find(v => v.name.includes('Heami'))
-                           || koVoices[0];
+                    || koVoices.find(v => v.name.includes('Sora'))
+                    || koVoices.find(v => v.name.includes('유나'))
+                    || koVoices.find(v => v.name.includes('소라'))
+                    || koVoices.find(v => v.name.includes('Heami'))
+                    || koVoices[0];
                 console.log('🎤 [한국어] 음성:', targetVoice?.name || 'default');
             } else {
                 // 다른 6개 언어는 DB 기반 유지
                 const voiceConfig = getVoicePriorityFromDB(langCode);
                 const priorities = voiceConfig.priorities;
                 const excludeVoices = voiceConfig.excludeVoices;
-                
+
                 // 우선순위대로 음성 찾기 (제외 목록 적용)
                 for (const voiceName of priorities) {
-                    targetVoice = allVoices.find(v => 
+                    targetVoice = allVoices.find(v =>
                         v.name.includes(voiceName) && !excludeVoices.some(ex => v.name.includes(ex))
                     );
                     if (targetVoice) break;
                 }
-                
+
                 // 우선순위에 없으면 언어 코드로 찾기
                 if (!targetVoice) {
                     targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
                 }
                 console.log('[TTS] 언어:', langCode, '음성:', targetVoice?.name || 'default');
             }
-            
+
             utterance.voice = targetVoice || null;
             utterance.lang = langCode;
             utterance.rate = 0.9;
             utterance.pitch = 1.0;
         }
-        
+
         utterance.onend = () => {
             element.classList.remove('speaking');
             if (!isPaused) {
                 speakNext();
             }
         };
-        
+
         utterance.onerror = () => {
             element.classList.remove('speaking');
             if (!isPaused) {
@@ -4015,12 +4015,13 @@ document.addEventListener('DOMContentLoaded', () => {
         resetSpeechState();
         const sentences = currentContent.description.split(/[.?!]/).filter(s => s.trim());
         const spans = descriptionText.querySelectorAll('span');
-        
+
         sentences.forEach((sentence, index) => {
             if (sentence.trim() && spans[index]) {
                 queueForSpeech(sentence.trim(), spans[index]);
             }
         });
+        speakNext();
     }
 
     function updateAudioButton(state) {
@@ -4068,17 +4069,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function populatePromptTextareas() {
         const savedImagePrompt = localStorage.getItem('customImagePrompt') || gemini.DEFAULT_IMAGE_PROMPT;
         const savedTextPrompt = localStorage.getItem('customTextPrompt') || gemini.DEFAULT_TEXT_PROMPT;
-        
+
         if (adminImagePromptTextarea) adminImagePromptTextarea.value = savedImagePrompt;
         if (adminTextPromptTextarea) adminTextPromptTextarea.value = savedTextPrompt;
-        
+
         console.log('📝 프롬프트 로드 완료 (이미지:', savedImagePrompt.substring(0, 50) + '...)');
     }
 
     // ═══════════════════════════════════════════════════════════════
     // 📱 사용자 설정 페이지 로직 (User Settings Page)
     // ═══════════════════════════════════════════════════════════════
-    
+
     // 법적 문서 및 FAQ 데이터
     const userSettingsLegalData = {
         faq: `<h4>Q1. 앱이 처음에 바로 안 열리거나 멈춘 것 같아요!</h4>
@@ -4098,7 +4099,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <h4>Q6. 저장한 가이드 내용을 수정할 수 있나요?</h4>
 😅 수정은 어려워요. 아쉽게도 한 번 만들어진 가이드는 내용 수정이 어렵습니다. 만약 설명이 마음에 들지 않는다면, 삭제 후 Q2번의 팁을 활용해 새로운 사진으로 다시 가이드를 생성해 보세요. 더 멋진 해설이 기다리고 있을지도 몰라요!`,
-        
+
         terms: `<h4>이용 약관 (Terms of Service)</h4>
 손안에 가이드는 여행객을 위한 AI 도슨트 서비스를 제공합니다.
 
@@ -4119,7 +4120,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <h4>5. 금지 행위</h4>
 타인의 저작물을 무단으로 도용하여 업로드하거나, 불법적/음란한 이미지를 분석 요청하는 행위는 금지되며, 적발 시 계정이 영구 정지될 수 있습니다.`,
-        
+
         privacy: `<h4>개인 정보 처리 방침 (Privacy Policy)</h4>
 손안에 가이드는 사용자의 여행 경험을 돕기 위해 최소한의 정보만을 수집하며, AI 분석을 위한 데이터 처리에 투명성을 보장합니다.
 
@@ -4147,7 +4148,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <h4>5. 정보 주체의 권리</h4>
 사용자는 언제든지 자신의 개인 정보를 열람, 수정하거나 회원 탈퇴(데이터 삭제)를 요청할 수 있습니다. 설정 > 데이터 관리 메뉴에서 '내 데이터 다운로드'를 요청할 수 있습니다.`,
-        
+
         thirdparty: `<h4>타사 앱 접근 관리 (Third-Party App Access)</h4>
 사용자는 소셜 로그인을 통해 연결된 외부 서비스의 접근 권한을 언제든지 관리할 수 있습니다.
 
@@ -4164,7 +4165,7 @@ document.addEventListener('DOMContentLoaded', () => {
 <h4>3. 데이터 삭제 요청</h4>
 타사 앱 연결을 해제한 후, 손안에 가이드 서버에 저장된 모든 데이터의 영구 삭제를 원하실 경우, 설정 페이지의 [회원 탈퇴] 기능을 이용해 주시기 바랍니다.`
     };
-    
+
     // 법적 문서 콘텐츠 초기화
     function initUserSettingsLegalContent() {
         const types = ['faq', 'terms', 'privacy', 'thirdparty'];
@@ -4175,12 +4176,12 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
-    
+
     // 아코디언 토글
     function toggleUserSettingsAccordion(type) {
         const content = document.getElementById(`content-user-${type}`);
         const icon = document.getElementById(`icon-user-${type}`);
-        
+
         if (content) {
             content.classList.toggle('open');
             if (icon) {
@@ -4188,39 +4189,39 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-    
+
     // 푸시 알림 상태 초기화 (2025-12-12 v4 심플버전)
     // - 기본값: ON (pushUserDenied 없으면 항상 ON)
     // - 토글은 항상 활성화 (수동 조작 가능)
     // - 브라우저 미지원/차단은 상태 텍스트로만 표시
     function initUserPushToggle() {
         if (!userPushToggle || !userPushStatusText) return;
-        
+
         const userDenied = localStorage.getItem('pushUserDenied') === 'true';
-        
+
         // 사용자가 토글로 직접 OFF한 경우
         if (userDenied) {
             userPushToggle.checked = false;
             userPushStatusText.textContent = '알림이 꺼져 있습니다';
             return;
         }
-        
+
         // 기본값: ON (사용자가 OFF하지 않으면 항상 ON)
         userPushToggle.checked = true;
         userPushStatusText.textContent = '알림이 켜져 있습니다';
     }
-    
+
     // 자동 푸시 구독 (로그인 사용자 전용)
     async function autoSubscribePush(registration) {
         try {
             const vapidPublicKey = 'BEuc2WPE8n32XPc_uDZ_Na-vSgVvx_P4uRsSFuTYi-oD1kobkIBKtSFbtnneebC3wt8OnknpizRM98NCLnuHa38';
             const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
-            
+
             const newSubscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey
             });
-            
+
             const response = await fetch('/api/push/subscribe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -4234,7 +4235,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     userAgent: navigator.userAgent
                 })
             });
-            
+
             if (response.ok) {
                 userPushToggle.checked = true;
                 userPushStatusText.textContent = '알림이 켜져 있습니다';
@@ -4248,7 +4249,7 @@ document.addEventListener('DOMContentLoaded', () => {
             userPushStatusText.textContent = '알림 설정에 실패했습니다';
         }
     }
-    
+
     // VAPID 공개키를 Uint8Array로 변환
     function urlBase64ToUint8Array(base64String) {
         const padding = '='.repeat((4 - base64String.length % 4) % 4);
@@ -4260,7 +4261,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         return outputArray;
     }
-    
+
     // 푸시 알림 토글 핸들러 (2025-12-12 수정)
     // - 사용자 거부 선택 localStorage 저장
     // - 로그인 필요 (서버 구독용)
@@ -4273,31 +4274,31 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('알림이 꺼졌습니다');
             return;
         }
-        
+
         // ON으로 변경
         localStorage.removeItem('pushUserDenied');
         userPushStatusText.textContent = '알림이 켜져 있습니다';
-        
+
         // 브라우저 미지원 시 토스트만 표시 (토글은 ON 유지)
         if (!('Notification' in window) || !('serviceWorker' in navigator) || !('PushManager' in window)) {
             showToast('이 브라우저는 푸시 알림을 지원하지 않습니다 (HTTPS 필요)');
             return;
         }
-        
+
         // 로그인 여부 확인
         const user = await checkUserAuth();
         if (!user) {
             showToast('로그인하면 실제 푸시 알림을 받을 수 있습니다');
             return;
         }
-        
+
         // 알림 권한 확인 (이미 granted면 요청 안 함)
         let permission = Notification.permission;
         if (permission === 'default') {
             localStorage.setItem('pushPermissionAsked', 'true');
             permission = await Notification.requestPermission();
         }
-        
+
         if (permission !== 'granted') {
             userPushToggle.checked = false;
             if (permission === 'denied') {
@@ -4308,19 +4309,19 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('알림 권한이 필요합니다');
             return;
         }
-        
+
         try {
             userPushStatusText.textContent = '알림 설정 중...';
-            
+
             const registration = await navigator.serviceWorker.ready;
             const vapidPublicKey = 'BEuc2WPE8n32XPc_uDZ_Na-vSgVvx_P4uRsSFuTYi-oD1kobkIBKtSFbtnneebC3wt8OnknpizRM98NCLnuHa38';
             const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
-            
+
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey
             });
-            
+
             const response = await fetch('/api/push/subscribe', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -4334,7 +4335,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     userAgent: navigator.userAgent
                 })
             });
-            
+
             if (response.ok) {
                 userPushStatusText.textContent = '알림이 켜져 있습니다';
                 showToast('푸시 알림이 활성화되었습니다');
@@ -4348,25 +4349,25 @@ document.addEventListener('DOMContentLoaded', () => {
             showToast('푸시 알림 설정에 실패했습니다');
         }
     }
-    
+
     // QR 코드 모달 열기
     function openUserQrCodeModal() {
         if (userQrCodeModal) {
             userQrCodeModal.classList.remove('hidden');
         }
     }
-    
+
     // QR 코드 모달 닫기
     function closeUserQrCodeModal() {
         if (userQrCodeModal) {
             userQrCodeModal.classList.add('hidden');
         }
     }
-    
+
     // QR 코드 복사 + 리워드 지급 + 3초 후 자동 닫힘
     async function copyUserQrCode() {
         const appUrl = window.location.origin;
-        
+
         // 리워드 API 호출 함수 (복사 성공 후 실행)
         async function claimQrCopyReward() {
             try {
@@ -4386,7 +4387,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return false;
         }
-        
+
         // 복사 성공 후 처리
         async function onCopySuccess() {
             const rewarded = await claimQrCopyReward();
@@ -4395,7 +4396,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             setTimeout(closeUserQrCodeModal, 3000);
         }
-        
+
         // 방법 1: navigator.clipboard.writeText (모바일 우선)
         if (navigator.clipboard && navigator.clipboard.writeText) {
             try {
@@ -4407,7 +4408,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.warn('writeText 실패, fallback 시도:', e);
             }
         }
-        
+
         // 방법 2: execCommand fallback (iOS Safari 등)
         try {
             const textArea = document.createElement('textarea');
@@ -4416,10 +4417,10 @@ document.addEventListener('DOMContentLoaded', () => {
             document.body.appendChild(textArea);
             textArea.focus();
             textArea.select();
-            
+
             const success = document.execCommand('copy');
             document.body.removeChild(textArea);
-            
+
             if (success) {
                 console.log('✅ 클립보드 복사 성공 (execCommand)');
                 await onCopySuccess();
@@ -4428,12 +4429,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.warn('execCommand 실패:', e);
         }
-        
+
         // 모든 방법 실패
         showToast('복사에 실패했습니다. 화면을 캡처해주세요.');
         setTimeout(closeUserQrCodeModal, 3000);
     }
-    
+
     // 관리자 인증 모달 열기
     function openUserAdminAuthModal() {
         if (userAdminAuthModal) {
@@ -4442,18 +4443,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (userAdminAuthMessage) userAdminAuthMessage.classList.add('hidden');
         }
     }
-    
+
     // 관리자 인증 모달 닫기
     function closeUserAdminAuthModal() {
         if (userAdminAuthModal) {
             userAdminAuthModal.classList.add('hidden');
         }
     }
-    
+
     // 관리자 인증 처리 (사용자 설정 페이지에서)
     async function handleUserAdminAuth() {
         const password = userAdminPassword?.value;
-        
+
         if (!password) {
             if (userAdminAuthMessage) {
                 userAdminAuthMessage.textContent = '비밀번호를 입력해주세요';
@@ -4461,23 +4462,23 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return;
         }
-        
+
         try {
             const response = await fetch('/api/admin/auth', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ password })
             });
-            
+
             if (response.ok) {
                 // 인증 성공
                 localStorage.setItem('adminAuthenticated', 'true');
                 localStorage.setItem('adminAuthTime', Date.now().toString());
                 localStorage.setItem('adminPassword', password);
-                
+
                 closeUserAdminAuthModal();
                 showToast('관리자 인증 성공');
-                
+
                 // 관리자 설정 페이지로 이동
                 showAdminSettingsPage();
             } else {
@@ -4496,14 +4497,14 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
     }
-    
+
     // 관리자 설정 페이지 표시
     async function showAdminSettingsPage() {
         pauseCamera();
-        
+
         // 페이지 먼저 표시 (API 호출 전)
         showPage(adminSettingsPage);
-        
+
         // 서버 세션 확인
         try {
             const response = await fetch('/api/admin/featured');
@@ -4511,26 +4512,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 // 서버 세션 유효 - 관리자 섹션 표시
                 localStorage.setItem('adminAuthenticated', 'true');
                 localStorage.setItem('adminAuthTime', Date.now().toString());
-                
+
                 authSection?.classList.add('hidden');
                 adminPromptSettingsSection?.classList.remove('hidden');
-                
+
                 const dashboardLink = document.getElementById('adminDashboardLink');
                 if (dashboardLink) {
                     dashboardLink.classList.remove('hidden');
                 }
-                
+
                 await loadAdminData();
             } else {
                 // 서버 세션 없음 - 로그인 화면
                 localStorage.removeItem('adminAuthenticated');
                 localStorage.removeItem('adminAuthTime');
                 localStorage.removeItem('adminPassword');
-                
+
                 if (authPassword) authPassword.value = '';
                 authSection?.classList.remove('hidden');
                 adminPromptSettingsSection?.classList.add('hidden');
-                
+
                 const dashboardLink = document.getElementById('adminDashboardLink');
                 if (dashboardLink) {
                     dashboardLink.classList.add('hidden');
@@ -4541,17 +4542,17 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.removeItem('adminAuthenticated');
             localStorage.removeItem('adminAuthTime');
             localStorage.removeItem('adminPassword');
-            
+
             if (authPassword) authPassword.value = '';
             authSection?.classList.remove('hidden');
             adminPromptSettingsSection?.classList.add('hidden');
-            
+
             const dashboardLink = document.getElementById('adminDashboardLink');
             if (dashboardLink) {
                 dashboardLink.classList.add('hidden');
             }
         }
-        
+
         populatePromptTextareas();
     }
 
@@ -4579,7 +4580,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function handleAuth(event) {
         event.preventDefault();
         const password = authPassword.value;
-        
+
         try {
             // 백엔드 API로 비밀번호 인증
             const response = await fetch('/api/admin/auth', {
@@ -4587,23 +4588,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ password })
             });
-            
+
             if (response.ok) {
                 // 인증 성공 - localStorage에 세션 저장 (유지)
                 localStorage.setItem('adminAuthenticated', 'true');
                 localStorage.setItem('adminAuthTime', Date.now().toString());
                 localStorage.setItem('adminPassword', password);
-                
+
                 authSection.classList.add('hidden');
                 adminPromptSettingsSection.classList.remove('hidden');
                 showToast('관리자 인증 성공');
-                
+
                 // 🔓 대시보드 링크 표시 (영업 비밀!)
                 const dashboardLink = document.getElementById('adminDashboardLink');
                 if (dashboardLink) {
                     dashboardLink.classList.remove('hidden');
                 }
-                
+
                 // Featured 갤러리 관리 데이터 로드
                 await loadAdminData();
             } else {
@@ -4621,7 +4622,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Featured 갤러리 관리 함수들
     async function loadAdminData() {
         await loadFeaturedList();
-        
+
         // 검색창 이벤트 리스너 추가
         const searchInput = document.getElementById('shareSearchInput');
         if (searchInput) {
@@ -4646,15 +4647,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             resultsContainer.innerHTML = '<p class="text-sm text-gray-400 text-center py-4">검색 중...</p>';
-            
+
             const response = await fetch(`/api/admin/all-shares?search=${encodeURIComponent(query)}`, {
                 credentials: 'include'
             });
-            
+
             if (!response.ok) throw new Error('검색 실패');
-            
+
             const shares = await response.json();
-            
+
             if (!shares || shares.length === 0) {
                 resultsContainer.innerHTML = `
                     <p class="text-sm text-gray-400 text-center py-4">
@@ -4663,7 +4664,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
                 return;
             }
-            
+
             resultsContainer.innerHTML = shares.map(share => `
                 <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-yellow-400 transition-colors">
                     <div class="flex-1 min-w-0">
@@ -4688,7 +4689,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     `}
                 </div>
             `).join('');
-            
+
         } catch (error) {
             console.error('공유 페이지 검색 오류:', error);
             resultsContainer.innerHTML = '<p class="text-sm text-red-400 text-center py-4">검색 중 오류가 발생했습니다</p>';
@@ -4701,21 +4702,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 credentials: 'include'
             });
             if (!response.ok) throw new Error('Failed to load featured');
-            
+
             const featured = await response.json();
-            
+
             const list = document.getElementById('featuredList');
             const count = document.getElementById('featuredCount');
-            
+
             if (count) count.textContent = featured.length;
-            
+
             if (!list) return;
-            
+
             if (!featured || featured.length === 0) {
                 list.innerHTML = '<p class="text-sm text-gray-400">Featured 페이지가 없습니다</p>';
                 return;
             }
-            
+
             list.innerHTML = featured.map(page => `
                 <div class="flex items-center justify-between p-2 bg-yellow-50 rounded">
                     <span class="text-sm font-medium text-gray-800">${page.name}</span>
@@ -4736,21 +4737,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    window.addFeaturedById = async function(shareId) {
+    window.addFeaturedById = async function (shareId) {
         if (!shareId) {
             showToast('공유 페이지를 선택해주세요');
             return;
         }
-        
+
         try {
             const response = await fetch(`/api/admin/featured/${shareId}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include'
             });
-            
+
             const data = await response.json();
-            
+
             if (response.ok) {
                 showToast('Featured에 추가되었습니다!');
                 await loadFeaturedList();
@@ -4768,18 +4769,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    window.removeFeatured = async function(shareId) {
+    window.removeFeatured = async function (shareId) {
         if (!confirm('Featured에서 제거하시겠습니까?')) return;
-        
+
         try {
             const response = await fetch(`/api/admin/featured/${shareId}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include'
             });
-            
+
             const data = await response.json();
-            
+
             if (response.ok) {
                 showToast('Featured에서 제거되었습니다');
                 await loadFeaturedList();
@@ -4793,10 +4794,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Featured 편집 모달
-    window.editFeatured = async function(id) {
+    window.editFeatured = async function (id) {
         try {
             showToast('📝 편집 정보 불러오는 중...');
-            
+
             // 1. 관리자용 API로 데이터 가져오기
             const res = await fetch(`/api/admin/featured/${id}/data`, {
                 credentials: 'include'
@@ -4807,15 +4808,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             const data = await res.json();
             const { page, guides } = data;
-            
+
             console.log('📊 편집 데이터:', { page, guides, guidesCount: guides?.length });
-            
+
             // 2. 모달 입력 필드 채우기
             document.getElementById('editTitle').value = page.name || '';
             document.getElementById('editSender').value = page.sender || '여행자';
             document.getElementById('editLocation').value = page.location || '미지정';
             document.getElementById('editDate').value = page.date || new Date(page.createdAt).toISOString().split('T')[0];
-            
+
             // 3. 모바일 친화적 가이드 리스트 생성 (위/아래 버튼)
             const guideListHtml = guides.map((guide, index) => {
                 const imgSrc = guide.imageUrl || '';
@@ -4832,28 +4833,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
             }).join('');
-            
+
             document.getElementById('guideList').innerHTML = guideListHtml;
-            
+
             // 5. 모달 표시
             document.getElementById('editFeaturedModal').classList.remove('hidden');
-            
+
             // 6. 저장 버튼 클릭 이벤트
             document.getElementById('saveFeaturedBtn').onclick = async () => {
                 const title = document.getElementById('editTitle').value;
                 const sender = document.getElementById('editSender').value;
                 const location = document.getElementById('editLocation').value;
                 const date = document.getElementById('editDate').value;
-                
+
                 if (!title || !sender || !location || !date) {
                     showToast('❌ 모든 필드를 입력해주세요.');
                     return;
                 }
-                
+
                 // 가이드 순서 가져오기 (UUID 문자열로 유지)
                 const guideItems = document.querySelectorAll('.guide-item');
                 const newGuideIds = Array.from(guideItems).map(item => item.dataset.guideId);
-                
+
                 try {
                     showToast('💾 저장 중...');
                     const response = await fetch(`/api/admin/featured/${id}/regenerate`, {
@@ -4868,12 +4869,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             guideIds: newGuideIds
                         })
                     });
-                    
+
                     if (!response.ok) {
                         const errorData = await response.json();
                         throw new Error(errorData.error || 'HTML 재생성 실패');
                     }
-                    
+
                     showToast('✅ Featured 페이지가 업데이트되었습니다!');
                     closeEditModal();
                     loadFeaturedList();
@@ -4889,12 +4890,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // 모달 닫기
-    window.closeEditModal = function() {
+    window.closeEditModal = function () {
         document.getElementById('editFeaturedModal').classList.add('hidden');
     };
 
     // 가이드 위로 이동 (모바일 친화적)
-    window.moveGuideUp = function(button) {
+    window.moveGuideUp = function (button) {
         const item = button.closest('.guide-item');
         const prev = item.previousElementSibling;
         if (prev) {
@@ -4904,7 +4905,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // 가이드 아래로 이동 (모바일 친화적)
-    window.moveGuideDown = function(button) {
+    window.moveGuideDown = function (button) {
         const item = button.closest('.guide-item');
         const next = item.nextElementSibling;
         if (next) {
@@ -4920,11 +4921,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // 번호 업데이트
             const label = item.querySelector('span.font-medium');
             if (label) label.textContent = `가이드 ${index + 1}`;
-            
+
             // 버튼 상태 업데이트
             const upBtn = item.querySelector('button:first-of-type');
             const downBtn = item.querySelector('button:last-of-type');
-            
+
             upBtn.disabled = (index === 0);
             downBtn.disabled = (index === items.length - 1);
         });
@@ -4933,12 +4934,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function savePrompts() {
         const imagePrompt = adminImagePromptTextarea?.value.trim();
         const textPrompt = adminTextPromptTextarea?.value.trim();
-        
+
         if (!imagePrompt || !textPrompt) {
             showToast('모든 프롬프트를 입력해주세요.');
             return;
         }
-        
+
         localStorage.setItem('customImagePrompt', imagePrompt);
         localStorage.setItem('customTextPrompt', textPrompt);
         console.log('💾 프롬프트 저장 완료');
@@ -4982,20 +4983,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const linkEl = document.getElementById('adminNotificationLink');
         const sendBtn = document.getElementById('adminSendNotificationBtn');
         const resultEl = document.getElementById('adminNotificationResult');
-        
+
         const type = typeEl?.value;
         const title = titleEl?.value?.trim();
         const message = messageEl?.value?.trim();
         const link = linkEl?.value?.trim() || null;
-        
+
         if (!title || !message) {
             showToast('제목과 내용을 입력해주세요.');
             return;
         }
-        
+
         if (sendBtn) sendBtn.disabled = true;
         showToast('알림 발송 중...');
-        
+
         try {
             const response = await fetch('/api/admin/notifications/broadcast', {
                 method: 'POST',
@@ -5007,9 +5008,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     link
                 })
             });
-            
+
             const data = await response.json();
-            
+
             if (response.ok && data.success) {
                 showToast(`알림 발송 완료! (푸시: ${data.pushSent}명)`);
                 if (resultEl) {
@@ -5049,7 +5050,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         debounceClick('mic', handleMicButtonClick, 500);
     });
-    
+
     // 🎤 상세페이지 마이크 버튼 (다시 질문) - 메인페이지와 동일 로직
     detailMicBtn?.addEventListener('click', () => {
         // 🔊 음성 재생 즉시 중지 (debounce 전에 실행)
@@ -5059,74 +5060,74 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         debounceClick('detailMic', handleDetailMicClick, 500);
     });
-    
+
     archiveBtn?.addEventListener('click', () => debounceClick('archive', showArchivePage, 300));
     uploadInput?.addEventListener('change', handleFileSelect);
-    
+
     backBtn?.addEventListener('click', () => cameFromArchive ? showArchivePage() : showMainPage());
     archiveBackBtn?.addEventListener('click', showMainPage);
     settingsBackBtn?.addEventListener('click', showArchivePage);
     adminSettingsBackBtn?.addEventListener('click', showSettingsPage);
-    
+
     // 🎬 드림 스튜디오 버튼 - 새 탭으로 열기
     document.getElementById('adminDreamStudioBtn')?.addEventListener('click', () => {
         window.open('./dream-studio.html', '_blank');
     });
-    
+
     // ═══════════════════════════════════════════════════════════════
     // 📱 사용자 설정 페이지 이벤트 핸들러
     // ═══════════════════════════════════════════════════════════════
-    
+
     // 아코디언 토글 버튼들
     document.getElementById('toggle-user-faq')?.addEventListener('click', () => toggleUserSettingsAccordion('faq'));
     document.getElementById('toggle-user-terms')?.addEventListener('click', () => toggleUserSettingsAccordion('terms'));
     document.getElementById('toggle-user-privacy')?.addEventListener('click', () => toggleUserSettingsAccordion('privacy'));
     document.getElementById('toggle-user-thirdparty')?.addEventListener('click', () => toggleUserSettingsAccordion('thirdparty'));
-    
+
     // 푸시 알림 토글
     userPushToggle?.addEventListener('change', handleUserPushToggle);
-    
+
     // 사용 방법 버튼 - 유튜브 영상으로 이동
     userSettingsGuideBtn?.addEventListener('click', () => {
         window.open('https://youtu.be/JJ65XZvBgsk', '_blank');
     });
-    
+
     // QR 코드 모달
     userSettingsQrBtn?.addEventListener('click', openUserQrCodeModal);
     userCopyQrButton?.addEventListener('click', copyUserQrCode);
-    
+
     // 관리자 인증 모달
     userAdminAuthBtn?.addEventListener('click', openUserAdminAuthModal);
     userAdminAuthCancelBtn?.addEventListener('click', closeUserAdminAuthModal);
     userAdminAuthConfirmBtn?.addEventListener('click', handleUserAdminAuth);
-    
+
     // Enter 키로 관리자 인증
     userAdminPassword?.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             handleUserAdminAuth();
         }
     });
-    
+
     // 🌐 언어 선택 이벤트 리스너
     const settingsLanguageSelect = document.getElementById('adminSettingsLanguageSelect');
-    
+
     // 페이지 로드 시 저장된 언어 불러오기
     const savedLang = localStorage.getItem('appLanguage') || 'ko';
     if (settingsLanguageSelect) {
         settingsLanguageSelect.value = savedLang;
     }
-    
+
     // 언어 변경 시 저장 + Google Translate 적용
     settingsLanguageSelect?.addEventListener('change', (e) => {
         const selectedLang = e.target.value;
         console.log('🌐 언어 변경:', selectedLang);
-        
+
         // localStorage에 저장
         localStorage.setItem('appLanguage', selectedLang);
-        
+
         // 🔄 2025-01-22: 프롬프트 캐시 클리어 (AI 응답 언어 버그 수정)
         gemini.clearPromptCache();
-        
+
         // 🔧 2026-01-07: 한국어 선택 시 googtrans 쿠키 완전 삭제 (불어 전환 버그 해결)
         const domain = window.location.hostname;
         if (selectedLang === 'ko') {
@@ -5139,7 +5140,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.cookie = `googtrans=/ko/${selectedLang}; path=/; domain=${domain}`;
             document.cookie = `googtrans=/ko/${selectedLang}; path=/`;
         }
-        
+
         // 토스트 메시지
         const langNames = {
             'ko': '한국어',
@@ -5151,13 +5152,13 @@ document.addEventListener('DOMContentLoaded', () => {
             'es': 'Español'
         };
         showToast(`언어가 ${langNames[selectedLang]}로 변경됩니다...`);
-        
+
         // 페이지 새로고침 (Google Translate 적용)
         setTimeout(() => {
             window.location.reload();
         }, 500);
     });
-    
+
     // 🔓 테스트용 로그아웃 버튼
     const testLogoutBtn = document.getElementById('adminTestLogoutBtn');
     testLogoutBtn?.addEventListener('click', () => {
@@ -5174,7 +5175,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = '/api/auth/logout';
         }
     });
-    
+
     audioBtn?.addEventListener('click', onAudioBtnClick);
     saveBtn?.addEventListener('click', () => debounceClick('save', handleSaveClick, 500));
     textToggleBtn?.addEventListener('click', () => textOverlay.classList.toggle('hidden'));
@@ -5188,16 +5189,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 toggleSelectionMode(true);
                 return;
             }
-            
+
             if (selectedItemIds.length === 0) { // ✅ .size → .length
                 showToast('이미지를 선택해주세요');
                 return;
             }
-            
+
             await handleCreateGuidebookClick();
         }, 600);
     });
-    
+
     // ✅ 삭제 버튼 간편 로직 - 2025.10.02 구현 완료 (디바운스 추가)
     // 핵심: 1회 클릭 → 선택 모드 활성화 / 2회 클릭 (선택 후) → 삭제 실행
     archiveDeleteBtn?.addEventListener('click', async () => {
@@ -5207,16 +5208,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 toggleSelectionMode(true);
                 return;
             }
-            
+
             if (selectedItemIds.length === 0) { // ✅ .size → .length
                 showToast('이미지를 선택해주세요');
                 return;
             }
-            
+
             await handleDeleteSelected();
         }, 600);
     });
-    
+
     // ⚠️ 2025.11.02: 다운로드 버튼 - 공유 페이지 생성 후 바로 열기
     const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
     downloadSelectedBtn?.addEventListener('click', async () => {
@@ -5225,27 +5226,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 showToast('이미지를 선택해주세요');
                 return;
             }
-            
+
             await handleDownloadSelectedGuides();
         }, 600);
     });
-    
+
     // ✅ 설정 페이지 - 앱 내 설정 페이지 열기
     archiveSettingsBtn?.addEventListener('click', () => {
         showSettingsPage();
     });
 
     cancelSelectionBtn?.addEventListener('click', () => toggleSelectionMode(false));
-    
+
     archiveGrid?.addEventListener('click', handleArchiveGridClick);
     archiveGrid?.addEventListener('keydown', handleArchiveGridKeydown);
-    
+
     authForm?.addEventListener('submit', handleAuth);
     adminSavePromptsBtn?.addEventListener('click', savePrompts);
     adminResetPromptsBtn?.addEventListener('click', resetPrompts);
     adminGenerateImageBtn?.addEventListener('click', handleGenerateImageDemo);
     adminGenerateVideoBtn?.addEventListener('click', handleGenerateVideoDemo);
-    
+
     // 🔔 관리자 알림 발송 버튼
     const adminSendNotificationBtn = document.getElementById('adminSendNotificationBtn');
     adminSendNotificationBtn?.addEventListener('click', handleAdminSendNotification);
@@ -5286,26 +5287,26 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
         const isSmallScreen = window.innerWidth < 768;
         const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
+
         // 터치 지원 + 작은 화면 OR 모바일 UserAgent
         return (hasTouch && isSmallScreen) || mobileUA;
     }
 
     googleLoginBtn?.addEventListener('click', () => {
         console.log('🔵 Google 로그인');
-        
+
         // 모바일/PC 모두 새 창 열기 (상태 유지 위해!)
         const width = 500;
         const height = 600;
         const left = (window.screen.width - width) / 2;
         const top = (window.screen.height - height) / 2;
-        
+
         const popup = window.open(
             '/api/auth/google',
             'google_oauth',
             `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`
         );
-        
+
         if (!popup || popup.closed) {
             console.error('❌ 팝업이 차단되었습니다. 같은 탭으로 진행합니다.');
             window.location.href = '/api/auth/google';
@@ -5314,25 +5315,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     kakaoLoginBtn?.addEventListener('click', () => {
         console.log('🔵 Kakao 로그인');
-        
+
         // 모바일/PC 모두 새 창 열기 (상태 유지 위해!)
         const width = 500;
         const height = 600;
         const left = (window.screen.width - width) / 2;
         const top = (window.screen.height - height) / 2;
-        
+
         const popup = window.open(
             '/api/auth/kakao',
             'kakao_oauth',
             `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`
         );
-        
+
         if (!popup || popup.closed) {
             console.error('❌ 팝업이 차단되었습니다. 같은 탭으로 진행합니다.');
             window.location.href = '/api/auth/kakao';
         }
     });
-    
+
     // OAuth 팝업 닫힌 후 인증 상태 확인 및 Featured Gallery 열기
     async function checkAuthAndOpenPendingUrl() {
         try {
@@ -5341,19 +5342,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('✅ 인증 성공!');
                 // 인증 모달 닫기
                 authModal?.classList.add('hidden');
-                
+
                 // 2026-01-22: DB 언어 로드 제거 → localStorage만 사용
-                
+
                 // pendingShareUrl이 있으면 새 창에서 열기 (현재 언어로 다시 적용!)
                 const pendingUrl = localStorage.getItem('pendingShareUrl');
                 if (pendingUrl) {
                     console.log('🎯 Opening pending URL with current language:', pendingUrl);
                     localStorage.removeItem('pendingShareUrl');
-                    
+
                     // 🌐 인증 후 현재 사용자 언어로 URL 다시 적용
                     const translatedUrl = addLangToUrl(pendingUrl);
                     console.log('🌐 Translated URL after auth:', translatedUrl);
-                    
+
                     const newWindow = window.open(translatedUrl, '_blank');
                     if (!newWindow) {
                         console.error('❌ 팝업 차단됨! (Fallback: 현재 탭 리다이렉트)');
@@ -5383,7 +5384,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
 
     // 임시 샘플 데이터 추가 함수 (테스트용)
-    window.addSampleImages = async function() {
+    window.addSampleImages = async function () {
         const sampleData = [
             {
                 id: 'sample-1',
@@ -5399,7 +5400,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.log('Sample already exists or error:', e);
             }
         }
-        
+
         await renderArchive();
         showToast('샘플 이미지가 추가되었습니다!');
         console.log('✅ 샘플 이미지 추가 완료!');
@@ -5410,7 +5411,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // hashchange 이벤트로 정상적인 페이지 전환 → 카메라 상태 유지
     window.addEventListener('hashchange', () => {
         const hash = window.location.hash;
-        
+
         if (hash === '#archive') {
             showArchivePage();
         } else if (hash === '' || hash === '#main') {
@@ -5424,30 +5425,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if ('serviceWorker' in navigator) {
         let isReloading = false;
-        
+
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/service-worker.js')
-              .then(reg => {
-                  console.log('SW registered: ', reg);
-                  
-                  // 새 버전 감지 시 자동 업데이트 (무한 새로고침 방지)
-                  reg.addEventListener('updatefound', () => {
-                      const newWorker = reg.installing;
-                      newWorker.addEventListener('statechange', () => {
-                          if (newWorker.state === 'activated' && !isReloading) {
-                              // 새 버전이 활성화되면 자동으로 페이지 새로고침
-                              if (!navigator.serviceWorker.controller) {
-                                  // 첫 설치일 경우 새로고침하지 않음
-                                  return;
-                              }
-                              console.log('🔄 새 버전 업데이트 완료');
-                          }
-                      });
-                  });
-              })
-              .catch(err => console.log('SW registration failed: ', err));
+                .then(reg => {
+                    console.log('SW registered: ', reg);
+
+                    // 새 버전 감지 시 자동 업데이트 (무한 새로고침 방지)
+                    reg.addEventListener('updatefound', () => {
+                        const newWorker = reg.installing;
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'activated' && !isReloading) {
+                                // 새 버전이 활성화되면 자동으로 페이지 새로고침
+                                if (!navigator.serviceWorker.controller) {
+                                    // 첫 설치일 경우 새로고침하지 않음
+                                    return;
+                                }
+                                console.log('🔄 새 버전 업데이트 완료');
+                            }
+                        });
+                    });
+                })
+                .catch(err => console.log('SW registration failed: ', err));
         });
-        
+
         // Service Worker 제어권 변경 감지 (백그라운드 업데이트) - 무한 새로고침 방지
         // 세션당 한 번만 새로고침 허용
         const swReloadKey = 'sw_reload_done';
