@@ -2602,6 +2602,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 queueForSpeech(sentence, span);
             }
 
+            // ⚠️ 2026-03-05: TTS 큐 준비 완료 → ▶ 버튼 스탠바이
+            updateAudioButton('play');
+
             // 🔒 AI 호출 성공 후 사용량 차감
             await deductUsage('detail');
 
@@ -2824,6 +2827,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 descriptionText.appendChild(span);
                 queueForSpeech(sentence, span);
             }
+
+            // ⚠️ 2026-03-05: TTS 큐 준비 완료 → ▶ 버튼 스탠바이
+            updateAudioButton('play');
 
             // 🎤 음성 가이드 저장 버튼 활성화
             saveBtn.disabled = false;
@@ -3860,9 +3866,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- TTS Functions ---
+    // ⚠️ 2026-03-05: 큐에만 추가 (자동 재생 안 함)
+    // 이유: 앱 브라우저가 자동 음성 차단 + 구글 번역 시간 확보
+    // 사용자가 ▶ 버튼 누르면 onAudioBtnClick() → speakNext()로 재생
     function queueForSpeech(text, element) {
         utteranceQueue.push({ text, element });
-        // 자동 재생 제거 — 텍스트 준비 완료 시 삼각형 버튼이 표시되며 사용자가 직접 탭해 재생
     }
 
     async function speakNext() {
@@ -3966,15 +3974,28 @@ document.addEventListener('DOMContentLoaded', () => {
             utterance.pitch = 1.0;
         }
 
+        // ⚠️ 2026-03-05: 연속 에러 카운터 (무한 루프 방지)
         utterance.onend = () => {
             element.classList.remove('speaking');
+            window.__ttsErrorCount = 0; // 정상 종료 시 카운터 초기화
             if (!isPaused) {
                 speakNext();
             }
         };
 
-        utterance.onerror = () => {
+        utterance.onerror = (e) => {
             element.classList.remove('speaking');
+            window.__ttsErrorCount = (window.__ttsErrorCount || 0) + 1;
+            console.warn('[TTS] 에러 발생:', e?.error, '횟수:', window.__ttsErrorCount);
+            // 연속 3회 에러 시 완전 정지 (무한 루프 방지)
+            if (window.__ttsErrorCount >= 3) {
+                console.error('[TTS] 연속 에러 3회 → TTS 정지');
+                isSpeaking = false;
+                utteranceQueue = [];
+                updateAudioButton('play');
+                window.__ttsErrorCount = 0;
+                return;
+            }
             if (!isPaused) {
                 speakNext();
             }
