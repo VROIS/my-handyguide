@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
+import nodemailer from "nodemailer";
 import { sql, desc } from "drizzle-orm";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupGoogleAuth } from "./googleAuth";
@@ -93,7 +94,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api', (req, res) => {
     res.json({ status: 'ok', message: '내손가이드 API 서버가 정상 작동 중입니다.' });
   });
-  
+
+  app.get('/beta', (req, res) => {
+    res.sendFile(path.join(process.cwd(), 'public', 'beta.html'));
+  });
+
+
   // ═══════════════════════════════════════════════════════════════
   // 🗺️ Google Maps API 키 제공 (2025-10-26)
   // ═══════════════════════════════════════════════════════════════
@@ -726,6 +732,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
   await setupGoogleAuth(app);
   await setupKakaoAuth(app);
+
+  // ═══════════════════════════════════════════════════════════════
+  // 📱 Beta Tester Registration
+  // 목적: /beta 페이지에서 Google 로그인 후 앱 DB에 사용자 저장 + 중복 체크
+  // 구글 그룹스 방식으로 전환 — Play Console API 미사용 (API가 이메일 목록 미지원)
+  // ═══════════════════════════════════════════════════════════════
+  const betaRegisteredEmails = new Set<string>();
+
+  app.post('/api/beta/play-register', async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.session?.passport?.user;
+      if (!userId) return res.status(401).json({ message: 'Not authenticated' });
+
+      const userRecord = await storage.getUser(userId);
+
+      if (!userRecord || !userRecord.email) {
+        return res.status(400).json({ message: 'No email found' });
+      }
+
+      const email = userRecord.email;
+
+      if (betaRegisteredEmails.has(email)) {
+        return res.json({ success: true, alreadyRegistered: true });
+      }
+
+      betaRegisteredEmails.add(email);
+      console.log(`[Beta] 신규 베타 테스터 등록: ${email}`);
+
+      res.json({ success: true, alreadyRegistered: false });
+    } catch (err: any) {
+      console.error('[Beta Register] Error:', err.message);
+      res.status(500).json({ message: 'Registration failed' });
+    }
+  });
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
@@ -3685,8 +3725,8 @@ self.addEventListener('fetch', (event) => {
     }
   });
 
-  // 관리자 전체 알림 발송 (관리자 설정 페이지에서만 접근 가능 - 프론트엔드에서 이미 인증됨)
-  app.post('/api/admin/notifications/broadcast', async (req: any, res) => {
+  // 관리자 전체 알림 발송 (requireAdmin 인증 필수)
+  app.post('/api/admin/notifications/broadcast', requireAdmin, async (req: any, res) => {
     try {
       const { type, title, message, link } = req.body;
       

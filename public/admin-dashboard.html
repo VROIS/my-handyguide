@@ -1745,7 +1745,8 @@
                     this._state.currentUtterance.onerror = null;
                 }
                 if (this._state.synth && this._state.synth.speaking) {
-                    this._state.synth.pause();
+                    const isAndroidChrome = /Android/i.test(navigator.userAgent) && /Chrome/i.test(navigator.userAgent);
+                    if (!isAndroidChrome) { this._state.synth.pause(); }
                     this._state.synth.cancel();
                 }
                 this._updateAudioButtonIcon(false);

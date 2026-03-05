@@ -258,16 +258,22 @@ export async function setupGoogleAuth(app: Express) {
                       window.close();
                     }, 300);
                   } else {
-                    // 기본 리다이렉트
-                    window.location.href = '/#archive';
+                    window.close();
                   }
                 };
 
                 if (isMobile()) {
-                  // 모바일: 버튼 표시
-                  document.getElementById('message').textContent = '아래 버튼을 눌러 돌아가세요';
-                  document.getElementById('closeBtn').style.display = 'inline-block';
-                  document.getElementById('closeBtn').addEventListener('click', closeWindow);
+                  const mobileRedirectUrl = sessionStorage.getItem('authRedirect');
+                  if (mobileRedirectUrl) {
+                    // /beta 등 리다이렉트 플로우: 모바일도 자동 이동
+                    document.getElementById('autoCloseMsg').style.display = 'block';
+                    setTimeout(closeWindow, 500);
+                  } else {
+                    // 일반 인증 모달 플로우: 버튼 표시
+                    document.getElementById('message').textContent = '아래 버튼을 눌러 돌아가세요';
+                    document.getElementById('closeBtn').style.display = 'inline-block';
+                    document.getElementById('closeBtn').addEventListener('click', closeWindow);
+                  }
                 } else {
                   // PC: 자동 닫기
                   document.getElementById('autoCloseMsg').style.display = 'block';

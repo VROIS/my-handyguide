@@ -86,6 +86,10 @@ var isSpeaking = window.__shareIsSpeaking;
 var isPaused = window.__shareIsPaused;
 var currentlySpeakingElement = window.__shareCurrentElement;
 var lastAudioClickTime = window.__shareLastClickTime;
+var voices = [];
+
+// Android Chrome 감지 (Chromium bug #679437: pause/resume TTS 완전 먹통)
+var isAndroidChrome = /Android/i.test(navigator.userAgent) && /Chrome/i.test(navigator.userAgent);
 
 // ═══════════════════════════════════════════════════════════════
 // 🔊 표준 음성 로직 (2025-12-24) - guideDetailPage.js와 동일
@@ -491,7 +495,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // ⭐ 한국어 하드코딩 (iOS: Yuna/Sora, Android: 유나/소라, Windows: Heami)
 function getOptimalKoreanVoice() {
-    const allVoices = window.speechSynthesis.getVoices();
+    const allVoices = (voices && voices.length > 0) ? voices : window.speechSynthesis.getVoices();
     const koVoices = allVoices.filter(v => v.lang.startsWith('ko'));
     
     // Yuna → Sora → 유나 → 소라 → Heami → 첫 번째 한국어 음성
@@ -601,8 +605,8 @@ async function playNextInQueue() {
     
     console.log('[TTS] 수신자 언어:', userLang, '→', langCode);
     
-    // 🌐 앱 언어 기준 음성 선택 (index.js와 동일)
-    const allVoices = window.speechSynthesis.getVoices();
+    // 🌐 앱 언어 기준 음성 선택 (onvoiceschanged 캐시 우선, Android 초기 빈 배열 방지)
+    const allVoices = (voices && voices.length > 0) ? voices : window.speechSynthesis.getVoices();
     let targetVoice = null;
     
     if (langCode === 'ko-KR') {
@@ -678,13 +682,25 @@ function handleAudioButtonClick() {
     if (!isSpeaking && !isPaused && utteranceQueue.length === 0) {
         restartAudio();
     } else if (isSpeaking && !isPaused) {
-        isPaused = true;
-        window.speechSynthesis.pause();
-        updateAudioButton('play');
+        if (isAndroidChrome) {
+            // Android Chrome: pause()가 TTS를 완전히 멈춤 (Chromium bug #679437)
+            // 대신 완전 정지 → 버튼 누르면 처음부터 재시작
+            stopSpeech();
+            updateAudioButton('play');
+        } else {
+            isPaused = true;
+            window.speechSynthesis.pause();
+            updateAudioButton('play');
+        }
     } else if (isSpeaking && isPaused) {
-        isPaused = false;
-        window.speechSynthesis.resume();
-        updateAudioButton('pause');
+        if (isAndroidChrome) {
+            // Android Chrome: resume()도 동작 안 함 → 처음부터 재시작
+            restartAudio();
+        } else {
+            isPaused = false;
+            window.speechSynthesis.resume();
+            updateAudioButton('pause');
+        }
     }
 }
 
@@ -787,8 +803,6 @@ async function populateShareDetailPage(item) {
         queueForSpeech(text, span);
     });
 
-    updateAudioButton('play');
-    
     // 상세페이지 표시 (보관함과 동일)
     shareDetailPage.classList.add('visible');
 }

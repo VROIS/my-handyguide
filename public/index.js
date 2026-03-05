@@ -497,17 +497,42 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch('/api/auth/user', { credentials: 'include' });
             if (response.ok) {
                 const data = await response.json();
-                // 서버가 200 OK + 사용자 객체를 반환하면 인증된 것
+                let user = null;
                 if (data && (data.id || data.email)) {
-                    console.log('✅ 인증된 사용자:', data.email || data.id);
-                    return data;
+                    user = data;
+                } else if (data.authenticated && data.user) {
+                    user = data.user;
                 }
-                // 또는 authenticated 필드가 있는 경우
-                return data.authenticated ? data.user : null;
+                if (user) {
+                    console.log('✅ 인증된 사용자:', user.email || user.id);
+                    try {
+                        localStorage.setItem('cachedUser', JSON.stringify({
+                            id: user.id,
+                            name: user.name || user.displayName,
+                            email: user.email,
+                            provider: user.provider
+                        }));
+                    } catch(e) {}
+                    return user;
+                }
+                localStorage.removeItem('cachedUser');
+                return null;
+            }
+            const cached = localStorage.getItem('cachedUser');
+            if (cached) {
+                try {
+                    const parsedUser = JSON.parse(cached);
+                    console.log('📦 캐시된 인증 사용:', parsedUser.email || parsedUser.id);
+                    return parsedUser;
+                } catch(e) {}
             }
             return null;
         } catch (error) {
             console.error('Auth check error:', error);
+            const cached = localStorage.getItem('cachedUser');
+            if (cached) {
+                try { return JSON.parse(cached); } catch(e) {}
+            }
             return null;
         }
     }
@@ -2140,6 +2165,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 authModal?.classList.add('pointer-events-none');
                 authModal?.classList.remove('pointer-events-auto');
                 console.log('✅ Auth modal closed - user is authenticated');
+
+                // /beta 경유 로그인: 베타 등록 백그라운드 처리
+                const betaSource = sessionStorage.getItem('betaSource');
+                if (betaSource === '1') {
+                    sessionStorage.removeItem('betaSource');
+                    fetch('/api/beta/play-register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lang: localStorage.getItem('appLanguage') || 'ko' })
+                    }).catch(() => {});
+                }
                 
                 // 대기 중인 공유 URL이 있으면 새 창에서 열기
                 const pendingUrl = localStorage.getItem('pendingShareUrl');
@@ -3826,9 +3862,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- TTS Functions ---
     function queueForSpeech(text, element) {
         utteranceQueue.push({ text, element });
-        if (!isSpeaking) {
-            speakNext();
-        }
+        // 자동 재생 제거 — 텍스트 준비 완료 시 삼각형 버튼이 표시되며 사용자가 직접 탭해 재생
     }
 
     async function speakNext() {
@@ -5136,6 +5170,7 @@ document.addEventListener('DOMContentLoaded', () => {
             localStorage.removeItem('adminPassword');
             localStorage.removeItem('guestDetailUsage');
             localStorage.removeItem('guestShareUsage');
+            localStorage.removeItem('cachedUser');
             window.location.href = '/api/auth/logout';
         }
     });

@@ -7,6 +7,9 @@ import path from 'path';
 
 const app = express();
 
+// 프록시 신뢰 설정 - HTTPS 쿠키 정상 동작 (세션 유지)
+app.set("trust proxy", 1);
+
 // 🚀 Gzip 압축 - 모든 응답 자동 압축 (파일 크기 60-70% 감소)
 app.use(compression({ level: 6 }));
 
@@ -263,6 +266,8 @@ app.get('/s/:id', async (req, res) => {
 });
 
 (async () => {
+  console.log('[startup] Server initialization started');
+
   // 🔧 Ensure temp-user-id exists for share functionality
   try {
     const tempUser = await storage.getUser('temp-user-id');
@@ -352,6 +357,11 @@ app.get('/s/:id', async (req, res) => {
     res.sendFile('download.html', { root: publicDir });
   });
   
+  app.get('/privacy.html', (req, res) => {
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.sendFile('privacy.html', { root: publicDir });
+  });
+  
   // 🔧 [공유링크 임시 비활성화] SEO 친화적 URL은 추후 구현 예정
 
   const server = await registerRoutes(app);
@@ -386,6 +396,10 @@ app.get('/s/:id', async (req, res) => {
     host: "0.0.0.0",
     reusePort: true,
   }, () => {
+    console.log(`[startup] Server listening on port ${port}`);
     log(`serving on port ${port}`);
   });
-})();
+})().catch((err) => {
+  console.error('[startup] Fatal startup error:', err);
+  process.exit(1);
+});

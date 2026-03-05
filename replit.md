@@ -102,3 +102,37 @@ Prioritizes specific voice names for Korean (Yuna, Sora, Heami) and uses a `voic
 - **기록 항목**: 시간, 사용자ID, 응답시간(ms), 성공여부, 추정비용($0.015/call)
 - **대시보드 연동**: `/api/admin/overview`, `/api/admin/stats`가 `api_logs`에서 실시간 데이터 조회
 - **과거 데이터**: 버그 기간(2025-12-11~2026-02-01) AI 호출은 추적 불가 (api_logs 비어있음)
+
+## Google Play Store 출시 준비 (2026-02-20)
+
+### Android 앱 배포 현황
+- **패키지명**: com.sonanie.guide
+- **Expo 계정**: vrois (EXPO_TOKEN 설정 완료)
+- **AAB 빌드**: 40MB, EAS Build + 로컬 keystore로 빌드 완료
+- **keystore 파일**: `mobile-app/keystore.jks`, `mobile-app/credentials.json`
+- **스토어 리스팅**: 한국어(ko-KR) 설명, 스크린샷, Feature Graphic 등록 완료
+- **내부 테스트**: 승인 및 라이브
+- **비공개 테스트 (Alpha)**: 승인 및 라이브, 테스터 2명 등록
+- **정식 출시 조건**: 12명 이상 테스터가 14일간 참여 필요
+- **테스트 링크**: https://play.google.com/apps/testing/com.sonanie.guide
+
+### 베타 테스터 모집 이메일 발송 (2026-02-20)
+- **대상**: 프로덕션 DB 기존 회원 29명 (Gmail 25개 + 교육기관 4개)
+- **발송 도구**: Nodemailer + Gmail 앱 비밀번호 (GMAIL_APP_PASSWORD)
+- **발송 스크립트**: `scripts/send-beta-emails.cjs`
+- **결과**: 29건 전부 성공, 실패 0건
+- **이메일 내용**: 베타 테스트 참여 안내 + 무료 100 크레딧 혜택 (기존 가입자는 이미 크레딧 보유)
+- **발신자**: dbstour1@gmail.com ("손안의 가이드")
+
+### 종합 점검 결과 (2026-02-20)
+- **프로덕션 서버**: 정상 가동, 에러 로그 없음 (독립 VM 배포)
+- **데이터베이스**: 14개 테이블 정상, 크레딧 정합성 확인 (2026-02-01 초기화 영향으로 거래내역과 차이 있으나 정상)
+- **마이너스 크레딧**: dbstour1@gmail.com (관리자) -68 크레딧 → 관리자는 차감 제외라 문제 없음
+- **크레딧 차감 로직**: 정상 작동 확인 (2026-02-01 버그 수정 이후)
+- **보안 수정**: `/api/admin/notifications/broadcast`에 `requireAdmin` 인증 추가 (기존에는 인증 없이 누구나 전체 푸시 알림 발송 가능했음)
+- **LSP 경고 3건**: Dream Studio 비디오 메타데이터 저장 시 `req.user?.id` 타입 오류 (동작에는 영향 없음)
+- **Analytics (지난 2주)**: 58개 고유 IP, 2월 11일 스파이크 (QR 배포로 30명 신규 가입), 응답 대부분 49ms 이하
+
+### 향후 계획
+- Google Play 비공개 테스트 14일 대기 (목표: 2026년 3월 초 정식 출시)
+- Apple App Store 출시 검토 중 (Replit 대행 서비스 또는 직접 제출)
