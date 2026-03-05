@@ -7,7 +7,7 @@ channel = "stable-24_05"
 packages = ["unzip", "jdk17"]
 
 [deployment]
-deploymentTarget = "autoscale"
+deploymentTarget = "vm"
 build = ["npm", "run", "build"]
 run = ["npm", "run", "start"]
 
