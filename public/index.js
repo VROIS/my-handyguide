@@ -1650,7 +1650,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function resetSpeechState() {
         // 🧹 메모리 최적화: 이전 음성 완전 정리 (2025-10-05)
-        synth.cancel(); // 모든 대기 중인 음성 취소
+        synth.cancel();
+        // ⚠️ 2026-03-06: iOS Safari에서 cancel() 후 paused=true 고착 방지
+        if (synth.paused) {
+            synth.resume();
+            synth.cancel();
+        }
         utteranceQueue = [];
         isSpeaking = false;
         isPaused = false;
@@ -4013,12 +4018,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!currentContent.description) return;
 
-        if (synth.paused) {
-            synth.resume();
-            isPaused = false;
-            updateAudioButton('pause');
-            return;
-        }
+        // ⚠️ 2026-03-06: synth.paused 단독 체크 제거 (iOS Safari 버그)
+        // iOS Safari에서 synth.cancel() 후 synth.paused가 true로 고착됨
+        // → 추가 질문 후 음성 버튼이 먹통되는 원인
+        // 일시정지/재개는 아래 isSpeaking && isPaused에서 정상 처리
 
         if (isSpeaking) {
             if (isPaused) {
