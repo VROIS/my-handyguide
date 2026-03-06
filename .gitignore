@@ -16,6 +16,9 @@ attached_assets/
 *.PNG
 *.JPG
 
+# 모바일 앱 에셋은 EAS 빌드에 필수
+!mobile-app/assets/*.png
+
 # Uploads
 uploads/
 public/shared/*.bak

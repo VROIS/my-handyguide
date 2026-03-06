@@ -14,7 +14,15 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sonanie.guide"
+      "bundleIdentifier": "com.sonanie.guide",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSCameraUsageDescription": "AI 여행 가이드를 위해 카메라로 장소나 음식을 촬영합니다.",
+        "NSMicrophoneUsageDescription": "음성으로 여행 질문을 할 수 있습니다.",
+        "NSLocationWhenInUseUsageDescription": "현재 위치 주변의 관광 정보를 제공합니다.",
+        "NSPhotoLibraryUsageDescription": "갤러리에서 사진을 선택하여 AI 분석을 합니다.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {

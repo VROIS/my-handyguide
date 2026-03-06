@@ -29,10 +29,20 @@
         "buildType": "app-bundle",
         "credentialsSource": "local",
         "image": "ubuntu-22.04-jdk-17-ndk-r26b"
+      },
+      "ios": {
+        "credentialsSource": "remote",
+        "autoIncrement": true
       }
     }
   },
   "submit": {
-    "production": {}
+    "production": {
+      "ios": {
+        "appleId": "",
+        "ascAppId": "",
+        "appleTeamId": ""
+      }
+    }
   }
 }

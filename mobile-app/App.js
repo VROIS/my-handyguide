@@ -1,12 +1,14 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, SafeAreaView, Platform, BackHandler, Linking } from 'react-native';
+import { StyleSheet, SafeAreaView, Platform, BackHandler } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useRef, useEffect } from 'react';
 import Constants from 'expo-constants';
 
 const WEB_APP_URL = Constants.expoConfig?.extra?.webAppUrl || 'https://my-handyguide.replit.app';
 
-const CHROME_USER_AGENT =
+// iOS: 기본 Safari UA 사용 (Apple 심사에서 UA 위조 시 거절 가능)
+// Android: Chrome UA 강제 (WebView 호환성)
+const ANDROID_USER_AGENT =
   'Mozilla/5.0 (Linux; Android 10; Android SDK built for x86) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.6099.230 Mobile Safari/537.36';
 
 export default function App() {
@@ -42,7 +44,7 @@ export default function App() {
         cacheEnabled={true}
         originWhitelist={['*']}
         mixedContentMode="compatibility"
-        userAgent={CHROME_USER_AGENT}
+        {...(Platform.OS === 'android' && { userAgent: ANDROID_USER_AGENT })}
       />
     </SafeAreaView>
   );
