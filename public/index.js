@@ -3837,6 +3837,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const description = item.description || '';
+            currentContent.description = description; // ⚠️ 2026-03-05: 보관함에서도 currentContent 동기화
             const sentences = description.match(/[^.?!]+[.?!]+/g) || [description];
 
             // 🌐 2025-12-24: DOM에 콘텐츠 먼저 추가
@@ -4032,25 +4033,30 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // 새로 재생 시작
-        // ⚠️ 중요: synth.cancel()을 부르지 않음 (YouTube 패턴)
-        // 이유: cancel() 직후 speak() 호출 시 Android WebView TTS 엔진이 "interrupted" 에러 발생
-        // isSpeaking=false 확인 후 진입하므로 TTS 엔진이 이미 유휴 상태 → cancel 불필요
-        utteranceQueue = [];
-        isSpeaking = false;
-        isPaused = false;
-        if (currentlySpeakingElement) {
-            currentlySpeakingElement.classList.remove('speaking');
-            currentlySpeakingElement = null;
-        }
-        const sentences = currentContent.description.split(/[.?!]/).filter(s => s.trim());
-        const spans = descriptionText.querySelectorAll('span');
+        // Start fresh playback
+        resetSpeechState();
 
-        sentences.forEach((sentence, index) => {
-            if (sentence.trim() && spans[index]) {
-                queueForSpeech(sentence.trim(), spans[index]);
-            }
-        });
+        // ⚠️ 2026-03-05: 큐 재생성 로직 강력 수정 (AI 응답 후 버튼 누를 때 큐가 비어있는 문제 해결)
+        // DOM에 있는 span들을 직접 순회하여 큐에 복구
+        const spans = Array.from(descriptionText.querySelectorAll('span'));
+
+        if (spans.length > 0) {
+            // span이 있으면 그 span들을 다시 큐에 넣음 (문장 하이라이트 유지)
+            spans.forEach(span => {
+                const text = span.textContent.trim();
+                if (text) {
+                    queueForSpeech(text, span);
+                }
+            });
+        } else if (currentContent.description) {
+            // span이 없지만 description은 있다면 (fallback)
+            const sentences = currentContent.description.split(/[.?!]/).filter(s => s.trim());
+            sentences.forEach(sentence => {
+                if (sentence.trim()) {
+                    queueForSpeech(sentence.trim(), descriptionText);
+                }
+            });
+        }
         speakNext();
     }
 
