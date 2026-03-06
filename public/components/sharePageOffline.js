@@ -49,7 +49,6 @@ const SharePageOffline = {
         var lang = params.get('lang') || 'ko';
         var cacheKey = shareId + '_' + lang;
         
-        console.log('📴 [오프라인] 캐시 키:', cacheKey);
         
         // IndexedDB 열기
         function openDB() {
@@ -57,7 +56,6 @@ const SharePageOffline = {
                 var request = indexedDB.open(DB_NAME, DB_VERSION);
                 
                 request.onerror = function() {
-                    console.warn('📴 [오프라인] IndexedDB 열기 실패');
                     reject(request.error);
                 };
                 
@@ -91,9 +89,7 @@ const SharePageOffline = {
                 };
                 
                 store.put(data);
-                console.log('📴 [오프라인] 저장 완료:', cacheKey, items.length + '개 아이템');
             }).catch(function(err) {
-                console.warn('📴 [오프라인] 저장 실패:', err);
             });
         };
         
@@ -107,7 +103,6 @@ const SharePageOffline = {
                     
                     request.onsuccess = function() {
                         if (request.result) {
-                            console.log('📴 [오프라인] 로드 성공:', cacheKey);
                             resolve(request.result);
                         } else {
                             resolve(null);
@@ -155,10 +150,8 @@ const SharePageOffline = {
         // 오프라인 시 저장된 데이터 로드
         document.addEventListener('DOMContentLoaded', function() {
             if (!window.isOnline()) {
-                console.log('📴 [오프라인] 오프라인 모드 - 캐시에서 로드 시도');
                 window.loadTranslation().then(function(cached) {
                     if (cached && cached.items) {
-                        console.log('📴 [오프라인] 캐시된 번역 적용:', cached.items.length + '개');
                         window.__cachedTranslation = cached;
                         window.__translationComplete = true;
                         window.dispatchEvent(new CustomEvent('translationComplete', { 

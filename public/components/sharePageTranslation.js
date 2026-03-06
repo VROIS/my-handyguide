@@ -67,7 +67,6 @@ const SharePageTranslation = {
         window.__translationComplete = !targetLang || urlLang === 'ko'; // 한국어면 바로 완료
         
         if (targetLang && urlLang !== 'ko') {
-            console.log('🌐 [번역+TTS] 대상 언어:', targetLang);
         }
         
         // 번역 완료 감지 (MutationObserver)
@@ -84,7 +83,6 @@ const SharePageTranslation = {
                                         document.body.classList.contains('translated-rtl');
                 
                 if (hasTranslateClass || (htmlLang && htmlLang !== 'ko')) {
-                    console.log('🌐 [번역+TTS] 번역 완료 감지!');
                     window.__translationComplete = true;
                     observer.disconnect();
                     
@@ -99,7 +97,6 @@ const SharePageTranslation = {
             // 3초 후에도 번역 안되면 타임아웃 (오프라인 등)
             setTimeout(function() {
                 if (!window.__translationComplete) {
-                    console.log('🌐 [번역+TTS] 번역 타임아웃 - 원본 사용');
                     window.__translationComplete = true;
                     observer.disconnect();
                     window.dispatchEvent(new CustomEvent('translationComplete', { detail: { lang: targetLang, timeout: true } }));
@@ -111,7 +108,6 @@ const SharePageTranslation = {
         window.playTranslatedAudio = function(originalText, voiceLang, textElementId) {
             // 번역 완료 대기
             if (!window.__translationComplete) {
-                console.log('🌐 [번역+TTS] 번역 대기 중...');
                 window.addEventListener('translationComplete', function handler() {
                     window.removeEventListener('translationComplete', handler);
                     window.playTranslatedAudio(originalText, voiceLang, textElementId);
@@ -126,7 +122,6 @@ const SharePageTranslation = {
             var textEl = textElementId ? document.getElementById(textElementId) : null;
             var finalText = textEl ? textEl.textContent : originalText;
             
-            console.log('🎤 [번역+TTS] 재생:', finalLang, '길이:', finalText.length);
             
             // 기존 playAudio 호출 (voiceLang 오버라이드)
             if (window.__originalPlayAudio) {
@@ -189,7 +184,6 @@ const SharePageTranslation = {
                 var domain = window.location.hostname;
                 document.cookie = 'googtrans=/ko/' + lang + ';path=/;domain=' + domain;
                 document.cookie = 'googtrans=/ko/' + lang + ';path=/';
-                console.log('🌐 [쿠키] googtrans 설정 (appLanguage 우선):', lang);
             }
         })();
     </script>`;

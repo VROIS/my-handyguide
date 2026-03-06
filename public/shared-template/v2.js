@@ -66,8 +66,6 @@ if (includeAudio) {
         if (targetVoice) currentUtterance.voice = targetVoice;
         currentUtterance.lang = 'ko-KR';
         currentUtterance.rate = 1.0;
-        console.log('🎤 [한국어] 음성:', targetVoice?.name || 'default');
-        
         const playIcon = document.getElementById('play-icon');
         const pauseIcon = document.getElementById('pause-icon');
         

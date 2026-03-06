@@ -5,7 +5,6 @@
 (function() {
     // legacyPlayAudio 함수는 아직 정의되지 않았으므로 나중에 호출
     window.playAudio = async function(text, voiceLang) {
-        console.log('[playAudio Override] ⭐ 인라인 스크립트 호출 가로채기! 원본:', text?.substring(0, 30));
         // legacyPlayAudio가 정의되면 호출, 아니면 대기
         if (typeof legacyPlayAudio === 'function') {
             await legacyPlayAudio();
@@ -21,11 +20,9 @@
             if (typeof legacyPlayAudio === 'function') {
                 await legacyPlayAudio();
             } else {
-                console.warn('[playAudio Override] legacyPlayAudio 함수 없음');
             }
         }
     };
-    console.log('[share-page.js] ⭐ window.playAudio 즉시 덮어쓰기 완료');
 })();
 
 // 🌐 2025-12-27: 수신자 디바이스 언어 감지 우선 (앱 미설치 사용자 지원)
@@ -54,14 +51,7 @@
         
         // 전역 변수로 저장 (다른 함수에서 사용)
         window.__detectedUserLang = targetLang;
-        
-        console.log('🌐 [share-page.js] 수신자 언어 감지:', {
-            appLanguage: storedLang,
-            deviceLang: deviceLang,
-            targetLang: targetLang
-        });
     } catch(e) {
-        console.warn('🌐 [share-page.js] 언어 감지 실패:', e.message);
         window.__detectedUserLang = 'ko';
     }
 })();
@@ -136,10 +126,8 @@ async function loadVoiceConfigsFromDB() {
                     excludeVoices: config.excludeVoices || []
                 };
             }
-            console.log('🔊 [SharePage Voice DB] 설정 로드 완료:', Object.keys(voiceConfigsCache));
         }
     } catch (error) {
-        console.warn('🔊 [SharePage Voice DB] 로드 실패, 기본값 사용:', error.message);
     }
     voiceConfigsLoading = false;
     return voiceConfigsCache;
@@ -193,7 +181,6 @@ function getVoiceForLanguage(userLang) {
         );
     }
     
-    console.log('[SharePage TTS] userLang:', userLang, 'fullLang:', fullLang, '→ voice:', targetVoice?.name);
     return targetVoice || allVoices[0];
 }
 
@@ -281,13 +268,11 @@ async function retranslateNewContent() {
         const selectElement = document.querySelector('.goog-te-combo');
         
         if (!selectElement || !selectElement.value) {
-            console.log('[Share Retranslate] Google Translate 드롭다운 비활성 - 스킵');
             resolve();
             return;
         }
         
         const currentLang = selectElement.value;
-        console.log('[Share Retranslate] 🔄 강제 재번역 시작:', currentLang);
         retranslationPending = true;
         
         selectElement.value = '';
@@ -298,7 +283,6 @@ async function retranslateNewContent() {
             selectElement.dispatchEvent(new Event('change'));
             
             setTimeout(() => {
-                console.log('[Share Retranslate] ✅ 재번역 완료');
                 retranslationPending = false;
                 window.dispatchEvent(new CustomEvent('shareRetranslationComplete'));
                 resolve();
@@ -310,7 +294,6 @@ async function retranslateNewContent() {
 async function waitForRetranslation() {
     if (!retranslationPending) return;
     
-    console.log('[Share TTS] 재번역 완료 대기 중...');
     await new Promise(resolve => {
         const handler = () => {
             window.removeEventListener('shareRetranslationComplete', handler);
@@ -361,17 +344,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const shareData = response.json ? await response.json() : response;
         
-        console.log('🔍 Received shareData:', shareData);
-        console.log('🔍 shareData.name:', shareData.name);
-        console.log('🔍 shareData.linkName:', shareData.linkName);
-        console.log('🔍 shareData keys:', Object.keys(shareData));
         
         // 🔄 오프라인 지원: 로컬스토리지에 데이터 저장
         try {
             localStorage.setItem(`share-${shareId}`, JSON.stringify(shareData));
-            console.log('💾 공유 데이터를 로컬스토리지에 저장했습니다:', shareId);
         } catch (e) {
-            console.warn('로컬스토리지 저장 실패:', e);
         }
         
         if (!shareData || !shareData.contents || shareData.contents.length === 0) {
@@ -431,12 +408,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // 보관함과 동일한 클릭 이벤트
             itemDiv.addEventListener('click', () => {
-                console.log('Item clicked:', content);
                 populateShareDetailPage(content);
             });
         });
 
-        console.log('Setting up detail page event listeners...');
         // 상세페이지 이벤트 리스너 - 보관함과 100% 동일
         setupDetailPageEventListeners();
 
@@ -451,7 +426,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             
             if (cachedData) {
                 const shareData = JSON.parse(cachedData);
-                console.log('📦 오프라인 모드: 로컬스토리지에서 데이터 복구:', shareId);
                 
                 // 타이틀과 설명 설정
                 descriptionEl.textContent = shareData.name || '공유된 가이드북 (오프라인)';
@@ -474,7 +448,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     contentContainer.appendChild(itemDiv);
 
                     itemDiv.addEventListener('click', () => {
-                        console.log('Item clicked (offline):', content);
                         populateShareDetailPage(content);
                     });
                 });
@@ -483,7 +456,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 return; // 성공적으로 복구됨
             }
         } catch (localError) {
-            console.warn('로컬스토리지 복구 실패:', localError);
         }
         
         // 로컬스토리지에서도 복구 실패
@@ -506,7 +478,6 @@ function getOptimalKoreanVoice() {
                      || koVoices.find(v => v.name.includes('Heami'))
                      || koVoices[0];
     
-    console.log('🎤 [한국어] 음성:', targetVoice?.name || 'default', '(전체 한국어 음성:', koVoices.length + '개)');
     return targetVoice;
 }
 
@@ -580,7 +551,6 @@ async function playNextInQueue() {
     // 🌐 2025-12-24: 동적 콘텐츠 재번역 완료 대기 (언어 무관 - 조건 제거)
     await waitForRetranslation();
     if (retranslationPending) {
-        console.log('[TTS] 재번역 완료 후 TTS 시작');
     }
     
     isSpeaking = true;
@@ -591,19 +561,16 @@ async function playNextInQueue() {
     const fontEl = element.querySelector('font');
     if (fontEl) {
         translatedText = fontEl.innerText.trim() || fontEl.textContent.trim() || utterance.text;
-        console.log('[TTS] Google Translate <font> 태그에서 번역 텍스트 추출');
     } else {
         translatedText = element.innerText.trim() || utterance.text;
     }
     utterance.text = translatedText;
-    console.log('[TTS] 번역된 텍스트 사용:', translatedText.substring(0, 30) + '...');
     
     // 🌐 2025-12-27: 수신자 디바이스 언어 감지 우선 (앱 미설치 사용자 지원)
     const userLang = window.__detectedUserLang || localStorage.getItem('appLanguage') || 'ko';
     const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
     const langCode = langCodeMap[userLang] || 'ko-KR';
     
-    console.log('[TTS] 수신자 언어:', userLang, '→', langCode);
     
     // 🌐 앱 언어 기준 음성 선택 (onvoiceschanged 캐시 우선, Android 초기 빈 배열 방지)
     const allVoices = (voices && voices.length > 0) ? voices : window.speechSynthesis.getVoices();
@@ -618,7 +585,6 @@ async function playNextInQueue() {
                    || koVoices.find(v => v.name.includes('소라'))
                    || koVoices.find(v => v.name.includes('Heami'))
                    || koVoices[0];
-        console.log('🎤 [한국어] 음성:', targetVoice?.name || 'default');
     } else {
         // 다른 6개 언어는 DB 기반 유지
         const voiceConfig = getVoicePriorityFromDB(langCode);
@@ -635,7 +601,6 @@ async function playNextInQueue() {
         if (!targetVoice) {
             targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
         }
-        console.log('[TTS] 언어:', langCode, '음성:', targetVoice?.name || 'default');
     }
     
     utterance.voice = targetVoice || null;
@@ -747,7 +712,6 @@ function updateAudioButton(state) {
 
 // === 보관함의 populateDetailPageFromArchive를 그대로 복사 ===
 async function populateShareDetailPage(item) {
-    console.log('populateShareDetailPage called:', item);
     
     // 보관함과 100% 동일한 음성 중지 로직
     stopSpeech();
@@ -808,7 +772,6 @@ async function populateShareDetailPage(item) {
 }
 
 function hideShareDetailPage() {
-    console.log('hideShareDetailPage called');
     stopSpeech(); // 보관함과 동일한 음성 중지
     
     const shareDetailPage = document.getElementById('shareDetailPage');
@@ -824,41 +787,31 @@ function setupDetailPageEventListeners() {
     const shareTextToggleBtn = document.getElementById('shareTextToggleBtn');
     const shareHomeBtn = document.getElementById('shareHomeBtn');
     
-    console.log('Found shareBackBtn:', !!shareBackBtn);
-    console.log('Found shareAudioBtn:', !!shareAudioBtn);
-    console.log('Found shareTextToggleBtn:', !!shareTextToggleBtn);
-    console.log('Found shareHomeBtn:', !!shareHomeBtn);
     
     if (shareBackBtn) {
         shareBackBtn.addEventListener('click', () => {
-            console.log('Back button clicked');
             hideShareDetailPage();
         });
     }
     
     if (shareAudioBtn) {
         shareAudioBtn.addEventListener('click', () => {
-            console.log('Audio button clicked');
             onShareAudioBtnClick();
         });
     }
     
     if (shareTextToggleBtn) {
         shareTextToggleBtn.addEventListener('click', () => {
-            console.log('Text toggle button clicked');
             const textOverlay = document.getElementById('shareTextOverlay');
             if (textOverlay) {
                 textOverlay.classList.toggle('hidden');
-                console.log('Text overlay toggled, hidden:', textOverlay.classList.contains('hidden'));
             } else {
-                console.log('shareTextOverlay not found');
             }
         });
     }
     
     if (shareHomeBtn) {
         shareHomeBtn.addEventListener('click', () => {
-            console.log('Home button clicked');
             window.open('/', '_blank');
         });
     }
@@ -899,27 +852,22 @@ function setupLegacyPageSupport() {
     // 신버전 요소가 있으면 구버전 로직 스킵
     const newAudioBtn = document.getElementById('shareAudioBtn');
     if (newAudioBtn) {
-        console.log('[Legacy] 신버전 페이지 감지 - 구버전 로직 스킵');
         return;
     }
     
     if (!legacyAudioBtn && !legacyDescriptionEl) {
-        console.log('[Legacy] 구버전 요소 없음 - 스킵');
         return;
     }
     
-    console.log('[Legacy] 🔄 구버전 DB 페이지 감지! TTS 로직 적용');
     
     // ⭐ window.playAudio는 이미 파일 최상단 IIFE에서 즉시 덮어씀 (DOMContentLoaded 대기 없음)
     // 여기서는 추가 작업 없음
-    console.log('[Legacy] ⭐ window.playAudio 덮어쓰기는 이미 완료됨 (최상단 IIFE)');
 }
 
 // 구버전 페이지용 TTS 재생 함수
 async function legacyPlayAudio() {
     const descriptionEl = document.getElementById('detail-description');
     if (!descriptionEl) {
-        console.warn('[Legacy TTS] detail-description 요소 없음');
         return;
     }
     
@@ -949,17 +897,14 @@ async function legacyPlayAudio() {
     const fontEl = descriptionEl.querySelector('font');
     if (fontEl) {
         translatedText = fontEl.innerText.trim() || fontEl.textContent.trim();
-        console.log('[Legacy TTS] <font> 태그에서 번역 텍스트 추출');
     } else {
         translatedText = descriptionEl.innerText.trim() || descriptionEl.textContent.trim();
     }
     
     if (!translatedText) {
-        console.warn('[Legacy TTS] 텍스트 없음');
         return;
     }
     
-    console.log('[Legacy TTS] 텍스트 길이:', translatedText.length);
     
     // 🌐 2025-12-27: 수신자 디바이스 언어 감지 우선 (앱 미설치 사용자 지원)
     // window.__detectedUserLang는 페이지 로드 시 감지됨 (appLanguage > navigator.language > 'ko')
@@ -967,7 +912,6 @@ async function legacyPlayAudio() {
     const langCodeMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
     const langCode = langCodeMap[userLang] || 'ko-KR';
     
-    console.log('[Legacy TTS] 수신자 언어:', userLang, '→', langCode);
     
     // 음성 선택
     const allVoices = window.speechSynthesis.getVoices();
@@ -982,7 +926,6 @@ async function legacyPlayAudio() {
                    || koVoices.find(v => v.name.includes('소라'))
                    || koVoices.find(v => v.name.includes('Heami'))
                    || koVoices[0];
-        console.log('[Legacy TTS] 한국어 음성:', targetVoice?.name || 'default');
     } else {
         // 다국어 DB 기반
         const voiceConfig = getVoicePriorityFromDB(langCode);
@@ -995,7 +938,6 @@ async function legacyPlayAudio() {
         if (!targetVoice) {
             targetVoice = allVoices.find(v => v.lang.replace('_', '-').startsWith(langCode.substring(0, 2)));
         }
-        console.log('[Legacy TTS] 다국어 음성:', langCode, targetVoice?.name || 'default');
     }
     
     // TTS 재생

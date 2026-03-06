@@ -1633,12 +1633,18 @@ document.addEventListener('DOMContentLoaded', () => {
     // ═══════════════════════════════════════════════════════════════
     let notificationPollingInterval = null;
 
+    let _notificationAuthFailed = false;
     async function fetchUnreadNotificationCount() {
+        if (_notificationAuthFailed) return 0;
         try {
             const response = await fetch('/api/notifications/unread-count', { credentials: 'include' });
             if (response.ok) {
                 const data = await response.json();
                 return data.count || 0;
+            }
+            if (response.status === 401) {
+                _notificationAuthFailed = true;
+                stopNotificationPolling();
             }
             return 0;
         } catch (error) {
@@ -2047,6 +2053,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             if (event.data.type === 'oauth_success') {
+                _notificationAuthFailed = false;
+                startNotificationPolling();
 
                 // 인증 모달 닫기
                 authModal?.classList.add('hidden');

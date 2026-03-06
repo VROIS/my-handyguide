@@ -64,7 +64,6 @@ const promptCache = {
 export function clearPromptCache() {
   promptCache.image = {};
   promptCache.text = {};
-  console.log('🔄 [프롬프트캐시] 전체 클리어 완료');
 }
 
 /**
@@ -78,7 +77,6 @@ async function fetchPromptFromServer(language, type) {
   
   // 캐시 확인
   if (promptCache[type][cacheKey]) {
-    console.log(`📋 [프롬프트캐시] ${language}/${type} 캐시 사용`);
     return promptCache[type][cacheKey];
   }
   
@@ -86,7 +84,6 @@ async function fetchPromptFromServer(language, type) {
     const response = await fetch(`/api/prompts/${language}/${type}`);
     
     if (!response.ok) {
-      console.warn(`⚠️ [프롬프트] ${language}/${type} 조회 실패, 기본값 사용`);
       return type === 'image' ? DEFAULT_IMAGE_PROMPT : DEFAULT_TEXT_PROMPT;
     }
     
@@ -96,7 +93,6 @@ async function fetchPromptFromServer(language, type) {
     if (content) {
       // 캐시에 저장
       promptCache[type][cacheKey] = content;
-      console.log(`✅ [프롬프트] ${language}/${type} 로드 완료 (${content.length}자)`);
       return content;
     }
     
@@ -179,8 +175,6 @@ export async function* generateDescriptionStream(base64Image) {
     // 서버에서 언어별 프롬프트 로드
     const systemInstruction = await fetchPromptFromServer(language, 'image');
     
-    console.log('🔍 [프롬프트확인] 언어:', language, '타입: image');
-    console.log('📝 [프롬프트미리보기]:', systemInstruction.substring(0, 80) + '...');
     
     const requestBody = {
         base64Image,
@@ -208,8 +202,6 @@ export async function* generateTextStream(prompt) {
     // 서버에서 언어별 프롬프트 로드
     const systemInstruction = await fetchPromptFromServer(language, 'text');
     
-    console.log('🔍 [프롬프트확인] 언어:', language, '타입: text');
-    console.log('📝 [프롬프트미리보기]:', systemInstruction.substring(0, 80) + '...');
     
     const requestBody = {
         prompt,
@@ -232,16 +224,13 @@ window.clearPromptCache = clearPromptCache;
 export async function warmupGemini() {
     try {
         const language = localStorage.getItem('appLanguage') || 'ko';
-        console.log('🔥 Gemini 워밍업 시작 (언어:', language, ')');
         
         // 프롬프트 캐시 사전 로드 (실제 API 호출 없이)
         await fetchPromptFromServer(language, 'image');
         await fetchPromptFromServer(language, 'text');
         
-        console.log('✅ Gemini 워밍업 완료 - 프롬프트 캐시 준비됨');
         return true;
     } catch (error) {
-        console.warn('⚠️ Gemini 워밍업 실패 (무시됨):', error);
         return false;
     }
 }

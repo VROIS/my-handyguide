@@ -1,22 +1,17 @@
 // sw-share.js - 공유 페이지용 Service Worker
-// v10 - Network First 전략 (2025-12-16)
-// 배경: 공유페이지 업데이트 시 캐시 문제 해결
-
-const CACHE_NAME = 'share-cache-v10';
+// v11 - Network First 전략 + 캐시 삭제 범위 수정
+const CACHE_NAME = 'share-cache-v11';
 
 self.addEventListener('install', event => {
-  console.log('[SW-Share] v10 설치됨');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', event => {
-  console.log('[SW-Share] v10 활성화됨');
   event.waitUntil(
     caches.keys().then(keys => {
       return Promise.all(
-        keys.filter(key => key !== CACHE_NAME)
+        keys.filter(key => key !== CACHE_NAME && key.startsWith('share-cache-'))
           .map(key => {
-            console.log('[SW-Share] 오래된 캐시 삭제:', key);
             return caches.delete(key);
           })
       );
@@ -45,8 +40,6 @@ self.addEventListener('fetch', event => {
           return response;
         })
         .catch(() => {
-          // 오프라인일 때만 캐시 사용
-          console.log('[SW-Share] 오프라인 - 캐시 사용:', url.pathname);
           return caches.match(event.request);
         })
     );

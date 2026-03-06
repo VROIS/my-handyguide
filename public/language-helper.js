@@ -40,11 +40,9 @@ const LanguageHelper = {
    */
   setLanguage: function(lang) {
     if (!this.LANGUAGES[lang]) {
-      console.warn(`❌ 지원하지 않는 언어: ${lang}`);
       return;
     }
 
-    console.log(`🌐 언어 변경: ${lang}`);
     
     // 1. localStorage에 저장
     localStorage.setItem('appLanguage', lang);
@@ -56,11 +54,9 @@ const LanguageHelper = {
     
     // 3. Google Translate 수동 활성화 (즉시 번역!)
     if (window.google && window.google.translate && window.google.translate.TranslateService) {
-      console.log('✅ Google Translate 즉시 활성화');
       try {
         window.google.translate.TranslateService.getInstance().translate('ko', lang);
       } catch (e) {
-        console.log('⚠️ Google Translate 서비스 미발견 (초기화 필요)');
       }
     }
     
@@ -103,7 +99,7 @@ const LanguageHelper = {
   bindLanguageSelect: function(selectElementId = 'languageSelect') {
     const select = document.getElementById(selectElementId);
     if (!select) {
-      console.warn(`❌ 셀렉트 엘리먼트를 찾을 수 없음: #${selectElementId}`);
+      // 셀렉트 엘리먼트 없으면 무시 (SPA에서 정상)
       return;
     }
 
@@ -121,7 +117,6 @@ const LanguageHelper = {
       }
       
       // ⚠️ reload 제거! (Google Translate가 자동으로 번역)
-      console.log('✅ 언어 변경 완료 (새로고침 불필요)');
     });
   }
 };

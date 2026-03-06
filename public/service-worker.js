@@ -1,7 +1,7 @@
 // service-worker.js
 
-const CACHE_NAME = 'travel-assistant-cache-v40';
-const API_CACHE_NAME = 'travel-assistant-api-cache-v40';
+const CACHE_NAME = 'travel-assistant-cache-v41';
+const API_CACHE_NAME = 'travel-assistant-api-cache-v41';
 const urlsToCache = [
   // 🔧 2025-12-17: HTML 캐싱 제거 (수정사항 즉시 반영)
   // '/',
@@ -21,7 +21,6 @@ self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('캐시가 열렸습니다.');
         return cache.addAll(urlsToCache);
       })
   );
@@ -29,7 +28,12 @@ self.addEventListener('install', event => {
 
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-  
+
+  // POST 요청 및 비-HTTP 스킴은 캐시 불가 — 네트워크만 사용
+  if (event.request.method !== 'GET' || !url.protocol.startsWith('http')) {
+    return;
+  }
+
   // Featured Gallery는 항상 최신 데이터 필요 - 캐싱 제외
   if (url.pathname === '/api/share/featured/list') {
     event.respondWith(fetch(event.request));

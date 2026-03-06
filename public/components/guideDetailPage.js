@@ -230,7 +230,6 @@ const guideDetailPage = {
         // 🌐 2025-12-04: 번역 완료 감지 초기화
         this._initTranslationWatcher();
 
-        console.log('[GuideDetailPage] Initialized');
     },
 
     // 🔊 DB에서 음성 설정 로드
@@ -256,10 +255,8 @@ const guideDetailPage = {
                         excludeVoices: config.excludeVoices || []
                     };
                 }
-                console.log('🔊 [GuideDetailPage Voice DB] 설정 로드 완료:', Object.keys(this._state.voiceConfigsCache));
             }
         } catch (error) {
-            console.warn('🔊 [GuideDetailPage Voice DB] 로드 실패, 기본값 사용:', error.message);
         }
         this._state.voiceConfigsLoading = false;
         return this._state.voiceConfigsCache;
@@ -306,13 +303,11 @@ const guideDetailPage = {
             const selectElement = document.querySelector('.goog-te-combo');
 
             if (!selectElement || !selectElement.value) {
-                console.log('[GuideDetailPage Retranslate] Google Translate 드롭다운 비활성 - 스킵');
                 resolve();
                 return;
             }
 
             const currentLang = selectElement.value;
-            console.log('[GuideDetailPage Retranslate] 🔄 강제 재번역 시작:', currentLang);
             self._retranslationPending = true;
 
             selectElement.value = '';
@@ -323,7 +318,6 @@ const guideDetailPage = {
                 selectElement.dispatchEvent(new Event('change'));
 
                 setTimeout(() => {
-                    console.log('[GuideDetailPage Retranslate] ✅ 재번역 완료');
                     self._retranslationPending = false;
                     window.dispatchEvent(new CustomEvent('guideRetranslationComplete'));
                     resolve();
@@ -335,7 +329,6 @@ const guideDetailPage = {
     _waitForRetranslation: async function () {
         if (!this._retranslationPending) return;
 
-        console.log('[GuideDetailPage TTS] 재번역 완료 대기 중...');
         await new Promise(resolve => {
             const handler = () => {
                 window.removeEventListener('guideRetranslationComplete', handler);
@@ -362,20 +355,17 @@ const guideDetailPage = {
             document.body.classList.contains('translated-rtl');
         if (hasTranslateClass) {
             this._state.translationComplete = true;
-            console.log('[GuideDetailPage] 이미 번역됨');
             return;
         }
 
         // 번역 대기 모드
         this._state.translationComplete = false;
-        console.log('[GuideDetailPage] 번역 대기 모드:', userLang);
 
         // MutationObserver로 번역 완료 감지
         this._state.translationObserver = new MutationObserver(function (mutations) {
             const hasTranslated = document.body.classList.contains('translated-ltr') ||
                 document.body.classList.contains('translated-rtl');
             if (hasTranslated) {
-                console.log('[GuideDetailPage] 🌐 번역 완료 감지!');
                 self._state.translationComplete = true;
                 self._state.translationObserver.disconnect();
 
@@ -392,7 +382,6 @@ const guideDetailPage = {
         // 3초 후 타임아웃 (오프라인 등)
         setTimeout(function () {
             if (!self._state.translationComplete) {
-                console.log('[GuideDetailPage] 번역 타임아웃 - 원본 사용');
                 self._state.translationComplete = true;
                 if (self._state.translationObserver) {
                     self._state.translationObserver.disconnect();
@@ -448,9 +437,6 @@ const guideDetailPage = {
         }
 
         // 디버깅 로그
-        console.log('[TTS] userLang:', userLang, 'fullLang:', fullLang, 'langCode:', langCode);
-        console.log('[TTS] DB priorities:', priorities, 'excludeVoices:', excludeVoices);
-        console.log('[TTS] Selected voice:', targetVoice?.name, targetVoice?.lang);
 
         return targetVoice || allVoices[0];
     },
@@ -464,7 +450,6 @@ const guideDetailPage = {
         this._state.renderId++;
         const thisRenderId = this._state.renderId;
 
-        console.log('[GuideDetailPage] open() guideId:', guideId, 'renderId:', thisRenderId);
 
         try {
             this._show();
@@ -483,7 +468,6 @@ const guideDetailPage = {
 
             // 🔒 렌더 ID 체크 - 다른 항목이 열렸으면 무시
             if (thisRenderId !== this._state.renderId) {
-                console.log('[GuideDetailPage] 렌더 ID 불일치, 무시:', thisRenderId, '!=', this._state.renderId);
                 return;
             }
 
@@ -507,17 +491,6 @@ const guideDetailPage = {
     // 렌더링
     // 🎨 2025-12-11: 이미지 모드 / 음성 모드 분기 처리
     _render: function (guide, renderId) {
-        console.log('[GuideDetailPage] _render 호출:', {
-            id: guide.id,
-            locationName: guide.locationName,
-            voiceQuery: guide.voiceQuery,
-            imageUrl: guide.imageUrl?.substring(0, 50),
-            voiceLang: guide.voiceLang
-        });
-        console.log('[GuideDetailPage] _els 상태:', {
-            locationInfo: !!this._els.locationInfo,
-            voiceQueryInfo: !!this._els.voiceQueryInfo
-        });
 
         // 🎤 음성 모드 판별: 이미지 없고 voiceQuery 있으면 음성 모드
         const isVoiceGuide = (!guide.imageUrl && !guide.imageDataUrl) && (guide.voiceQuery || guide.title);
@@ -545,7 +518,6 @@ const guideDetailPage = {
                 this._els.voiceQueryText.textContent = guide.voiceQuery || guide.title || '';
                 this._els.voiceQueryInfo.classList.remove('hidden');
             }
-            console.log('[GuideDetailPage] 음성 모드:', guide.voiceQuery || guide.title);
         } else {
             // 이미지 모드: locationInfo 표시, voiceQueryInfo 숨김
             if (this._els.voiceQueryInfo) {
@@ -557,7 +529,6 @@ const guideDetailPage = {
             } else {
                 this._els.locationInfo.classList.add('hidden');
             }
-            console.log('[GuideDetailPage] 이미지 모드:', guide.locationName);
         }
 
         // 🎤 저장된 음성 정보 보관 (▶ 버튼 클릭 시 _toggleAudio()에서 사용)
@@ -609,13 +580,11 @@ const guideDetailPage = {
             document.body.classList.contains('translated-rtl');
         if (hasTranslateClass) {
             this._state.translationComplete = true;
-            console.log('[GuideDetailPage] 번역 완료 상태');
             return;
         }
 
         // 번역 대기 모드 (아직 번역되지 않음)
         this._state.translationComplete = false;
-        console.log('[GuideDetailPage] 번역 대기 모드 (재설정):', userLang);
 
         // 기존 Observer 정리
         if (this._state.translationObserver) {
@@ -627,7 +596,6 @@ const guideDetailPage = {
             const hasTranslated = document.body.classList.contains('translated-ltr') ||
                 document.body.classList.contains('translated-rtl');
             if (hasTranslated) {
-                console.log('[GuideDetailPage] 🌐 번역 완료 감지 (재설정)!');
                 self._state.translationComplete = true;
                 self._state.translationObserver.disconnect();
                 window.dispatchEvent(new CustomEvent('guideTranslationComplete'));
@@ -664,7 +632,6 @@ const guideDetailPage = {
         // 🌐 번역 완료 대기 (한국어가 아닌 경우)
         const userLang = localStorage.getItem('appLanguage') || 'ko';
         if (userLang !== 'ko' && !this._state.translationComplete) {
-            console.log('[TTS] 번역 완료 대기 중...');
             await new Promise(resolve => {
                 const handler = () => {
                     window.removeEventListener('guideTranslationComplete', handler);
@@ -679,7 +646,6 @@ const guideDetailPage = {
         // 🌐 2025-12-24: 번역 클래스 감지 후 실제 텍스트 변환까지 추가 대기 (500ms)
         if (userLang !== 'ko') {
             await new Promise(r => setTimeout(r, 500));
-            console.log('[TTS] 번역 텍스트 적용 대기 완료 (500ms)');
         }
 
         // 🌐 Google Translate의 <font> 태그에서 번역된 텍스트 추출
@@ -687,7 +653,6 @@ const guideDetailPage = {
         const fontEl = this._els.description.querySelector('font');
         if (fontEl) {
             currentText = fontEl.innerText.trim() || fontEl.textContent.trim() || text;
-            console.log('[TTS] Google Translate <font> 태그에서 번역 텍스트 추출');
         } else {
             currentText = this._els.description.innerText || text;
         }
@@ -707,12 +672,10 @@ const guideDetailPage = {
         const langFullMap = { 'ko': 'ko-KR', 'en': 'en-US', 'ja': 'ja-JP', 'zh-CN': 'zh-CN', 'fr': 'fr-FR', 'de': 'de-DE', 'es': 'es-ES' };
         const fullLang = langFullMap[userLang] || 'ko-KR';
 
-        console.log('[TTS] 재생 언어:', fullLang, '텍스트 길이:', cleanText.length);
 
         // 🔴 2026-01-07: 음성 목록 로드 대기 강화 (삼성폰 Chrome 호환성)
         let voices = this._state.synth.getVoices();
         if (voices.length === 0) {
-            console.log('[TTS] Waiting for voices to load... (삼성폰 호환 모드)');
             await new Promise(resolve => {
                 let resolved = false;
 
@@ -723,7 +686,6 @@ const guideDetailPage = {
                     if (voices.length > 0) {
                         resolved = true;
                         self._state.synth.removeEventListener('voiceschanged', onVoicesChanged);
-                        console.log('[TTS] voiceschanged 이벤트로 음성 로드');
                         resolve();
                     }
                 };
@@ -736,7 +698,6 @@ const guideDetailPage = {
                     if (voices.length > 0) {
                         resolved = true;
                         self._state.synth.removeEventListener('voiceschanged', onVoicesChanged);
-                        console.log('[TTS] 폴링으로 음성 로드');
                         resolve();
                     } else {
                         setTimeout(checkVoices, 200);
@@ -749,7 +710,6 @@ const guideDetailPage = {
                     if (!resolved) {
                         resolved = true;
                         self._state.synth.removeEventListener('voiceschanged', onVoicesChanged);
-                        console.warn('[TTS] 음성 로드 타임아웃 (3초) - 기본 음성 사용');
                         resolve();
                     }
                 }, 3000);
@@ -757,7 +717,6 @@ const guideDetailPage = {
             voices = this._state.synth.getVoices();
         }
         this._state.voices = voices;
-        console.log('[TTS] Voices loaded:', voices.length, '개');
 
         // 🔧 음성이 아예 없으면 에러 메시지
         if (voices.length === 0) {
@@ -780,11 +739,9 @@ const guideDetailPage = {
                 || koVoices.find(v => v.name.includes('소라'))
                 || koVoices.find(v => v.name.includes('Heami'))
                 || koVoices[0];
-            console.log('[TTS] 한국어 음성:', targetVoice?.name);
         } else {
             // 다른 언어: 현재 앱 언어에 맞는 음성 사용 (savedVoiceName 무시)
             targetVoice = this._getVoiceForLanguage(shortLang === 'zh' ? 'zh-CN' : shortLang);
-            console.log('[TTS] 앱 언어 음성:', fullLang, '→', targetVoice?.name);
         }
 
         this._state.currentUtterance.voice = targetVoice;
@@ -836,11 +793,8 @@ const guideDetailPage = {
 
             // 사용자에게 알림 (네트워크 문제 또는 음성 지원 안됨)
             if (event.error === 'network') {
-                console.warn('[TTS] 네트워크 오류 - 인터넷 연결을 확인하세요');
             } else if (event.error === 'not-allowed') {
-                console.warn('[TTS] 음성 재생이 차단됨 - 사용자 상호작용 후 시도하세요');
             } else if (event.error === 'synthesis-unavailable') {
-                console.warn('[TTS] 이 기기에서 TTS가 지원되지 않습니다');
             }
         };
 
@@ -910,7 +864,6 @@ const guideDetailPage = {
     _saveToLocal: async function () {
         const data = this._state.currentGuideData;
         if (!data) {
-            console.warn('[GuideDetailPage] 저장할 데이터 없음');
             this._showToast('저장할 데이터가 없습니다', 'error');
             return;
         }
@@ -932,7 +885,6 @@ const guideDetailPage = {
             };
 
             const savedId = await this._addToIndexedDB(guideData);
-            console.log('[GuideDetailPage] IndexedDB 저장 완료, ID:', savedId);
 
             this._showToast('보관함에 저장되었습니다', 'success');
 

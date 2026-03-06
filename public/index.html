@@ -574,14 +574,12 @@
                     
                     // 🔧 2026-01-21: 캐시 완전 삭제 함수 (SW + IndexedDB + localStorage 언어 관련)
                     async function clearAllCaches() {
-                        console.log('🧹 캐시 삭제 시작...');
                         try {
                             // 1. Service Worker 캐시 삭제
                             if ('caches' in window) {
                                 var cacheNames = await caches.keys();
                                 for (var name of cacheNames) {
                                     await caches.delete(name);
-                                    console.log('✅ SW 캐시 삭제:', name);
                                 }
                             }
                             // 2. IndexedDB 삭제 (guide-storage 등)
@@ -589,14 +587,12 @@
                             for (var dbName of dbNames) {
                                 try {
                                     indexedDB.deleteDatabase(dbName);
-                                    console.log('✅ IndexedDB 삭제:', dbName);
-                                } catch (e) { console.log('⚠️ IndexedDB 삭제 실패:', dbName); }
+                                } catch (e) { /* ignore */ }
                             }
                             // 3. googtrans 쿠키 삭제
                             document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
                             document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + window.location.hostname;
                             document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=.' + window.location.hostname;
-                            console.log('✅ 쿠키 삭제 완료');
                             return true;
                         } catch (e) {
                             console.error('❌ 캐시 삭제 오류:', e);
@@ -612,20 +608,17 @@
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ language: lang })
                             });
-                            console.log('✅ 서버 언어 저장:', lang);
-                        } catch (e) { console.log('⚠️ 서버 저장 실패 (비로그인)'); }
+                        } catch (e) { /* ignore - not logged in */ }
                     }
                     
                     // 전역 언어 선택 함수 (onclick에서 호출) - 2단계 동작 + 캐시 삭제
                     window.selectLanguage = async function(lang) {
-                        console.log('🌍 selectLanguage 호출:', lang, '현재 선택:', window.__selectedLang, 'Safari:', isSafari());
                         
                         var items = document.querySelectorAll('.language-item');
                         var selectedItem = document.querySelector('.language-item[data-value="' + lang + '"]');
                         
                         // 🔧 2단계 동작: 이미 선택된 언어를 다시 터치하면 실행
                         if (window.__selectedLang === lang) {
-                            console.log('✅ 같은 언어 다시 터치 → 캐시 삭제 후 실행!');
                             // 🔧 2026-01-21: 한국어 포함 모든 언어 동일 동작 - 캐시 삭제 후 실행
                             await Promise.all([clearAllCaches(), saveLanguageToServer(lang)]);
                             executeLanguageSelection(lang);
@@ -633,7 +626,6 @@
                         }
                         
                         // 1단계: 첫 터치 → 선택 + 캐시 삭제 (백그라운드)
-                        console.log('📌 첫 터치 → 선택 + 캐시 삭제:', lang);
                         window.__selectedLang = lang;
                         
                         localStorage.setItem('appLanguage', lang);
@@ -654,18 +646,15 @@
                             selectedItem.classList.remove('cache-clearing');
                             selectedItem.classList.add('ready-to-start');
                         }
-                        console.log('✅ 캐시 삭제 완료, 다시 터치하면 실행');
                     };
                     
                     // 실제 언어 선택 실행 함수
                     function executeLanguageSelection(lang) {
-                        console.log('🚀 언어 선택 실행:', lang, 'PWA:', window.isPWAMode(), 'Safari:', isSafari());
                         
                         localStorage.setItem('appLanguage', lang);
                         
                         // PWA 모드: 직접 페이지 전환
                         if (window.isPWAMode()) {
-                            console.log('📱 PWA → 직접 페이지 전환');
                             var landing = document.getElementById('landingPage');
                             var features = document.getElementById('featuresPage');
                             if (landing && features) {
@@ -697,14 +686,11 @@
                     
                     // 🔧 2026-01-19: 구글 번역 직접 트리거 (Safari용)
                     function triggerGoogleTranslate(lang) {
-                        console.log('🔄 구글 번역 직접 트리거:', lang);
                         var combo = document.querySelector('.goog-te-combo');
                         if (combo) {
                             combo.value = lang;
                             combo.dispatchEvent(new Event('change'));
-                            console.log('✅ 구글 번역 트리거 완료');
                         } else {
-                            console.log('⚠️ 구글 번역 콤보박스 없음, 1초 후 재시도');
                             setTimeout(function() { triggerGoogleTranslate(lang); }, 1000);
                         }
                     }
@@ -1719,7 +1705,6 @@
             landingPage.classList.add('hidden');
             featuresPage.classList.add('visible');
             localStorage.removeItem('landingVisited');
-            console.log('🔄 랜딩페이지 스킵 → 기능페이지 표시');
         }
         
         // 저장된 언어가 있으면 해당 항목에 selected 클래스 추가
@@ -1740,22 +1725,18 @@
         }
         
         if (isSafariBrowser() && savedLanguage && savedLanguage !== 'ko') {
-            console.log('🍎 Safari 페이지 로드 → localStorage 언어 적용:', savedLanguage);
             // 구글 번역 위젯 로드 후 트리거
             setTimeout(() => {
                 const combo = document.querySelector('.goog-te-combo');
                 if (combo) {
                     combo.value = savedLanguage;
                     combo.dispatchEvent(new Event('change'));
-                    console.log('✅ Safari 구글 번역 자동 트리거 완료');
                 } else {
-                    console.log('⚠️ 구글 번역 콤보박스 없음, 재시도...');
                     setTimeout(() => {
                         const retryCombo = document.querySelector('.goog-te-combo');
                         if (retryCombo) {
                             retryCombo.value = savedLanguage;
                             retryCombo.dispatchEvent(new Event('change'));
-                            console.log('✅ Safari 구글 번역 재시도 성공');
                         }
                     }, 2000);
                 }
@@ -1780,13 +1761,11 @@
         function handleLanguageSelect(item) {
             // 중복 실행 방지
             if (isLanguageSelecting) {
-                console.log('⚠️ 언어 선택 중복 호출 방지');
                 return;
             }
             isLanguageSelecting = true;
             
             const selectedLang = item.getAttribute('data-value');
-            console.log('🌐 언어 선택:', selectedLang, 'PWA 모드:', isPWAMode());
             
             // 선택된 항목 하이라이트
             languageItems.forEach(i => i.classList.remove('selected'));
@@ -1797,7 +1776,6 @@
             
             // 🔧 PWA 모드: reload() 대신 직접 페이지 전환
             if (isPWAMode()) {
-                console.log('📱 PWA 모드 → 직접 페이지 전환');
                 
                 // 랜딩페이지 숨기고 기능페이지 표시
                 if (landingPage && featuresPage) {
@@ -1818,7 +1796,6 @@
             if (selectedLang !== 'ko') {
                 document.cookie = `googtrans=/ko/${selectedLang}; path=/`;
                 document.cookie = `googtrans=/ko/${selectedLang}; path=/; domain=${window.location.hostname}`;
-                console.log('🌐 Google Translate 쿠키 설정:', selectedLang);
             }
             
             // 페이지 새로고침으로 번역 적용
@@ -1828,7 +1805,6 @@
         // 🔧 2025-12-18: iOS PWA 터치 이벤트 소실 버그 대응
         // Page Visibility API로 앱 복귀 시 이벤트 리스너 재등록
         function attachLanguageEventListeners() {
-            console.log('🔄 언어 선택 이벤트 리스너 등록/재등록');
             
             languageItems.forEach(item => {
                 // 기존 리스너 제거 (중복 방지)
@@ -1842,13 +1818,11 @@
                 
                 // 🔧 Pointer Events 사용 (iOS PWA에서 가장 안정적)
                 item.onpointerdown = function(e) {
-                    console.log('👇 pointerdown:', item.getAttribute('data-value'));
                     item.style.opacity = '0.7';
                     item.style.transform = 'scale(0.98)';
                 };
                 
                 item.onpointerup = function(e) {
-                    console.log('👆 pointerup:', item.getAttribute('data-value'));
                     item.style.opacity = '1';
                     item.style.transform = 'scale(1)';
                     
@@ -1867,12 +1841,10 @@
                 
                 // 터치 이벤트 폴백 (pointer 미지원 시)
                 item.ontouchstart = function(e) {
-                    console.log('📱 touchstart:', item.getAttribute('data-value'));
                     item.style.opacity = '0.7';
                 };
                 
                 item.ontouchend = function(e) {
-                    console.log('📱 touchend:', item.getAttribute('data-value'));
                     item.style.opacity = '1';
                     
                     if (isProcessing) return;
@@ -1888,7 +1860,6 @@
                 
                 // 클릭 이벤트 폴백 (데스크톱)
                 item.onclick = function(e) {
-                    console.log('🖱️ click:', item.getAttribute('data-value'));
                     
                     if (isProcessing) return;
                     isProcessing = true;
@@ -1909,14 +1880,12 @@
         // 🔧 Page Visibility API: 앱이 포그라운드로 돌아올 때 리스너 재등록
         document.addEventListener('visibilitychange', () => {
             if (document.visibilityState === 'visible') {
-                console.log('👁️ 앱 포그라운드 복귀 → 이벤트 리스너 재등록');
                 attachLanguageEventListeners();
             }
         });
         
         // pageshow 이벤트 (iOS Safari PWA 추가 대응)
         window.addEventListener('pageshow', (event) => {
-            console.log('📄 pageshow 이벤트, persisted:', event.persisted);
             if (event.persisted || isPWAMode()) {
                 attachLanguageEventListeners();
             }
@@ -1925,7 +1894,6 @@
         // focus 이벤트 (추가 안전장치)
         window.addEventListener('focus', () => {
             if (isPWAMode()) {
-                console.log('🎯 window focus → PWA 이벤트 리스너 재등록');
                 attachLanguageEventListeners();
             }
         });

@@ -66,12 +66,10 @@ export function optimizeImage(dataUrl, maxWidth = 1024, maxHeight = 1024) {
             // 🔍 압축률 테스트용 - localStorage에서 설정 읽기
             // 2026-01-24: 기본값 0.85 (Gemini 3.0 최적화, 구형 기기 속도 개선)
             const testQuality = parseFloat(localStorage.getItem('imageQuality')) || 0.85;
-            console.log(`📊 [압축테스트] 사용 품질: ${testQuality}, 크기: ${width}x${height}`);
             
             // 리사이즈된 이미지를 JPEG 데이터 URL로 가져옵니다.
             const result = canvas.toDataURL('image/jpeg', testQuality);
             const fileSizeKB = Math.round((result.length * 3/4) / 1024);
-            console.log(`📊 [압축결과] 최종 크기: ${fileSizeKB}KB`);
             
             resolve(result);
         };
