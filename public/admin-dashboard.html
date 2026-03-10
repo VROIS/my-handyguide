@@ -2439,8 +2439,8 @@
         // ⭐ V1 공유페이지 일괄 재생성 (2025-12-16)
         // ═══════════════════════════════════════════════════════════════
         async function regenerateAllV1() {
-            // ⚠️ 수정금지(승인필요) — V1 재생성 confirm 메시지: 버튼 통일 문구 추가 (Claude Opus 4.6, 2026-03-10)
-            if (!confirm('모든 공유페이지를 V1 표준 템플릿으로 재생성하시겠습니까?\n\n• 음성 가이드 썸네일 표준화\n• locationName/voiceQuery 필드 적용\n• TTS 음성 우선순위 적용\n• 공유페이지 X닫기/←리턴 버튼 통일')) {
+            // ⚠️ 수정금지(승인필요) — V1 재생성 confirm 메시지: 마이그래이션 내용 명시 (Claude Sonnet 4.6, 2026-03-10)
+            if (!confirm('모든 공유페이지를 V1 표준 템플릿으로 재생성하시겠습니까?\n\n• 음성 가이드 썸네일 표준화\n• locationName/voiceQuery 필드 적용\n• TTS 음성 우선순위 적용\n• 공유페이지 X닫기 버튼 position:fixed 복원 (JS토글 제거)\n• 공유페이지 닫기: window.close() → SPA 오버레이 postMessage 업그레이드')) {
                 return;
             }
 
