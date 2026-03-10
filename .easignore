@@ -1,51 +1,52 @@
 # ⚠️ 수정금지(승인필요): EAS 빌드 시 업로드 제외 목록 (2026-03-10)
 # mobile-app/ 폴더만 업로드, 나머지 전부 제외
+# 주의: /접두어 = 루트만 매칭, 없으면 모든 하위디렉토리도 매칭
 
-# 대형 디렉토리 (필수)
-node_modules/
-.git/
-attached_assets/
-dist/
-public/
-server/
-shared/
-shared_guidebooks/
-uploads/
-scripts/
+# 대형 디렉토리 (루트 레벨, 필수 제외)
+/node_modules/
+/.git/
+/attached_assets/
+/dist/
+/public/
+/server/
+/shared/
+/shared_guidebooks/
+/uploads/
+/scripts/
 
-# 도구/설정 디렉토리
-.agents/
-.claude/
-.replit/
-.vscode/
-.config/
-.local/
-.upm/
-.cache/
-docs/
+# 도구/설정 디렉토리 (루트 레벨)
+/.agents/
+/.claude/
+/.replit/
+/.vscode/
+/.config/
+/.local/
+/.upm/
+/.cache/
+/docs/
 
-# 파일 패턴
-*.md
-*.ts
-*.html
-*.css
+# 루트 파일만 제외 (mobile-app/ 내 동명 파일 보호)
+/drizzle.config.ts
+/tsconfig.json
+/vite.config.ts
+/theme.json
+/tailwind.config.ts
+/postcss.config.js
+/package-lock.json
+/package.json
+/build.sh
+/skills-lock.json
+/generated-icon.png
+/CLAUDE.md
+/replit.md
+/.gitignore
+/.easignore
+
+# 빌드 산출물 (전역)
 *.aab
 *.apk
 *.log
 *.map
-
-# 루트 설정 파일
-drizzle.config.ts
-tsconfig.json
-vite.config.ts
-theme.json
-tailwind.config.ts
-postcss.config.js
-package-lock.json
-package.json
-build.sh
-skills-lock.json
-generated-icon.png
 
 # mobile-app/ 내부 불필요 파일
 mobile-app/node_modules/
