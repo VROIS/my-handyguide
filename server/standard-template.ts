@@ -589,10 +589,11 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
         // ═══════════════════════════════════════════════════════════════
         // 🔊 표준 음성 로직 (2025-12-24) - guideDetailPage.js와 동일
         // ═══════════════════════════════════════════════════════════════
-        let voiceConfigsCache = null;
-        let voiceConfigsLoading = false;
+        // 변수명 _tpl 접두어: share-page.js의 voiceConfigsCache와 전역 스코프 충돌 방지
+        let _tplVoiceConfigsCache = null;
+        let _tplVoiceConfigsLoading = false;
         
-        const DEFAULT_VOICE_PRIORITIES = {
+        const _TPL_DEFAULT_VOICE_PRIORITIES = {
             'ko-KR': { default: ['Microsoft Heami', 'Yuna'] },
             'en-US': { default: ['Samantha', 'Microsoft Zira', 'Google US English', 'English'] },
             'ja-JP': { default: ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'] },
@@ -610,47 +611,47 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
         }
         
         async function loadVoiceConfigsFromDB() {
-            if (voiceConfigsCache) return voiceConfigsCache;
-            if (voiceConfigsLoading) {
+            if (_tplVoiceConfigsCache) return _tplVoiceConfigsCache;
+            if (_tplVoiceConfigsLoading) {
                 await new Promise(resolve => setTimeout(resolve, 500));
-                return voiceConfigsCache || null;
+                return _tplVoiceConfigsCache || null;
             }
             
-            voiceConfigsLoading = true;
+            _tplVoiceConfigsLoading = true;
             try {
                 const response = await fetch('/api/voice-configs');
                 if (response.ok) {
                     const configs = await response.json();
-                    voiceConfigsCache = {};
+                    _tplVoiceConfigsCache = {};
                     for (const config of configs) {
-                        if (!voiceConfigsCache[config.langCode]) {
-                            voiceConfigsCache[config.langCode] = {};
+                        if (!_tplVoiceConfigsCache[config.langCode]) {
+                            _tplVoiceConfigsCache[config.langCode] = {};
                         }
-                        voiceConfigsCache[config.langCode][config.platform] = {
+                        _tplVoiceConfigsCache[config.langCode][config.platform] = {
                             priorities: config.voicePriorities,
                             excludeVoices: config.excludeVoices || []
                         };
                     }
-                    console.log('🔊 [ShareTemplate Voice DB] 설정 로드 완료:', Object.keys(voiceConfigsCache));
+                    console.log('🔊 [ShareTemplate Voice DB] 설정 로드 완료:', Object.keys(_tplVoiceConfigsCache));
                 }
             } catch (error) {
                 console.warn('🔊 [ShareTemplate Voice DB] 로드 실패, 기본값 사용:', error.message);
             }
-            voiceConfigsLoading = false;
-            return voiceConfigsCache;
+            _tplVoiceConfigsLoading = false;
+            return _tplVoiceConfigsCache;
         }
         
         function getVoicePriorityFromDB(langCode) {
             const platform = detectPlatform();
             
-            if (voiceConfigsCache && voiceConfigsCache[langCode]) {
-                const config = voiceConfigsCache[langCode][platform] || voiceConfigsCache[langCode]['default'];
+            if (_tplVoiceConfigsCache && _tplVoiceConfigsCache[langCode]) {
+                const config = _tplVoiceConfigsCache[langCode][platform] || _tplVoiceConfigsCache[langCode]['default'];
                 if (config) {
                     return { priorities: config.priorities, excludeVoices: config.excludeVoices };
                 }
             }
             
-            const fallback = DEFAULT_VOICE_PRIORITIES[langCode];
+            const fallback = _TPL_DEFAULT_VOICE_PRIORITIES[langCode];
             if (fallback) {
                 const priorities = fallback[platform] || fallback['default'] || fallback[Object.keys(fallback)[0]];
                 return { priorities, excludeVoices: [] };
@@ -808,7 +809,8 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
         let currentVoiceLang = null;
         
         // 🌐 2025-12-24: 동적 콘텐츠 강제 재번역 함수
-        let retranslationPending = false;
+        // 변수명 _tpl 접두어: share-page.js의 retranslationPending와 전역 스코프 충돌 방지
+        let _tplRetranslationPending = false;
         
         function retranslateNewContent() {
             // 🌐 2025-12-24: userLang 체크 제거 - Google Translate 드롭다운 활성화 여부만 확인
@@ -823,7 +825,7 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                 
                 const currentLang = selectElement.value;
                 console.log('[Gallery Retranslate] 🔄 강제 재번역 시작:', currentLang);
-                retranslationPending = true;
+                _tplRetranslationPending = true;
                 
                 selectElement.value = '';
                 selectElement.dispatchEvent(new Event('change'));
@@ -834,7 +836,7 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                     
                     setTimeout(() => {
                         console.log('[Gallery Retranslate] ✅ 재번역 완료');
-                        retranslationPending = false;
+                        _tplRetranslationPending = false;
                         window.dispatchEvent(new CustomEvent('galleryRetranslationComplete'));
                         resolve();
                     }, 800);
@@ -1359,10 +1361,11 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
         // ═══════════════════════════════════════════════════════════════
         // 🔊 표준 음성 로직 (2025-12-24) - guideDetailPage.js와 동일
         // ═══════════════════════════════════════════════════════════════
-        let voiceConfigsCache = null;
-        let voiceConfigsLoading = false;
+        // 변수명 _tpl 접두어: share-page.js의 voiceConfigsCache와 전역 스코프 충돌 방지
+        let _tplVoiceConfigsCache = null;
+        let _tplVoiceConfigsLoading = false;
         
-        const DEFAULT_VOICE_PRIORITIES = {
+        const _TPL_DEFAULT_VOICE_PRIORITIES = {
             'ko-KR': { default: ['Microsoft Heami', 'Yuna'] },
             'en-US': { default: ['Samantha', 'Microsoft Zira', 'Google US English', 'English'] },
             'ja-JP': { default: ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'] },
@@ -1380,47 +1383,47 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
         }
         
         async function loadVoiceConfigsFromDB() {
-            if (voiceConfigsCache) return voiceConfigsCache;
-            if (voiceConfigsLoading) {
+            if (_tplVoiceConfigsCache) return _tplVoiceConfigsCache;
+            if (_tplVoiceConfigsLoading) {
                 await new Promise(resolve => setTimeout(resolve, 500));
-                return voiceConfigsCache || null;
+                return _tplVoiceConfigsCache || null;
             }
             
-            voiceConfigsLoading = true;
+            _tplVoiceConfigsLoading = true;
             try {
                 const response = await fetch('/api/voice-configs');
                 if (response.ok) {
                     const configs = await response.json();
-                    voiceConfigsCache = {};
+                    _tplVoiceConfigsCache = {};
                     for (const config of configs) {
-                        if (!voiceConfigsCache[config.langCode]) {
-                            voiceConfigsCache[config.langCode] = {};
+                        if (!_tplVoiceConfigsCache[config.langCode]) {
+                            _tplVoiceConfigsCache[config.langCode] = {};
                         }
-                        voiceConfigsCache[config.langCode][config.platform] = {
+                        _tplVoiceConfigsCache[config.langCode][config.platform] = {
                             priorities: config.voicePriorities,
                             excludeVoices: config.excludeVoices || []
                         };
                     }
-                    console.log('🔊 [SingleGuide Voice DB] 설정 로드 완료:', Object.keys(voiceConfigsCache));
+                    console.log('🔊 [SingleGuide Voice DB] 설정 로드 완료:', Object.keys(_tplVoiceConfigsCache));
                 }
             } catch (error) {
                 console.warn('🔊 [SingleGuide Voice DB] 로드 실패, 기본값 사용:', error.message);
             }
-            voiceConfigsLoading = false;
-            return voiceConfigsCache;
+            _tplVoiceConfigsLoading = false;
+            return _tplVoiceConfigsCache;
         }
         
         function getVoicePriorityFromDB(langCode) {
             const platform = detectPlatform();
             
-            if (voiceConfigsCache && voiceConfigsCache[langCode]) {
-                const config = voiceConfigsCache[langCode][platform] || voiceConfigsCache[langCode]['default'];
+            if (_tplVoiceConfigsCache && _tplVoiceConfigsCache[langCode]) {
+                const config = _tplVoiceConfigsCache[langCode][platform] || _tplVoiceConfigsCache[langCode]['default'];
                 if (config) {
                     return { priorities: config.priorities, excludeVoices: config.excludeVoices };
                 }
             }
             
-            const fallback = DEFAULT_VOICE_PRIORITIES[langCode];
+            const fallback = _TPL_DEFAULT_VOICE_PRIORITIES[langCode];
             if (fallback) {
                 const priorities = fallback[platform] || fallback['default'] || fallback[Object.keys(fallback)[0]];
                 return { priorities, excludeVoices: [] };
