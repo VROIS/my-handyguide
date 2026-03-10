@@ -369,10 +369,9 @@
     </div>
     
     <!-- 갤러리 뷰 -->
-    <!-- ⚠️ 수정금지(승인필요) — gallery-view에 position:relative 추가: gallery-close(absolute)의 기준점 (Claude Opus 4.6, 2026-03-10) -->
-    <div id="gallery-view" style="position: relative;">
-        <!-- ⚠️ 수정금지(승인필요) — 공유페이지 X 닫기 버튼: position:absolute로 gallery-view 소속, 부모 hidden 시 자연 숨김 (Claude Opus 4.6, 2026-03-10) -->
-        <button id="gallery-close" onclick="if(window.parent!==window){window.parent.postMessage({type:'closeOverlay'},'*')}else{window.close()}" style="position: absolute; top: 1rem; right: 1rem; z-index: 10000; width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); color: #4285F4; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.2s ease;" aria-label="닫기">
+    <div id="gallery-view">
+        <!-- ⚠️ 수정금지(승인필요) — 공유페이지 X 닫기 버튼: position:fixed, 부모 display:none 시 함께 숨김, SPA 오버레이이므로 postMessage 사용 (Claude Sonnet 4.6, 2026-03-10) -->
+        <button id="gallery-close" onclick="if(window.parent!==window){window.parent.postMessage({type:'closeOverlay'},'*')}else{window.close()}" style="position: fixed; top: 1rem; right: 1rem; z-index: 10000; width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); color: #4285F4; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.2s ease;" aria-label="닫기">
             <svg xmlns="http://www.w3.org/2000/svg" style="width: 1.5rem; height: 1.5rem;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
@@ -481,10 +480,11 @@
         // ═══════════════════════════════════════════════════════════════
         // 🔊 표준 음성 로직 (2025-12-24) - guideDetailPage.js와 동일
         // ═══════════════════════════════════════════════════════════════
-        let voiceConfigsCache = null;
-        let voiceConfigsLoading = false;
+        // 변수명 _tpl 접두어: share-page.js의 voiceConfigsCache와 전역 스코프 충돌 방지
+        let _tplVoiceConfigsCache = null;
+        let _tplVoiceConfigsLoading = false;
         
-        const DEFAULT_VOICE_PRIORITIES = {
+        const _TPL_DEFAULT_VOICE_PRIORITIES = {
             'ko-KR': { default: ['Microsoft Heami', 'Yuna'] },
             'en-US': { default: ['Samantha', 'Microsoft Zira', 'Google US English', 'English'] },
             'ja-JP': { default: ['Kyoko', 'Microsoft Haruka', 'Google 日本語', 'Japanese'] },
@@ -502,47 +502,47 @@
         }
         
         async function loadVoiceConfigsFromDB() {
-            if (voiceConfigsCache) return voiceConfigsCache;
-            if (voiceConfigsLoading) {
+            if (_tplVoiceConfigsCache) return _tplVoiceConfigsCache;
+            if (_tplVoiceConfigsLoading) {
                 await new Promise(resolve => setTimeout(resolve, 500));
-                return voiceConfigsCache || null;
+                return _tplVoiceConfigsCache || null;
             }
             
-            voiceConfigsLoading = true;
+            _tplVoiceConfigsLoading = true;
             try {
                 const response = await fetch('/api/voice-configs');
                 if (response.ok) {
                     const configs = await response.json();
-                    voiceConfigsCache = {};
+                    _tplVoiceConfigsCache = {};
                     for (const config of configs) {
-                        if (!voiceConfigsCache[config.langCode]) {
-                            voiceConfigsCache[config.langCode] = {};
+                        if (!_tplVoiceConfigsCache[config.langCode]) {
+                            _tplVoiceConfigsCache[config.langCode] = {};
                         }
-                        voiceConfigsCache[config.langCode][config.platform] = {
+                        _tplVoiceConfigsCache[config.langCode][config.platform] = {
                             priorities: config.voicePriorities,
                             excludeVoices: config.excludeVoices || []
                         };
                     }
-                    console.log('🔊 [ShareTemplate Voice DB] 설정 로드 완료:', Object.keys(voiceConfigsCache));
+                    console.log('🔊 [ShareTemplate Voice DB] 설정 로드 완료:', Object.keys(_tplVoiceConfigsCache));
                 }
             } catch (error) {
                 console.warn('🔊 [ShareTemplate Voice DB] 로드 실패, 기본값 사용:', error.message);
             }
-            voiceConfigsLoading = false;
-            return voiceConfigsCache;
+            _tplVoiceConfigsLoading = false;
+            return _tplVoiceConfigsCache;
         }
         
         function getVoicePriorityFromDB(langCode) {
             const platform = detectPlatform();
             
-            if (voiceConfigsCache && voiceConfigsCache[langCode]) {
-                const config = voiceConfigsCache[langCode][platform] || voiceConfigsCache[langCode]['default'];
+            if (_tplVoiceConfigsCache && _tplVoiceConfigsCache[langCode]) {
+                const config = _tplVoiceConfigsCache[langCode][platform] || _tplVoiceConfigsCache[langCode]['default'];
                 if (config) {
                     return { priorities: config.priorities, excludeVoices: config.excludeVoices };
                 }
             }
             
-            const fallback = DEFAULT_VOICE_PRIORITIES[langCode];
+            const fallback = _TPL_DEFAULT_VOICE_PRIORITIES[langCode];
             if (fallback) {
                 const priorities = fallback[platform] || fallback['default'] || fallback[Object.keys(fallback)[0]];
                 return { priorities, excludeVoices: [] };
@@ -700,7 +700,8 @@
         let currentVoiceLang = null;
         
         // 🌐 2025-12-24: 동적 콘텐츠 강제 재번역 함수
-        let retranslationPending = false;
+        // 변수명 _tpl 접두어: share-page.js의 retranslationPending와 전역 스코프 충돌 방지
+        let _tplRetranslationPending = false;
         
         function retranslateNewContent() {
             // 🌐 2025-12-24: userLang 체크 제거 - Google Translate 드롭다운 활성화 여부만 확인
@@ -715,7 +716,7 @@
                 
                 const currentLang = selectElement.value;
                 console.log('[Gallery Retranslate] 🔄 강제 재번역 시작:', currentLang);
-                retranslationPending = true;
+                _tplRetranslationPending = true;
                 
                 selectElement.value = '';
                 selectElement.dispatchEvent(new Event('change'));
@@ -726,7 +727,7 @@
                     
                     setTimeout(() => {
                         console.log('[Gallery Retranslate] ✅ 재번역 완료');
-                        retranslationPending = false;
+                        _tplRetranslationPending = false;
                         window.dispatchEvent(new CustomEvent('galleryRetranslationComplete'));
                         resolve();
                     }, 800);
@@ -788,10 +789,9 @@
                 // 텍스트 설정
                 document.getElementById('detail-description').textContent = itemData.description;
                 
-                // ⚠️ 수정금지(승인필요) — 상세 뷰 진입: 갤러리 X 숨기고 상세 뷰 표시 (Claude Opus 4.6, 2026-03-09)
+                // 상세 뷰 진입
                 galleryView.classList.add('hidden');
                 header.classList.add('hidden');
-                var gc = document.getElementById('gallery-close'); if (gc) gc.style.display = 'none';
                 detailView.classList.remove('hidden');
                 document.getElementById('detail-footer').classList.remove('hidden');
                 
@@ -815,7 +815,6 @@
         }
         
         // 뒤로 가기
-        // ⚠️ 수정금지(승인필요) — 상세 뷰 닫기: 갤러리 X 복원 + 갤러리 뷰 표시 (Claude Opus 4.6, 2026-03-09)
         document.getElementById('detail-back').addEventListener('click', () => {
             stopAudio();
             detailView.classList.add('hidden');
@@ -823,7 +822,6 @@
             document.getElementById('detail-footer').classList.add('hidden');
             header.classList.remove('hidden');
             galleryView.classList.remove('hidden');
-            var gc = document.getElementById('gallery-close'); if (gc) gc.style.display = 'flex';
         });
         
         // 텍스트 토글 버튼 (앱과 동일한 로직)
