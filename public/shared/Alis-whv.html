@@ -128,7 +128,7 @@
             }
         })();
     </script>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no">
     <title>112302 - 손안에 가이드</title>
     <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiMTEyMzAyIiwic2hvcnRfbmFtZSI6IjExMjMwMiIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsInRoZW1lX2NvbG9yIjoiIzQyODVGNCJ9">
     <style>
@@ -179,6 +179,7 @@
             background: transparent;
             z-index: 25;
         }
+        /* ⚠️ 수정금지(승인필요) — 공유페이지 footer safe-area: 브라우저용 env() 추가 (2026-03-10) */
         .footer-safe-area { 
             width: 100%; 
             height: 100px; 
@@ -188,6 +189,7 @@
             justify-content: space-around; 
             align-items: center; 
             padding: 0 1rem;
+            padding-bottom: env(safe-area-inset-bottom, 0px); /* ⚠️ 수정금지(승인필요) — safe-area 브라우저 CSS (2026-03-10) */
         }
         
         /* 텍스트 오버레이 */
@@ -331,10 +333,11 @@
             -webkit-box-orient: vertical;
         }
         
-        /* 갤러리 하단 버튼 */
+        /* ⚠️ 수정금지(승인필요) — 갤러리 하단 버튼: 브라우저용 safe-area 추가 (2026-03-10) */
         .gallery-footer {
             text-align: center;
             padding: 30px 15px;
+            padding-bottom: calc(30px + env(safe-area-inset-bottom, 0px));
         }
         .app-button {
             display: inline-flex;
@@ -486,13 +489,14 @@
         
         // Web Speech API
         const synth = window.speechSynthesis;
+        // ⚠️ 수정금지(승인필요) — voices→_tplVoices: share-page.js 전역 스코프 충돌 방지 (2026-03-10)
         let _tplVoices = [];
         let currentUtterance = null;
         
         // ═══════════════════════════════════════════════════════════════
         // 🔊 표준 음성 로직 (2025-12-24) - guideDetailPage.js와 동일
         // ═══════════════════════════════════════════════════════════════
-        // 변수명 _tpl 접두어: share-page.js의 voiceConfigsCache와 전역 스코프 충돌 방지
+        // ⚠️ 수정금지(승인필요) — 변수명 _tpl 접두어: share-page.js 전역 스코프 충돌 방지 (2026-03-10)
         let _tplVoiceConfigsCache = null;
         let _tplVoiceConfigsLoading = false;
         
