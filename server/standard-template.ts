@@ -583,13 +583,14 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
         
         // Web Speech API
         const synth = window.speechSynthesis;
+        // ⚠️ 수정금지(승인필요) — voices→_tplVoices: share-page.js 전역 스코프 충돌 방지 (2026-03-10)
         let _tplVoices = [];
         let currentUtterance = null;
         
         // ═══════════════════════════════════════════════════════════════
         // 🔊 표준 음성 로직 (2025-12-24) - guideDetailPage.js와 동일
         // ═══════════════════════════════════════════════════════════════
-        // 변수명 _tpl 접두어: share-page.js의 voiceConfigsCache와 전역 스코프 충돌 방지
+        // ⚠️ 수정금지(승인필요) — 변수명 _tpl 접두어: share-page.js 전역 스코프 충돌 방지 (2026-03-10)
         let _tplVoiceConfigsCache = null;
         let _tplVoiceConfigsLoading = false;
         
@@ -1355,13 +1356,14 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
     <script>
         // Web Speech API
         const synth = window.speechSynthesis;
+        // ⚠️ 수정금지(승인필요) — voices→_tplVoices: share-page.js 전역 스코프 충돌 방지 (2026-03-10)
         let _tplVoices = [];
         let currentUtterance = null;
         
         // ═══════════════════════════════════════════════════════════════
         // 🔊 표준 음성 로직 (2025-12-24) - guideDetailPage.js와 동일
         // ═══════════════════════════════════════════════════════════════
-        // 변수명 _tpl 접두어: share-page.js의 voiceConfigsCache와 전역 스코프 충돌 방지
+        // ⚠️ 수정금지(승인필요) — 변수명 _tpl 접두어: share-page.js 전역 스코프 충돌 방지 (2026-03-10)
         let _tplVoiceConfigsCache = null;
         let _tplVoiceConfigsLoading = false;
         

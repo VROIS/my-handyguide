@@ -159,12 +159,14 @@ app.get('/s/:id', async (req, res) => {
             `href='$1$2?ref=${creatorReferralCode}'`);
       }
       
-      // 3. 버튼 교체: X(closeWindowBtn) 제거 → ←리턴(shareReturnBtn) 추가 (2월 1일 안정 로직 복원 + SPA 호환)
+      // ⚠️ 수정금지(승인필요) — 3. 버튼 교체: X(closeWindowBtn) 제거 + ←(shareReturnBtn) SPA 호환 주입 (2026-03-10)
+      // 2월 1일 안정 로직 복원: closeWindowBtn이 .ui-layer 내부 detail-back을 가리는 z-index 충돌 해결
       // 구버전 DB 페이지용 sticky 파란 바 제거
       result = result.replace(/<div[^>]*style="[^"]*position:\s*sticky[^"]*background:\s*#4285F4[^"]*"[^>]*>[\s\S]*?<\/div>/gi, '');
       // closeWindowBtn(X) 제거
       result = result.replace(/<button[^>]*id\s*=\s*["']?closeWindowBtn["']?[^>]*>[\s\S]*?<\/button>/gi, '');
-      // ← 리턴 버튼 삽입 (V1 페이지는 detail-back/gallery-close 보유 → 가드로 스킵)
+      // ← 리턴 버튼 삽입 (V1 페이지는 gallery-close 보유 → 가드로 스킵)
+      // SPA iframe: postMessage('closeOverlay') / 독립 브라우저: window.close()
       const returnButtonHTML = `
         <button id="shareReturnBtn" onclick="if(window.parent!==window){window.parent.postMessage({type:'closeOverlay'},'*')}else{window.close()}" style="position: fixed; top: 1rem; right: 1rem; z-index: 10000; width: 3rem; height: 3rem; display: flex; align-items: center; justify-content: center; border-radius: 9999px; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(8px); color: #4285F4; border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); transition: all 0.2s ease;" aria-label="창 닫기">
             <svg xmlns="http://www.w3.org/2000/svg" style="width: 1.5rem; height: 1.5rem;" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
