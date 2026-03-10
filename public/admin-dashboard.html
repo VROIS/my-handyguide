@@ -2440,7 +2440,7 @@
         // ═══════════════════════════════════════════════════════════════
         async function regenerateAllV1() {
             // ⚠️ 수정금지(승인필요) — V1 재생성 confirm 메시지: 마이그래이션 내용 명시 (Claude Sonnet 4.6, 2026-03-10)
-            if (!confirm('모든 공유페이지를 V1 표준 템플릿으로 재생성하시겠습니까?\n\n• 음성 가이드 썸네일 표준화\n• locationName/voiceQuery 필드 적용\n• TTS 음성 우선순위 적용\n• 공유페이지 X닫기 버튼 position:fixed 복원 (JS토글 제거)\n• 공유페이지 닫기: window.close() → SPA 오버레이 postMessage 업그레이드')) {
+            if (!confirm('모든 공유페이지를 V1 표준 템플릿으로 재생성하시겠습니까?\n\n• 음성 가이드 썸네일 표준화\n• locationName/voiceQuery 필드 적용\n• TTS 음성 우선순위 적용\n• 공유페이지 X닫기 버튼 position:fixed 복원 (JS토글 제거)\n• 공유페이지 닫기: window.close() → SPA 오버레이 postMessage 업그레이드\n• 인라인 스크립트 변수 충돌 수정 (voiceConfigsCache SyntaxError 해결)')) {
                 return;
             }
 
