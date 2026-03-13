@@ -857,7 +857,9 @@ const guideDetailPage = {
 
     // ⚠️ 수정금지(승인필요): 음성 정지 — iOS Safari paused 고착 방지 + 네이티브 TTS 분기
     _stopAudio: function () {
-        // ⚠️ 수정금지(승인필요): 2026-03-13 네이티브 TTS 정지 분기
+        // ⚠️ 수정금지(승인필요): 2026-03-13 네이티브 TTS 정지 + pause 상태 초기화
+        this._state._nativePaused = false;
+        this._state._nativePausedText = null;
         if (this._state.isNativeApp && window.ReactNativeWebView) {
             this._state.isNativeSpeaking = false;
             window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'stopSpeech', payload: {} }));
@@ -896,6 +898,7 @@ const guideDetailPage = {
         if (!text || text === '불러오는 중...') return;
 
         if (this._state.isNativeSpeaking) {
+            // 네이티브 TTS 재생 중 → 일시정지 (stopSpeech만, _stopAudio 호출 안함)
             this._state.isNativeSpeaking = false;
             this._state._nativePausedText = this._state.originalText || text;
             this._state._nativePaused = true;
@@ -908,8 +911,11 @@ const guideDetailPage = {
             }
             this._updateAudioButtonIcon(false);
         } else if (this._state._nativePaused) {
+            // 네이티브 TTS 일시정지 상태 → 재개 (처음부터 재시작)
+            const resumeText = this._state._nativePausedText || text;
             this._state._nativePaused = false;
-            this._playAudio(this._state._nativePausedText, this._state.savedVoiceLang, this._state.savedVoiceName);
+            this._state._nativePausedText = null;
+            this._playAudio(resumeText, this._state.savedVoiceLang, this._state.savedVoiceName);
         } else if (this._state.synth.speaking) {
             this._stopAudio();
         } else {

@@ -707,7 +707,10 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
         }
         
         function stopAudio() {
-            // ⚠️ 수정금지(승인필요): 2026-03-13 네이티브 TTS 정지 분기
+            // ⚠️ 수정금지(승인필요): 2026-03-13 네이티브 TTS 정지 + pause 상태 초기화
+            window.__galleryNativeSpeaking = false;
+            window.__galleryNativePaused = false;
+            window.__galleryNativePausedText = null;
             if (isNativeApp && window.ReactNativeWebView) {
                 window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'stopSpeech', payload: {} }));
                 if (window.__galleryNativeSpeakDoneListener) {
@@ -815,7 +818,7 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
             // ⚠️ 수정금지(승인필요): 2026-03-13 3단계 TTS 전략
             // 1단계: 앱(WebView) → 네이티브 TTS (expo-speech)
             if (isNativeApp && window.ReactNativeWebView) {
-                _galleryNativeSpeaking = true;
+                window.__galleryNativeSpeaking = true;
                 playIcon.style.display = 'none';
                 pauseIcon.style.display = 'block';
                 window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -829,7 +832,9 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
                     if (e.detail && e.detail.type === 'speakDone') {
                         window.removeEventListener('nativeResponse', window.__galleryNativeSpeakDoneListener);
                         window.__galleryNativeSpeakDoneListener = null;
-                        _galleryNativeSpeaking = false;
+                        window.__galleryNativeSpeaking = false;
+                        window.__galleryNativePaused = false;
+                        window.__galleryNativePausedText = null;
                         playIcon.style.display = 'block';
                         pauseIcon.style.display = 'none';
                         textElement.textContent = originalText;
@@ -996,20 +1001,29 @@ export function generateStandardShareHTML(data: StandardTemplateData): string {
         });
         
         // ⚠️ 수정금지(승인필요): 2026-03-13 네이티브 pause/resume 포함 음성 토글
-        let _galleryNativeSpeaking = false;
-        let _galleryNativePaused = false;
-        let _galleryNativePausedText = null;
         document.getElementById('detail-audio').addEventListener('click', () => {
-            if (_galleryNativeSpeaking) {
-                // 네이티브 재생 중 → 일시정지
-                _galleryNativeSpeaking = false;
-                _galleryNativePausedText = document.getElementById('detail-description').textContent;
-                _galleryNativePaused = true;
-                stopAudio();
-            } else if (_galleryNativePaused) {
+            if (window.__galleryNativeSpeaking) {
+                // 네이티브 재생 중 → 일시정지 (stopAudio 호출 안함 — pause 상태 초기화 방지)
+                window.__galleryNativeSpeaking = false;
+                window.__galleryNativePausedText = document.getElementById('detail-description').textContent;
+                window.__galleryNativePaused = true;
+                if (window.ReactNativeWebView) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'stopSpeech', payload: {} }));
+                }
+                if (window.__galleryNativeSpeakDoneListener) {
+                    window.removeEventListener('nativeResponse', window.__galleryNativeSpeakDoneListener);
+                    window.__galleryNativeSpeakDoneListener = null;
+                }
+                const playIcon = document.getElementById('play-icon');
+                const pauseIcon = document.getElementById('pause-icon');
+                if (playIcon) playIcon.style.display = 'block';
+                if (pauseIcon) pauseIcon.style.display = 'none';
+            } else if (window.__galleryNativePaused) {
                 // 네이티브 일시정지 → 재개 (처음부터 재시작)
-                _galleryNativePaused = false;
-                playAudio(_galleryNativePausedText, currentVoiceLang);
+                const resumeText = window.__galleryNativePausedText;
+                window.__galleryNativePaused = false;
+                window.__galleryNativePausedText = null;
+                playAudio(resumeText, currentVoiceLang);
             } else if (synth.speaking) {
                 stopAudio();
             } else {
@@ -1547,7 +1561,9 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
         }
         
         function stopAudio() {
-            // ⚠️ 수정금지(승인필요): 2026-03-13 네이티브 TTS 정지 분기
+            // ⚠️ 수정금지(승인필요): 2026-03-13 네이티브 TTS 정지 + pause 상태 초기화
+            window.__singleGuideNativeSpeaking = false;
+            window.__singleGuideNativePaused = false;
             if (isNativeApp && window.ReactNativeWebView) {
                 window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'stopSpeech', payload: {} }));
                 if (window.__singleGuideNativeSpeakDoneListener) {
@@ -1647,7 +1663,7 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
             // ⚠️ 수정금지(승인필요): 2026-03-13 3단계 TTS 전략
             // 1단계: 앱(WebView) → 네이티브 TTS (expo-speech)
             if (isNativeApp && window.ReactNativeWebView) {
-                _singleGuideNativeSpeaking = true;
+                window.__singleGuideNativeSpeaking = true;
                 document.getElementById('play-icon').style.display = 'none';
                 document.getElementById('pause-icon').style.display = 'block';
                 window.ReactNativeWebView.postMessage(JSON.stringify({
@@ -1661,7 +1677,8 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
                     if (e.detail && e.detail.type === 'speakDone') {
                         window.removeEventListener('nativeResponse', window.__singleGuideNativeSpeakDoneListener);
                         window.__singleGuideNativeSpeakDoneListener = null;
-                        _singleGuideNativeSpeaking = false;
+                        window.__singleGuideNativeSpeaking = false;
+                        window.__singleGuideNativePaused = false;
                         document.getElementById('play-icon').style.display = 'block';
                         document.getElementById('pause-icon').style.display = 'none';
                         textElement.textContent = originalText;
@@ -1695,17 +1712,23 @@ export function generateSingleGuideHTML(data: SingleGuidePageData): string {
         }
         
         // ⚠️ 수정금지(승인필요): 2026-03-13 네이티브 pause/resume 포함 음성 토글
-        let _singleGuideNativeSpeaking = false;
-        let _singleGuideNativePaused = false;
         document.getElementById('detail-audio').addEventListener('click', () => {
-            if (_singleGuideNativeSpeaking) {
-                // 네이티브 재생 중 → 일시정지
-                _singleGuideNativeSpeaking = false;
-                _singleGuideNativePaused = true;
-                stopAudio();
-            } else if (_singleGuideNativePaused) {
+            if (window.__singleGuideNativeSpeaking) {
+                // 네이티브 재생 중 → 일시정지 (stopAudio 호출 안함 — pause 상태 초기화 방지)
+                window.__singleGuideNativeSpeaking = false;
+                window.__singleGuideNativePaused = true;
+                if (window.ReactNativeWebView) {
+                    window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'stopSpeech', payload: {} }));
+                }
+                if (window.__singleGuideNativeSpeakDoneListener) {
+                    window.removeEventListener('nativeResponse', window.__singleGuideNativeSpeakDoneListener);
+                    window.__singleGuideNativeSpeakDoneListener = null;
+                }
+                document.getElementById('play-icon').style.display = 'block';
+                document.getElementById('pause-icon').style.display = 'none';
+            } else if (window.__singleGuideNativePaused) {
                 // 네이티브 일시정지 → 재개 (처음부터 재시작)
-                _singleGuideNativePaused = false;
+                window.__singleGuideNativePaused = false;
                 playAudio();
             } else if (synth.speaking) {
                 stopAudio();
