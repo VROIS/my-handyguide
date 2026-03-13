@@ -542,8 +542,8 @@ const guideDetailPage = {
         // 자동재생 안 함 — 사용자가 ▶ 버튼 누르면 _toggleAudio()로 재생
         // ═══════════════════════════════════════════════════════════════
 
-        // 1단계: 음성 버튼 즉시 활성화 (play 아이콘 표시)
-        this._updateAudioButtonIcon(false); // false = ▶ play 아이콘
+        // ⚠️ 수정금지(승인필요): 2026-03-12 TTS 자동재생 전환 (롤백: 아래 주석 해제)
+        // [이전 수동재생] this._updateAudioButtonIcon(false);
         if (this._els.audioBtn) {
             this._els.audioBtn.disabled = false;
             this._els.audioBtn.style.opacity = '1';
@@ -551,6 +551,11 @@ const guideDetailPage = {
 
         // 2단계: 번역 실행 (텍스트 + 버튼 준비 완료 후)
         this._retranslateNewContent();
+
+        // 3단계: 번역 후 자동재생 (admin/profile과 동일 순서)
+        if (guide.description) {
+            this._playAudio(guide.description, guide.voiceLang, guide.voiceName, renderId);
+        }
     },
 
     // 페이지 표시

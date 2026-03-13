@@ -2663,8 +2663,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 queueForSpeech(sentence, span);
             }
 
-            // ⚠️ 2026-03-05: TTS 큐 준비 완료 → ▶ 버튼 스탠바이
-            updateAudioButton('play');
+            // ⚠️ 수정금지(승인필요): 2026-03-12 TTS 자동재생 전환 (롤백: 아래 주석 해제)
+            // [이전 수동재생] updateAudioButton('play');
+            updateAudioButton('pause');
+            speakNext();
 
             // 🔒 AI 호출 성공 후 사용량 차감
             await deductUsage('detail');
@@ -2905,8 +2907,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 queueForSpeech(sentence, span);
             }
 
-            // ⚠️ 2026-03-05: TTS 큐 준비 완료 → ▶ 버튼 스탠바이
-            updateAudioButton('play');
+            // ⚠️ 수정금지(승인필요): 2026-03-12 TTS 자동재생 전환 (롤백: 아래 주석 해제)
+            // [이전 수동재생] updateAudioButton('play');
+            updateAudioButton('pause');
+            speakNext();
 
             // 🎤 음성 가이드 저장 버튼 활성화
             saveBtn.disabled = false;
@@ -3909,7 +3913,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 queueForSpeech(text, span);
             });
 
-            updateAudioButton('play');
+            // ⚠️ 수정금지(승인필요): 2026-03-12 TTS 자동재생 전환 (롤백: 아래 주석 해제)
+            // [이전 수동재생] updateAudioButton('play');
+            updateAudioButton('pause');
+            speakNext();
 
         } catch (error) {
             console.error('View archive item error:', error);

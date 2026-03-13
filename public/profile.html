@@ -1422,11 +1422,11 @@
                 this._state.savedVoiceLang = guide.voiceLang || null;
                 this._state.savedVoiceName = guide.voiceName || null;
 
-                // 🌐 2025-12-24: 동적 콘텐츠 재번역 (자동재생 제거 — 브라우저 자동재생 차단 정책 대응)
-                // 사용자가 ▶ 버튼 누르면 _toggleAudio()로 재생
+                // ⚠️ 수정금지(승인필요): 2026-03-12 TTS 자동재생 전환 (롤백: 아래 주석 해제)
+                // [이전 수동재생] this._updateAudioButtonIcon(false);
                 this._retranslateNewContent();
                 if (guide.description) {
-                    this._updateAudioButtonIcon(false); // ▶ play 아이콘 표시
+                    this._playAudio(guide.description, guide.voiceLang, guide.voiceName);
                 }
             },
 
