@@ -33,10 +33,18 @@
         "image": "ubuntu-22.04-jdk-17-ndk-r26b"
       },
       "ios": {
-        "credentialsSource": "remote",
-        "autoIncrement": true
+        "credentialsSource": "local"
       }
     }
   },
-  "submit": {}
+  "submit": {
+    "production": {
+      "ios": {
+        "ascAppId": "6760204083",
+        "ascApiKeyIssuerId": "ee01eefd-4883-4ce6-b5cf-fd44073b2e08",
+        "ascApiKeyId": "K5D2RF7GUT",
+        "ascApiKeyPath": "AuthKey_K5D2RF7GUT.p8"
+      }
+    }
+  }
 }
