@@ -17,6 +17,8 @@ import { getEURtoKRW, convertEURtoKRW, formatKRW, getAllRates } from './exchange
 import { getUncachableStripeClient, getStripePublishableKey } from './stripeClient';
 import { storage } from './storage';
 import { db } from './db'; // ⚠️ 수정금지(승인필요): 2026-03-11 Race Condition 수정용 트랜잭션 import
+import { users } from '@shared/schema'; // ⚠️ 수정금지(승인필요): 2026-03-14 계정 삭제용 users 테이블 import
+import { eq } from 'drizzle-orm'; // ⚠️ 수정금지(승인필요): 2026-03-14 계정 삭제용 eq import
 
 const router = Router();
 
@@ -581,6 +583,33 @@ router.put('/profile/language', async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Language update error:', error);
     res.status(500).json({ error: '언어 업데이트 실패' });
+  }
+});
+
+// ⚠️ 수정금지(승인필요): 2026-03-14 계정 삭제 엔드포인트 — users 삭제 시 CASCADE로 관련 데이터 자동 삭제
+router.delete('/profile/account', async (req: Request, res: Response) => {
+  try {
+    const userId = getUserId((req as any).user);
+
+    if (!userId) {
+      return res.status(401).json({ error: '로그인이 필요합니다.', success: false });
+    }
+
+    // ⚠️ 수정금지(승인필요): DB에서 사용자 삭제 (CASCADE로 guides, creditTransactions, cashbackRequests, sharedHtmlPages, notifications, pushSubscriptions 자동 삭제)
+    await db.delete(users).where(eq(users.id, userId));
+
+    // ⚠️ 수정금지(승인필요): 세션 파기 + 로그아웃 처리
+    if (req.session) {
+      req.session.destroy((err: any) => {
+        if (err) console.error('Session destroy error:', err);
+      });
+    }
+
+    console.log(`🗑️ 계정 삭제 완료: ${userId}`);
+    res.json({ success: true, message: '계정이 삭제되었습니다.' });
+  } catch (error: any) {
+    console.error('Account delete error:', error);
+    res.status(500).json({ error: '계정 삭제 중 오류가 발생했습니다.', success: false });
   }
 });
 

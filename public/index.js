@@ -74,6 +74,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ⚠️ 수정금지(승인필요): 2026-03-14 네이티브 알림 진동 — 저장 성공/에러/삭제 시 촉각 피드백
+    function triggerHapticNotification(notifType = 'success') {
+        if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'hapticNotification', payload: { notifType } }));
+        } else if (navigator.vibrate) {
+            const patterns = { success: [50, 30, 50], warning: [100, 50, 100], error: [200, 100, 200] };
+            navigator.vibrate(patterns[notifType] || patterns.success);
+        }
+    }
+
     // 📳 모든 interactive-btn에 햅틱 피드백 적용
     document.querySelectorAll('.interactive-btn').forEach(btn => {
         btn.addEventListener('click', () => triggerHaptic(50));
@@ -95,6 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeAuthModalBtn = document.getElementById('closeAuthModalBtn');
     const googleLoginBtn = document.getElementById('googleLoginBtn');
     const kakaoLoginBtn = document.getElementById('kakaoLoginBtn');
+    const appleLoginBtn = document.getElementById('appleLoginBtn'); // ⚠️ 수정금지(승인필요): Apple 로그인 버튼 (2026-03-14)
 
     // Pages
     const featuresPage = document.getElementById('featuresPage');
@@ -212,6 +223,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // 🎤 2026-01-24: 12월 버전으로 롤백 (설정 없이 브라우저 기본값 사용)
     // ⚠️ 수정금지(승인필요): 2026-03-11 네이티브 브릿지 — 앱에서는 네이티브 음성인식 사용
     const isNativeApp = !!window.ReactNativeWebView;
+    // ⚠️ 수정금지(승인필요): 2026-03-14 네이티브 음성 목록 + 디바이스 언어 초기화
+    if (isNativeApp && window.ReactNativeWebView) {
+        // 네이티브 음성 목록 가져오기 (getVoices → window.__nativeVoices에 저장)
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'getVoices', payload: {} }));
+        // 네이티브 디바이스 언어 가져오기 (getLocale → window.__nativeLocale에 저장)
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'getLocale', payload: {} }));
+        // ⚠️ 수정금지(승인필요): 2026-03-14 초기화 리스너 — voices+locale 수신 후 자동 제거
+        window.addEventListener('nativeResponse', function __initNativeBridge(e) {
+            const data = e.detail;
+            if (data.type === 'voices') { window.__nativeVoices = data.voices; }
+            if (data.type === 'locale') { window.__nativeLocale = data; }
+            if (window.__nativeVoices && window.__nativeLocale) {
+                window.removeEventListener('nativeResponse', __initNativeBridge);
+            }
+        });
+        // ⚠️ 수정금지(승인필요): 2026-03-14 네이티브 창 닫기 — window.close() 대신 goBack() 사용
+        window.__nativeCloseWindow = function() {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'closeWindow', payload: {} }));
+        };
+    }
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     let recognition = SpeechRecognition ? new SpeechRecognition() : null;
     let isRecognizing = false;
@@ -604,11 +635,16 @@ document.addEventListener('DOMContentLoaded', () => {
         showToast('무료 체험이 끝났습니다. 로그인하면 140 크레딧을 드려요! 🎁');
     }
 
+    // ⚠️ 수정금지(승인필요): 2026-03-14 iOS 네이티브 앱에서는 웹 브라우저 충전 안내 메시지 표시
     function showChargeModal() {
-        showToast('크레딧이 부족합니다. 프로필에서 충전해주세요.');
-        setTimeout(() => {
-            openPageOverlay('/profile.html');
-        }, 1500);
+        if (isNativeApp && detectPlatform() === 'ios') {
+            showToast('크레딧이 부족합니다. 웹 브라우저에서 충전해주세요.');
+        } else {
+            showToast('크레딧이 부족합니다. 프로필에서 충전해주세요.');
+            setTimeout(() => {
+                openPageOverlay('/profile.html');
+            }, 1500);
+        }
     }
 
     /**
@@ -1297,7 +1333,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         function populateVoiceList() {
             const userLang = localStorage.getItem('appLanguage') || 'ko'; // 🌐 현재 선택 언어 우선
-            const allVoices = synth.getVoices();
+            // ⚠️ 수정금지(승인필요): 2026-03-14 네이티브 음성 목록 우선 — 앱에서는 expo-speech 음성 사용
+            const allVoices = (isNativeApp && window.__nativeVoices) ? window.__nativeVoices : synth.getVoices();
             
             // 선택 언어에 맞는 음성 필터링
             const langCode = langCodeMap[userLang] || 'ko-KR';
@@ -2400,8 +2437,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function capturePhoto() {
-        if (!video.videoWidth || !video.videoHeight) return;
-
         // 🚨 2026-01-24: AI 처리 중이면 촬영 무시
         if (isAIProcessing) {
             return;
@@ -2410,6 +2445,37 @@ document.addEventListener('DOMContentLoaded', () => {
         // 🔒 사용량 제한 체크 (AI 호출 전)
         const canProceed = await checkUsageLimit('detail');
         if (!canProceed) return;
+
+        // ⚠️ 수정금지(승인필요): 2026-03-14 네이티브 이미지피커 우선 — 앱에서는 expo-image-picker 사용, 웹은 기존 getUserMedia 유지
+        if (isNativeApp && window.ReactNativeWebView) {
+            // 이전 리스너가 남아있으면 제거 (이중 호출 방지)
+            if (window.__pendingImageListener) {
+                window.removeEventListener('nativeResponse', window.__pendingImageListener);
+                window.__pendingImageListener = null;
+            }
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'pickImage', payload: { source: 'camera' } }));
+            // 네이티브 응답 1회성 리스너 (imageResult 수신 → processImage 호출)
+            const onImageResult = (e) => {
+                const data = e.detail;
+                if (data.type === 'imageResult') {
+                    window.removeEventListener('nativeResponse', onImageResult);
+                    window.__pendingImageListener = null;
+                    if (data.base64 && !data.error && !data.canceled) {
+                        requestBrowserLocation();
+                        processImage('data:image/jpeg;base64,' + data.base64, shootBtn);
+                    } else if (data.error) {
+                        showToast('카메라 권한이 필요합니다.');
+                    }
+                    // canceled → 리스너 이미 제거됨, 아무것도 안 함
+                }
+            };
+            window.__pendingImageListener = onImageResult;
+            window.addEventListener('nativeResponse', onImageResult);
+            return;
+        }
+
+        // 웹 fallback: 기존 getUserMedia → canvas → base64
+        if (!video.videoWidth || !video.videoHeight) return;
 
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -3066,6 +3132,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 3. 저장 완료
             showToast("저장 완료!");
+            triggerHapticNotification('success');
 
             // GPS 데이터 초기화
             window.currentGPS = null;
@@ -3075,6 +3142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (e) {
             console.error("Failed to save to archive:", e);
             showToast("저장에 실패했습니다. 네트워크 연결을 확인해주세요.");
+            triggerHapticNotification('error');
             saveBtn.disabled = false;
         }
     }
@@ -3974,6 +4042,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (utteranceQueue.length === 0) {
             isSpeaking = false;
+            // ⚠️ 수정금지(승인필요): 2026-03-14 TTS 완료 시 화면 꺼짐 방지 해제
+            if (isNativeApp && window.ReactNativeWebView) {
+                window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'allowSleep', payload: {} }));
+            }
             updateAudioButton('play');
             if (currentlySpeakingElement) {
                 currentlySpeakingElement.classList.remove('speaking');
@@ -3983,6 +4055,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         const { text, element } = utteranceQueue.shift();
+        // ⚠️ 수정금지(승인필요): 2026-03-14 TTS 재생 시작 시 1회만 화면 꺼짐 방지 (매 utterance 중복 호출 방지)
+        if (!isSpeaking && isNativeApp && window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'keepAwake', payload: {} }));
+        }
         isSpeaking = true;
 
         if (currentlySpeakingElement) {
@@ -5500,6 +5576,32 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!popup || popup.closed) {
             console.error('❌ 팝업이 차단되었습니다. 같은 탭으로 진행합니다.');
             window.location.href = '/api/auth/kakao';
+        }
+    });
+
+    // ⚠️ 수정금지(승인필요): Apple 로그인 버튼 — iOS 네이티브 앱에서만 표시 (2026-03-14)
+    if (isNativeApp && detectPlatform() === 'ios') {
+        if (appleLoginBtn) appleLoginBtn.style.display = 'flex';
+    }
+
+    // ⚠️ 수정금지(승인필요): Apple 로그인 클릭 핸들러 (2026-03-14)
+    appleLoginBtn?.addEventListener('click', () => {
+
+        // 모바일/PC 모두 새 창 열기 (상태 유지 위해!)
+        const width = 500;
+        const height = 600;
+        const left = (window.screen.width - width) / 2;
+        const top = (window.screen.height - height) / 2;
+
+        const popup = window.open(
+            '/api/auth/apple',
+            'apple_oauth',
+            `width=${width},height=${height},left=${left},top=${top},toolbar=no,menubar=no,scrollbars=yes`
+        );
+
+        if (!popup || popup.closed) {
+            console.error('❌ 팝업이 차단되었습니다. 같은 탭으로 진행합니다.');
+            window.location.href = '/api/auth/apple';
         }
     });
 

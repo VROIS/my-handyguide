@@ -4,7 +4,7 @@
     "slug": "sonanie-guide",
     "scheme": "sonanie-guide",
     "version": "1.0.1",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -16,14 +16,12 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.sonanie.guide",
-      "buildNumber": "2",
+      "buildNumber": "3",
       "infoPlist": {
         "NSCameraUsageDescription": "AI 여행 가이드를 위해 카메라로 장소나 음식을 촬영합니다.",
         "NSMicrophoneUsageDescription": "음성으로 여행 질문을 할 수 있습니다.",
         "NSLocationWhenInUseUsageDescription": "현재 위치 주변의 관광 정보를 제공합니다.",
         "NSPhotoLibraryUsageDescription": "갤러리에서 사진을 선택하여 AI 분석을 합니다.",
-        "NSContactsUsageDescription": "친구에게 앱을 추천하기 위해 연락처에 접근합니다.",
-        "NSFaceIDUsageDescription": "생체 인증으로 빠르게 로그인합니다.",
         "ITSAppUsesNonExemptEncryption": false
       },
       "privacyManifests": {
@@ -52,10 +50,10 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#4285F4"
       },
-      "edgeToEdgeEnabled": false,
+      "edgeToEdgeEnabled": true,
       "package": "com.sonanie.guide",
-      "versionCode": 9,
-      "blockedPermissions": ["ACTIVITY_RECOGNITION"],
+      "versionCode": 10,
+      "blockedPermissions": ["ACTIVITY_RECOGNITION", "READ_CONTACTS", "WRITE_CONTACTS", "USE_BIOMETRIC", "USE_FINGERPRINT"],
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
@@ -65,8 +63,7 @@
         "READ_MEDIA_IMAGES",
         "READ_MEDIA_VIDEO",
         "ACCESS_NETWORK_STATE",
-        "ACCESS_WIFI_STATE",
-        "RECEIVE_BOOT_COMPLETED"
+        "ACCESS_WIFI_STATE"
       ]
     },
     "web": {
@@ -84,7 +81,6 @@
       "expo-audio",
       "expo-video",
       "expo-web-browser",
-      "expo-mail-composer",
       "expo-asset"
     ]
   }

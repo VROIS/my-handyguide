@@ -77,7 +77,8 @@ const LanguageHelper = {
     // localStorage에 값이 있으면 사용, 없으면 기기 언어 감지 (저장 안 함!)
     let savedLang = localStorage.getItem('appLanguage');
     if (!savedLang) {
-      const deviceLang = navigator.language?.split('-')[0] || 'ko';
+      // ⚠️ 수정금지(승인필요): 2026-03-14 네이티브 디바이스 언어 우선 — 앱에서는 expo-localization, 웹은 navigator.language
+      const deviceLang = (window.__nativeLocale?.languageCode) || navigator.language?.split('-')[0] || 'ko';
       const supportedLangs = Object.keys(this.LANGUAGES);
       savedLang = supportedLangs.includes(deviceLang) ? deviceLang : 'ko';
     }

@@ -19,6 +19,26 @@ import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import * as Localization from 'expo-localization';
 
+// ⚠️ 수정금지(승인필요): 2026-03-14 미연결 모듈 풀연결 — 네이티브 우선 + 웹 fallback 구조
+import { Audio } from 'expo-audio';
+import { CameraView } from 'expo-camera';
+import { useVideoPlayer } from 'expo-video';
+import * as KeepAwake from 'expo-keep-awake';
+import * as Network from 'expo-network';
+import * as FileSystem from 'expo-file-system';
+import * as Device from 'expo-device';
+import * as Notifications from 'expo-notifications';
+import * as DocumentPicker from 'expo-document-picker';
+import * as Brightness from 'expo-brightness';
+import * as Battery from 'expo-battery';
+import * as Crypto from 'expo-crypto';
+import * as MailComposer from 'expo-mail-composer';
+import * as Print from 'expo-print';
+import * as ScreenOrientation from 'expo-screen-orientation';
+import * as SMS from 'expo-sms';
+import * as TaskManager from 'expo-task-manager';
+import * as Updates from 'expo-updates';
+
 // ⚠️ 수정금지(승인필요): 2026-03-11 fallback URL에 "1" 누락 수정 — 실제 도메인은 my-handyguide1.replit.app
 const WEB_APP_URL = Constants.expoConfig?.extra?.webAppUrl || 'https://my-handyguide1.replit.app';
 
@@ -321,6 +341,217 @@ export default function App() {
           break;
         }
 
+        // ⚠️ 수정금지(승인필요): 2026-03-14 미연결 모듈 풀연결 — 네이티브 핸들러
+
+        // --- 화면 꺼짐 방지 (TTS 재생 중) ---
+        case 'keepAwake': {
+          KeepAwake.activateKeepAwakeAsync().catch(() => {});
+          break;
+        }
+        case 'allowSleep': {
+          KeepAwake.deactivateKeepAwake();
+          break;
+        }
+
+        // --- 네트워크 상태 ---
+        case 'getNetworkState': {
+          const netState = await Network.getNetworkStateAsync();
+          sendToWeb('networkState', {
+            isConnected: netState.isConnected,
+            isInternetReachable: netState.isInternetReachable,
+            type: netState.type,
+          });
+          break;
+        }
+
+        // --- 디바이스 정보 ---
+        case 'getDeviceInfo': {
+          sendToWeb('deviceInfo', {
+            brand: Device.brand,
+            modelName: Device.modelName,
+            osName: Device.osName,
+            osVersion: Device.osVersion,
+            deviceType: Device.deviceType,
+          });
+          break;
+        }
+
+        // --- 파일 다운로드 ---
+        case 'downloadFile': {
+          const { url: fileUrl, filename } = payload;
+          const downloadPath = FileSystem.documentDirectory + (filename || 'download');
+          try {
+            const downloadResult = await FileSystem.downloadAsync(fileUrl, downloadPath);
+            sendToWeb('downloadResult', { uri: downloadResult.uri, status: downloadResult.status });
+          } catch (dlErr) {
+            sendToWeb('downloadResult', { error: dlErr.message });
+          }
+          break;
+        }
+
+        // --- 파일 읽기 ---
+        case 'readFile': {
+          const { uri: readUri, encoding = 'utf8' } = payload;
+          try {
+            const fileContent = await FileSystem.readAsStringAsync(readUri, { encoding });
+            sendToWeb('fileContent', { content: fileContent });
+          } catch (readErr) {
+            sendToWeb('fileContent', { error: readErr.message });
+          }
+          break;
+        }
+
+        // --- 문서 선택 ---
+        case 'pickDocument': {
+          try {
+            const docResult = await DocumentPicker.getDocumentAsync({ type: '*/*' });
+            if (!docResult.canceled && docResult.assets?.[0]) {
+              sendToWeb('documentResult', {
+                uri: docResult.assets[0].uri,
+                name: docResult.assets[0].name,
+                size: docResult.assets[0].size,
+                mimeType: docResult.assets[0].mimeType,
+              });
+            } else {
+              sendToWeb('documentResult', { canceled: true });
+            }
+          } catch (docErr) {
+            sendToWeb('documentResult', { error: docErr.message });
+          }
+          break;
+        }
+
+        // --- 화면 밝기 ---
+        case 'getBrightness': {
+          try {
+            const brightness = await Brightness.getBrightnessAsync();
+            sendToWeb('brightnessResult', { brightness });
+          } catch (brightErr) {
+            sendToWeb('brightnessResult', { error: brightErr.message });
+          }
+          break;
+        }
+        case 'setBrightness': {
+          const { level } = payload;
+          try {
+            await Brightness.setBrightnessAsync(level);
+            sendToWeb('brightnessResult', { success: true });
+          } catch (brightSetErr) {
+            sendToWeb('brightnessResult', { error: brightSetErr.message });
+          }
+          break;
+        }
+
+        // --- 배터리 ---
+        case 'getBatteryLevel': {
+          try {
+            const batteryLevel = await Battery.getBatteryLevelAsync();
+            const batteryState = await Battery.getBatteryStateAsync();
+            sendToWeb('batteryResult', { level: batteryLevel, state: batteryState });
+          } catch (batErr) {
+            sendToWeb('batteryResult', { error: batErr.message });
+          }
+          break;
+        }
+
+        // --- 암호화 해시 ---
+        case 'generateHash': {
+          const { data: hashData, algorithm = 'SHA-256' } = payload;
+          try {
+            const algMap = { 'SHA-256': Crypto.CryptoDigestAlgorithm.SHA256, 'SHA-512': Crypto.CryptoDigestAlgorithm.SHA512, 'MD5': Crypto.CryptoDigestAlgorithm.MD5 };
+            const digest = await Crypto.digestStringAsync(algMap[algorithm] || algMap['SHA-256'], hashData);
+            sendToWeb('hashResult', { hash: digest, algorithm });
+          } catch (hashErr) {
+            sendToWeb('hashResult', { error: hashErr.message });
+          }
+          break;
+        }
+
+        // --- 메일 작성 ---
+        case 'composeMail': {
+          const { recipients, subject, body: mailBody } = payload;
+          try {
+            const isAvail = await MailComposer.isAvailableAsync();
+            if (isAvail) {
+              await MailComposer.composeAsync({ recipients, subject, body: mailBody });
+              sendToWeb('mailResult', { success: true });
+            } else {
+              sendToWeb('mailResult', { error: 'mail_not_available' });
+            }
+          } catch (mailErr) {
+            sendToWeb('mailResult', { error: mailErr.message });
+          }
+          break;
+        }
+
+        // --- 인쇄 ---
+        case 'printContent': {
+          const { html: printHtml } = payload;
+          try {
+            await Print.printAsync({ html: printHtml });
+            sendToWeb('printResult', { success: true });
+          } catch (printErr) {
+            sendToWeb('printResult', { error: printErr.message });
+          }
+          break;
+        }
+
+        // --- 화면 방향 ---
+        case 'lockOrientation': {
+          const { orientation: orient = 'DEFAULT' } = payload;
+          try {
+            const orientMap = { 'PORTRAIT': ScreenOrientation.OrientationLock.PORTRAIT, 'LANDSCAPE': ScreenOrientation.OrientationLock.LANDSCAPE, 'DEFAULT': ScreenOrientation.OrientationLock.DEFAULT };
+            await ScreenOrientation.lockAsync(orientMap[orient] || orientMap['DEFAULT']);
+            sendToWeb('orientationResult', { success: true });
+          } catch (orientErr) {
+            sendToWeb('orientationResult', { error: orientErr.message });
+          }
+          break;
+        }
+
+        // --- SMS ---
+        case 'sendSMS': {
+          const { addresses, message: smsMsg } = payload;
+          try {
+            const isAvail = await SMS.isAvailableAsync();
+            if (isAvail) {
+              await SMS.sendSMSAsync(addresses, smsMsg);
+              sendToWeb('smsResult', { success: true });
+            } else {
+              sendToWeb('smsResult', { error: 'sms_not_available' });
+            }
+          } catch (smsErr) {
+            sendToWeb('smsResult', { error: smsErr.message });
+          }
+          break;
+        }
+
+        // --- 푸시 알림 ---
+        case 'scheduleNotification': {
+          const { title: notifTitle, body: notifBody, seconds = 1 } = payload;
+          try {
+            await Notifications.scheduleNotificationAsync({
+              content: { title: notifTitle, body: notifBody },
+              trigger: { type: 'timeInterval', seconds, repeats: false },
+            });
+            sendToWeb('notificationResult', { success: true });
+          } catch (notifErr) {
+            sendToWeb('notificationResult', { error: notifErr.message });
+          }
+          break;
+        }
+
+        // --- OTA 업데이트 확인 ---
+        case 'checkForUpdates': {
+          try {
+            const update = await Updates.checkForUpdateAsync();
+            sendToWeb('updateResult', { isAvailable: update.isAvailable });
+          } catch (updateErr) {
+            sendToWeb('updateResult', { error: updateErr.message });
+          }
+          break;
+        }
+
         default:
           console.log('[Bridge] 알 수 없는 메시지 타입:', type);
       }
@@ -344,8 +575,9 @@ export default function App() {
   const handleNavigationRequest = useCallback((request) => {
     const { url } = request;
 
-    // Google OAuth 또는 Stripe Checkout → 시스템 브라우저에서 열기
+    // ⚠️ 수정금지(승인필요): Google/Apple OAuth 또는 Stripe Checkout → 시스템 브라우저에서 열기 (2026-03-14 Apple 추가)
     if ((url.includes('/api/auth/google') && !url.includes('/callback')) ||
+        (url.includes('/api/auth/apple') && !url.includes('/callback')) ||
         url.includes('checkout.stripe.com')) {
       openExternal(url);
       return false; // WebView 내 이동 차단

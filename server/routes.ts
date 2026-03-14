@@ -7,6 +7,7 @@ import { sql, desc } from "drizzle-orm";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupGoogleAuth } from "./googleAuth";
 import { setupKakaoAuth } from "./kakaoAuth";
+import { setupAppleAuth } from "./appleAuth"; // ⚠️ 수정금지(승인필요): Apple OAuth 임포트 (2026-03-14)
 import { generateLocationBasedContent, getLocationName, generateShareLinkDescription, generateCinematicPrompt, optimizeAudioScript, analyzeTextAndGenerateScript, analyzeImageAndGenerateScript, generatePersonaVoice, type GuideContent, type DreamShotPrompt, type AnalyzedScript } from "./gemini";
 import { insertGuideSchema, insertShareLinkSchema, insertSharedHtmlPageSchema, creditTransactions, users, notifications, pushSubscriptions, insertNotificationSchema, insertPushSubscriptionSchema, voiceConfigs, dreamStudioVideos, apiLogs, userActivityLogs } from "@shared/schema";
 import webpush from "web-push";
@@ -732,6 +733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
   await setupGoogleAuth(app);
   await setupKakaoAuth(app);
+  await setupAppleAuth(app); // ⚠️ 수정금지(승인필요): Apple OAuth 라우트 등록 (2026-03-14)
 
   // ═══════════════════════════════════════════════════════════════
   // 📱 Beta Tester Registration

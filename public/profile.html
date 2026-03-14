@@ -646,7 +646,34 @@
                     </div>
                 </div>
             </section>
+            <!-- ⚠️ 수정금지(승인필요): 2026-03-14 계정 삭제 버튼 — 프로필 페이지 하단 위험 액션 -->
+            <section class="card mt-6">
+                <button id="deleteAccountBtn"
+                    class="w-full bg-red-500 text-white font-bold py-3 px-4 rounded-xl hover:bg-red-600 transition"
+                    onclick="openDeleteAccountModal()">
+                    계정 삭제
+                </button>
+            </section>
         </main>
+    </div>
+
+    <!-- ⚠️ 수정금지(승인필요): 2026-03-14 계정 삭제 확인 모달 — 2차 확인 후 DELETE /api/profile/account 호출 -->
+    <div id="deleteAccountModal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-sm w-full shadow-2xl p-6">
+            <div class="text-center">
+                <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-2">계정 삭제</h3>
+                <p class="text-sm text-gray-600 mb-6">정말 삭제하시겠습니까? 모든 데이터가 영구적으로 삭제됩니다.</p>
+                <div class="flex gap-3">
+                    <button onclick="closeDeleteAccountModal()" class="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-medium hover:bg-gray-300 transition">취소</button>
+                    <button onclick="confirmDeleteAccount()" class="flex-1 py-3 bg-red-500 text-white rounded-xl font-medium hover:bg-red-600 transition">삭제</button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- 공유 모달 (index.js 2회차 성공 모달과 동일) -->
@@ -2061,6 +2088,54 @@
                 showToast('캐시백 신청 중 오류가 발생했습니다.');
             }
         };
+
+        // ⚠️ 수정금지(승인필요): 2026-03-14 계정 삭제 모달 열기/닫기/확인 함수
+        function openDeleteAccountModal() {
+            document.getElementById('deleteAccountModal').classList.remove('hidden');
+        }
+        function closeDeleteAccountModal() {
+            document.getElementById('deleteAccountModal').classList.add('hidden');
+        }
+        async function confirmDeleteAccount() {
+            try {
+                const response = await fetch('/api/profile/account', {
+                    method: 'DELETE',
+                    credentials: 'include'
+                });
+                const data = await response.json();
+                if (data.success) {
+                    showToast('계정이 삭제되었습니다.');
+                    setTimeout(() => {
+                        // ⚠️ 수정금지(승인필요): 계정 삭제 후 로그아웃 + 메인 페이지 이동
+                        if (window.parent !== window) {
+                            window.parent.postMessage({ type: 'closeOverlay' }, '*');
+                            window.parent.location.href = '/';
+                        } else {
+                            window.location.href = '/';
+                        }
+                    }, 1500);
+                } else {
+                    showToast(data.error || '계정 삭제에 실패했습니다.');
+                }
+            } catch (error) {
+                console.error('Account delete error:', error);
+                showToast('계정 삭제 중 오류가 발생했습니다.');
+            }
+            closeDeleteAccountModal();
+        }
+
+        // ⚠️ 수정금지(승인필요): 2026-03-14 iOS 네이티브 앱에서 Stripe 결제 버튼 숨기기 (Apple 정책)
+        (function hideStripeOnIOS() {
+            const ua = navigator.userAgent;
+            const isIOS = /iPhone|iPad|iPod/.test(ua);
+            const isNative = !!window.ReactNativeWebView;
+            if (isIOS && isNative) {
+                const chargeBtn = document.getElementById('chargeBtn');
+                const cashbackBtn = document.getElementById('cashbackBtn');
+                if (chargeBtn) chargeBtn.style.display = 'none';
+                if (cashbackBtn) cashbackBtn.style.display = 'none';
+            }
+        })();
 
         loadProfile();
         loadPages();
