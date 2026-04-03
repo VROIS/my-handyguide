@@ -17,6 +17,10 @@ jobs:
         run: cd mobile-app && eas build --local --platform ios --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      - name: Submit to TestFlight
+        run: cd mobile-app && eas submit --platform ios --path *.ipa --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       - name: Upload IPA
         uses: actions/upload-artifact@v4
         with:
