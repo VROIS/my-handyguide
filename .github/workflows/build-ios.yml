@@ -18,13 +18,11 @@ jobs:
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       - name: Submit to TestFlight
+        working-directory: mobile-app
         run: |
-          IPA=$(find . -name "*.ipa" -maxdepth 3 2>/dev/null | head -1)
-          if [ -z "$IPA" ]; then
-            IPA=$(find /tmp -name "*.ipa" -maxdepth 4 2>/dev/null | head -1)
-          fi
+          IPA=$(find . -name "*.ipa" -maxdepth 1 2>/dev/null | head -1)
           echo "Found IPA: $IPA"
-          cd mobile-app && eas submit --platform ios --path "$IPA" --non-interactive
+          eas submit --platform ios --path "$IPA" --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
       - name: Upload IPA artifact
@@ -32,6 +30,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ios-ipa
-          path: |
-            mobile-app/*.ipa
-            ./*.ipa
+          path: mobile-app/*.ipa
