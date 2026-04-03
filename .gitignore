@@ -22,3 +22,18 @@ attached_assets/
 # Uploads
 uploads/
 public/shared/*.bak
+
+# 빌드 산출물
+*.aab
+*.ipa
+ios-ipa/
+shared_guidebooks/
+public/shared/
+
+# 모바일 앱 인증서/키 (보안)
+mobile-app/keystore.jks
+mobile-app/keystore.b64
+mobile-app/dist.p12
+mobile-app/dist.mobileprovision
+mobile-app/AuthKey_*.p8
+mobile-app/credentials.json

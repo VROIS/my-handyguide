@@ -1,7 +1,11 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, SafeAreaView, Platform, BackHandler, PermissionsAndroid, Linking } from 'react-native';
 import { WebView } from 'react-native-webview';
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useCallback, useState } from 'react';
+// ⚠️ 수정금지(승인필요): 2026-04-03 하이브리드 오버레이 컴포넌트 import
+import CameraOverlay from './src/components/CameraOverlay';
+import DetailViewer from './src/components/DetailViewer';
+import GoogleAuthHandler from './src/components/GoogleAuthHandler';
 import Constants from 'expo-constants';
 // ⚠️ 수정금지(승인필요): 2026-03-12 Google OAuth 외부 브라우저 + Stripe 결제용
 import * as WebBrowser from 'expo-web-browser';
@@ -92,6 +96,13 @@ async function requestAndroidPermissions() {
 
 export default function App() {
   const webViewRef = useRef(null);
+
+  // ⚠️ 수정금지(승인필요): 2026-04-03 하이브리드 오버레이 상태
+  const [showCamera, setShowCamera] = useState(false);
+  const [showDetail, setShowDetail] = useState(false);
+  const [showGoogleAuth, setShowGoogleAuth] = useState(false);
+  const [detailData, setDetailData] = useState(null);
+  const [appLang, setAppLang] = useState('ko');
 
   useEffect(() => {
     requestAndroidPermissions();
@@ -354,6 +365,28 @@ export default function App() {
         case 'stopSpeechRecognition': {
           // ⚠️ 수정금지(승인필요): 2026-03-20 네이티브 음성인식 중지
           ExpoSpeechRecognitionModule.stop();
+          break;
+        }
+
+        // --- ⚠️ 수정금지(승인필요): 2026-04-03 하이브리드 오버레이 브릿지 ---
+        case 'openNativeCamera': {
+          // 네이티브 카메라 오버레이 표시 (삼성 Galaxy A35 하단 버튼 해결)
+          const webLang = payload?.language || 'ko';
+          setAppLang(webLang);
+          setShowCamera(true);
+          break;
+        }
+        case 'showNativeDetail': {
+          // 네이티브 DetailViewer 표시 (TTS 자동재생 해결)
+          setAppLang(payload?.lang || 'ko');
+          setDetailData(payload);
+          setShowDetail(true);
+          break;
+        }
+        case 'openGoogleAuth': {
+          // 네이티브 구글 OAuth (이중 레이어 해결)
+          setAppLang(payload?.language || 'ko');
+          setShowGoogleAuth(true);
           break;
         }
 
@@ -640,6 +673,95 @@ export default function App() {
         // ⚠️ 수정금지(승인필요): 2026-03-17 플랫폼별 UA 적용 (Google OAuth 403 방지)
         userAgent={Platform.OS === 'android' ? ANDROID_USER_AGENT : IOS_USER_AGENT}
       />
+
+      {/* ⚠️ 수정금지(승인필요): 2026-04-03 하이브리드 오버레이 — WebView 위에 네이티브 컴포넌트 */}
+
+      {/* 카메라 오버레이 (삼성 Galaxy A35 하단 버튼 해결) */}
+      {showCamera && (
+        <CameraOverlay
+          lang={appLang}
+          onCapture={(data) => {
+            setShowCamera(false);
+            // ⚠️ 수정금지(승인필요): sendToWeb(postMessage) 사용 — injectJavaScript에 대용량 base64 전달 시 크래시 위험
+            sendToWeb('nativeImage', { base64: data.base64, location: data.location });
+          }}
+          onVoice={() => {
+            // 음성: 네이티브 STT 시작 (기존 브릿지 사용)
+            const lang = appLang === 'ko' ? 'ko-KR' : appLang;
+            ExpoSpeechRecognitionModule.requestPermissionsAsync().then(({ granted }) => {
+              if (granted) ExpoSpeechRecognitionModule.start({ lang, interimResults: false });
+              else sendToWeb('speechResult', { error: '마이크 권한이 필요합니다' });
+            });
+          }}
+          onUpload={(data) => {
+            setShowCamera(false);
+            sendToWeb('nativeImage', { base64: data.base64, location: data.location });
+          }}
+          onArchive={() => {
+            setShowCamera(false);
+            webViewRef.current?.injectJavaScript('showArchivePage(); true;');
+          }}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
+
+      {/* DetailViewer 오버레이 (TTS 자동재생 해결) */}
+      {showDetail && detailData && (
+        <DetailViewer
+          imageUri={detailData.imageUri}
+          description={detailData.description}
+          locationName={detailData.locationName}
+          voiceQuery={detailData.voiceQuery}
+          mode={detailData.mode || 'camera'}
+          lang={appLang}
+          onClose={() => { setShowDetail(false); setDetailData(null); }}
+          onSave={() => {
+            // ⚠️ 수정금지(승인필요): sendToWeb(postMessage) 사용 — detailData에 base64 포함 가능
+            sendToWeb('nativeSave', {
+              description: detailData.description,
+              imageUri: detailData.imageUri,
+              locationName: detailData.locationName,
+              voiceQuery: detailData.voiceQuery,
+              mode: detailData.mode,
+            });
+            setShowDetail(false);
+            setDetailData(null);
+          }}
+          onAskAgain={() => {
+            setShowDetail(false);
+            setDetailData(null);
+            setShowCamera(true);
+          }}
+        />
+      )}
+
+      {/* 구글 OAuth 핸들러 (이중 레이어 해결) */}
+      {showGoogleAuth && (
+        <GoogleAuthHandler
+          lang={appLang}
+          onSuccess={(token) => {
+            setShowGoogleAuth(false);
+            if (token) {
+              const safeToken = encodeURIComponent(token);
+              webViewRef.current?.injectJavaScript(
+                `window.location.replace("${WEB_APP_URL}/api/auth/exchange?token=${safeToken}"); true;`
+              );
+            } else {
+              webViewRef.current?.injectJavaScript(`
+                localStorage.setItem('auth_success', 'true');
+                window.location.replace('/');
+                true;
+              `);
+            }
+          }}
+          onCancel={() => setShowGoogleAuth(false)}
+          onError={(err) => {
+            console.error('[GoogleAuth] failed:', err);
+            setShowGoogleAuth(false);
+          }}
+        />
+      )}
+
     </SafeAreaView>
   );
 }

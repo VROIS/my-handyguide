@@ -88,6 +88,33 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+
+        // ⚠️ 수정금지(승인필요): 2026-04-03 네이티브 오버레이 → WebView 데이터 수신 (postMessage 기반)
+        // nativeImage: 카메라/갤러리 촬영 결과 → AI 분석 시작
+        // nativeSave: DetailViewer 저장 → handleSaveClick 실행
+        window.addEventListener('nativeResponse', (e2) => {
+            const d = e2.detail;
+            if (d.type === 'nativeImage' && d.base64) {
+                console.log('[Bridge] 네이티브 이미지 수신, AI 분석 시작');
+                const dataUrl = 'data:image/jpeg;base64,' + d.base64;
+                if (d.location) {
+                    window.currentGPS = { latitude: d.location.latitude, longitude: d.location.longitude, locationName: null };
+                }
+                const btn = document.getElementById('shootBtn');
+                if (btn) processImage(dataUrl, btn);
+            }
+            if (d.type === 'nativeSave' && d.description) {
+                console.log('[Bridge] 네이티브 저장 요청');
+                // currentContent에 네이티브 데이터 설정 후 저장 버튼 클릭
+                window._nativeSaveOverride = {
+                    description: d.description,
+                    imageUri: d.imageUri,
+                    locationName: d.locationName,
+                };
+                const saveBtn = document.getElementById('saveBtn');
+                if (saveBtn) saveBtn.click();
+            }
+        });
     }
 
     // 🌐 언어 선택 바인딩 (admin-settings.html과 동일)
@@ -5326,18 +5353,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Event Listeners (디바운스 적용) ---
     startCameraFromFeaturesBtn?.addEventListener('click', handleStartFeaturesClick);
-    // ⚠️ 수정금지(승인필요): 2026-03-12 debounce 800→300ms (앱 터치 반응 개선)
-    shootBtn?.addEventListener('click', () => debounceClick('shoot', capturePhoto, 300));
-    uploadBtn?.addEventListener('click', () => uploadInput.click());
-    micBtn?.addEventListener('click', () => {
-        // 🔊 음성 재생 즉시 중지 (debounce 전에 실행)
-        if (synth.speaking || synth.pending) {
-            synth.cancel();
-            resetSpeechState();
-        }
-        // ⚠️ 수정금지(승인필요): 2026-03-12 debounce 500→200ms (앱 터치 반응 개선)
-        debounceClick('mic', handleMicButtonClick, 200);
-    });
+    // ⚠️ 수정금지(승인필요): 2026-04-03 하이브리드 오버레이 — 앱에서는 네이티브 카메라 오버레이 사용 (삼성 A35 해결)
+    if (window.ReactNativeWebView) {
+        // 앱: 메인 footer 버튼 클릭 시 네이티브 CameraOverlay 표시
+        const openNativeCamera = () => {
+            const lang = localStorage.getItem('appLanguage') || 'ko';
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'openNativeCamera', payload: { language: lang } }));
+        };
+        shootBtn?.addEventListener('click', openNativeCamera);
+        uploadBtn?.addEventListener('click', openNativeCamera);
+        micBtn?.addEventListener('click', openNativeCamera);
+    } else {
+        // 웹: 기존 로직 그대로
+        shootBtn?.addEventListener('click', () => debounceClick('shoot', capturePhoto, 300));
+        uploadBtn?.addEventListener('click', () => uploadInput.click());
+        micBtn?.addEventListener('click', () => {
+            if (synth.speaking || synth.pending) {
+                synth.cancel();
+                resetSpeechState();
+            }
+            debounceClick('mic', handleMicButtonClick, 200);
+        });
+    }
 
     // 🎤 상세페이지 마이크 버튼 (다시 질문) - 메인페이지와 동일 로직
     detailMicBtn?.addEventListener('click', () => {
@@ -5596,7 +5633,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    googleLoginBtn?.addEventListener('click', () => openOAuthFlow('/api/auth/google', 'google_oauth'));
+    // ⚠️ 수정금지(승인필요): 2026-04-03 구글 로그인 — 앱에서는 네이티브 OAuth (이중 레이어 해결)
+    googleLoginBtn?.addEventListener('click', () => {
+        if (window.ReactNativeWebView) {
+            const lang = localStorage.getItem('appLanguage') || 'ko';
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'openGoogleAuth', payload: { language: lang } }));
+        } else {
+            openOAuthFlow('/api/auth/google', 'google_oauth');
+        }
+    });
     kakaoLoginBtn?.addEventListener('click', () => openOAuthFlow('/api/auth/kakao', 'kakao_oauth'));
 
     // ⚠️ 수정금지(승인필요): 2026-03-20 Apple 로그인 버튼 — iOS 앱 OR iOS 브라우저에서 표시 (detectPlatform ios)
