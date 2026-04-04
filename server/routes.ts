@@ -8,6 +8,7 @@ import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupGoogleAuth } from "./googleAuth";
 import { setupKakaoAuth } from "./kakaoAuth";
 import { setupAppleAuth } from "./appleAuth"; // ⚠️ 수정금지(승인필요): Apple OAuth 임포트 (2026-03-14)
+import { setupNativeGoogleAuth } from "./nativeGoogleAuth"; // ⚠️ 수정금지(승인필요): 2026-04-05 네이티브 앱 Google OAuth
 import { ottStore } from "./ottStore"; // ⚠️ 수정금지(승인필요): 2026-03-23 OTT 토큰 교환
 import { generateLocationBasedContent, getLocationName, generateShareLinkDescription, generateCinematicPrompt, optimizeAudioScript, analyzeTextAndGenerateScript, analyzeImageAndGenerateScript, generatePersonaVoice, type GuideContent, type DreamShotPrompt, type AnalyzedScript } from "./gemini";
 import { insertGuideSchema, insertShareLinkSchema, insertSharedHtmlPageSchema, creditTransactions, users, notifications, pushSubscriptions, insertNotificationSchema, insertPushSubscriptionSchema, voiceConfigs, dreamStudioVideos, apiLogs, userActivityLogs } from "@shared/schema";
@@ -735,6 +736,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await setupGoogleAuth(app);
   await setupKakaoAuth(app);
   await setupAppleAuth(app); // ⚠️ 수정금지(승인필요): Apple OAuth 라우트 등록 (2026-03-14)
+  setupNativeGoogleAuth(app); // ⚠️ 수정금지(승인필요): 2026-04-05 네이티브 앱 Google OAuth 라우트 등록
 
   // ═══════════════════════════════════════════════════════════════
   // 📱 Beta Tester Registration

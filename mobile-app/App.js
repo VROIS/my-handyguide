@@ -1,12 +1,9 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, SafeAreaView, Platform, BackHandler, PermissionsAndroid, Linking, TouchableOpacity } from 'react-native';
+import { StyleSheet, SafeAreaView, Platform, BackHandler, PermissionsAndroid, Linking } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useRef, useEffect, useCallback, useState } from 'react';
-// ⚠️ 수정금지(승인필요): 2026-04-04 하이브리드 오버레이 — DetailViewer/GoogleAuth는 유지, CameraOverlay는 NativeFooter로 대체
-import DetailViewer from './src/components/DetailViewer';
+// ⚠️ 수정금지(승인필요): 2026-04-05 네이티브 Google OAuth 핸들러 (외부 브라우저 안 열림)
 import GoogleAuthHandler from './src/components/GoogleAuthHandler';
-import { Ionicons } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 // ⚠️ 수정금지(승인필요): 2026-03-12 Google OAuth 외부 브라우저 + Stripe 결제용
 import * as WebBrowser from 'expo-web-browser';
@@ -82,17 +79,6 @@ const INJECTED_JS = `
 true;
 `;
 
-// ⚠️ 수정금지(승인필요): 2026-04-04 삼성폰 하단 버튼 4단계 방어적 레이아웃
-// 리서치 근거: Android 16 Edge-to-Edge 강제화 + Chromium v140 버그 + One UI 제스처 충돌
-const IS_ANDROID = Platform.OS === 'android';
-const NATIVE_FOOTER_HEIGHT = 110;
-const FOOTER_BUTTONS = [
-  { id: 'shootBtn', icon: 'camera' },
-  { id: 'micBtn', icon: 'mic' },
-  { id: 'uploadBtn', icon: 'image' },
-  { id: 'archiveBtn', icon: 'archive' },
-];
-
 async function requestAndroidPermissions() {
   if (Platform.OS !== 'android') return;
   try {
@@ -108,12 +94,8 @@ async function requestAndroidPermissions() {
 
 export default function App() {
   const webViewRef = useRef(null);
-
-  // ⚠️ 수정금지(승인필요): 2026-04-04 오버레이 상태 (DetailViewer/GoogleAuth 유지, CameraOverlay 제거→NativeFooter로 대체)
-  const [showDetail, setShowDetail] = useState(false);
+  // ⚠️ 수정금지(승인필요): 2026-04-05 네이티브 Google OAuth 상태
   const [showGoogleAuth, setShowGoogleAuth] = useState(false);
-  const [detailData, setDetailData] = useState(null);
-  const [appLang, setAppLang] = useState('ko');
 
   useEffect(() => {
     requestAndroidPermissions();
@@ -367,7 +349,19 @@ export default function App() {
               sendToWeb('speechResult', { error: '마이크 권한이 필요합니다' });
               break;
             }
-            ExpoSpeechRecognitionModule.start({ lang, interimResults: false });
+            // ⚠️ 수정금지(승인필요): 2026-04-05 iOS 음성인식 옵션 확장 — iOS 18+ 세션 조기 종료 방지 + WebView 오디오 세션 충돌 방지
+            // 근거: jamsch/expo-speech-recognition #77 (iOS 18 3초 종료), README iosCategory 필수
+            ExpoSpeechRecognitionModule.start({
+              lang,
+              interimResults: true,
+              continuous: false,
+              requiresOnDeviceRecognition: false,
+              iosCategory: {
+                category: 'PlayAndRecord',
+                categoryOptions: ['DefaultToSpeaker', 'AllowBluetooth'],
+                mode: 'Measurement',
+              },
+            });
           } catch (e) {
             sendToWeb('speechResult', { error: e.message });
           }
@@ -379,17 +373,8 @@ export default function App() {
           break;
         }
 
-        // --- ⚠️ 수정금지(승인필요): 2026-04-04 오버레이 브릿지 (openNativeCamera 제거 → NativeFooter로 대체) ---
-        case 'showNativeDetail': {
-          // 네이티브 DetailViewer 표시 (TTS 자동재생 해결)
-          setAppLang(payload?.lang || 'ko');
-          setDetailData(payload);
-          setShowDetail(true);
-          break;
-        }
+        // ⚠️ 수정금지(승인필요): 2026-04-05 네이티브 Google OAuth 트리거
         case 'openGoogleAuth': {
-          // 네이티브 구글 OAuth (이중 레이어 해결)
-          setAppLang(payload?.language || 'ko');
           setShowGoogleAuth(true);
           break;
         }
@@ -651,11 +636,10 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" backgroundColor="#4285F4" />
-      <View style={{flex: 1}} pointerEvents="box-none">
       <WebView
         ref={webViewRef}
         source={{ uri: WEB_APP_URL }}
-        style={[styles.webview, IS_ANDROID && { marginBottom: NATIVE_FOOTER_HEIGHT }]}
+        style={styles.webview}
         javaScriptEnabled={true}
         domStorageEnabled={true}
         startInLoadingState={true}
@@ -672,62 +656,16 @@ export default function App() {
         injectedJavaScript={INJECTED_JS}
         onShouldStartLoadWithRequest={handleNavigationRequest}
         onMessage={handleMessage}
-        androidLayerType="none"  // ⚠️ 수정금지(승인필요): 2026-04-04 none으로 변경 — software는 Chromium 공식 video/WebGL 미지원 (카메라/마이크 먹통 원인)
+        androidLayerType="none"  // ⚠️ 수정금지(승인필요): 2026-04-05 software→none — Chromium 공식 video/WebGL 미지원 해결 (삼성폰 하얀화면+카메라 먹통 원인)
         nestedScrollEnabled={true}  // ⚠️ 수정금지(승인필요): 2026-03-24 Android onClick 미발동 워크어라운드 (Issue #2478)
         onAndroidPermissionRequest={handlePermissionRequest}
         // ⚠️ 수정금지(승인필요): 2026-03-17 플랫폼별 UA 적용 (Google OAuth 403 방지)
         userAgent={Platform.OS === 'android' ? ANDROID_USER_AGENT : IOS_USER_AGENT}
       />
-      </View>
 
-      {/* ⚠️ 수정금지(승인필요): 2026-04-04 삼성폰 네이티브 Footer — 형제 노드 배치 (터치 스왈로잉 차단)
-          리서치 근거: WebView와 겹치지 않는 형제 노드 + elevation:99 + pointerEvents + safe area + 20px 추가 */}
-      {IS_ANDROID && (
-        <View style={styles.nativeFooter}>
-          {FOOTER_BUTTONS.map(({ id, icon }) => (
-            <TouchableOpacity key={id} style={styles.nativeBtn} onPress={() => {
-              webViewRef.current?.injectJavaScript(`document.getElementById("${id}")?.click(); true;`);
-            }}>
-              <Ionicons name={icon} size={28} color="#4285F4" />
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-
-      {/* DetailViewer 오버레이 (TTS 자동재생 해결) — 메인 버튼과 무관, 유지 */}
-      {showDetail && detailData && (
-        <DetailViewer
-          imageUri={detailData.imageUri}
-          description={detailData.description}
-          locationName={detailData.locationName}
-          voiceQuery={detailData.voiceQuery}
-          mode={detailData.mode || 'camera'}
-          lang={appLang}
-          onClose={() => { setShowDetail(false); setDetailData(null); }}
-          onSave={() => {
-            // ⚠️ 수정금지(승인필요): sendToWeb(postMessage) 사용 — detailData에 base64 포함 가능
-            sendToWeb('nativeSave', {
-              description: detailData.description,
-              imageUri: detailData.imageUri,
-              locationName: detailData.locationName,
-              voiceQuery: detailData.voiceQuery,
-              mode: detailData.mode,
-            });
-            setShowDetail(false);
-            setDetailData(null);
-          }}
-          onAskAgain={() => {
-            setShowDetail(false);
-            setDetailData(null);
-            // 메인 페이지로 복귀 (WebView가 카메라 라이브뷰 유지)
-          }}
-        />
-      )}
-
-      {/* 구글 OAuth 핸들러 (이중 레이어 해결) */}
+      {/* ⚠️ 수정금지(승인필요): 2026-04-05 네이티브 Google OAuth — 외부 브라우저 안 열림 */}
       {showGoogleAuth && (
         <GoogleAuthHandler
-          lang={appLang}
           onSuccess={(token) => {
             setShowGoogleAuth(false);
             if (token) {
@@ -735,12 +673,6 @@ export default function App() {
               webViewRef.current?.injectJavaScript(
                 `window.location.replace("${WEB_APP_URL}/api/auth/exchange?token=${safeToken}"); true;`
               );
-            } else {
-              webViewRef.current?.injectJavaScript(`
-                localStorage.setItem('auth_success', 'true');
-                window.location.replace('/');
-                true;
-              `);
             }
           }}
           onCancel={() => setShowGoogleAuth(false)}
@@ -762,22 +694,5 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
-  },
-  // ⚠️ 수정금지(승인필요): 2026-04-04 네이티브 footer 스타일
-  nativeFooter: {
-    height: NATIVE_FOOTER_HEIGHT,
-    elevation: 99,
-    zIndex: 99,
-    backgroundColor: 'rgba(0,0,0,0.9)',
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  nativeBtn: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 });

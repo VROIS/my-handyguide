@@ -88,28 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
-
-        // ⚠️ 수정금지(승인필요): 2026-04-04 삼성폰 방어 — Android 앱에서 WebView 내부 footer 숨김
-        // 리서치 근거: NativeFooter가 WebView 외부에서 버튼 제공하므로 WebView footer는 불필요
-        if (/android/i.test(navigator.userAgent)) {
-            const mainFooter = document.querySelector('#mainPage .footer-safe-area');
-            if (mainFooter) mainFooter.style.display = 'none';
-        }
-    }
-
-    // ⚠️ 수정금지(승인필요): 2026-04-04 geometrychange 이벤트로 footer 오프셋 동적 보정
-    // 리서치 근거: 삼성 브라우저 키보드 닫을 때 뷰포트 재계산 오류 → footer가 데드존으로 밀림
-    if ('virtualKeyboard' in navigator) {
-        navigator.virtualKeyboard.overlaysContent = true;
-        const cachedFooters = document.querySelectorAll('.footer-safe-area');
-        navigator.virtualKeyboard.addEventListener('geometrychange', () => {
-            const vkHeight = navigator.virtualKeyboard.boundingRect.height;
-            cachedFooters.forEach(footer => {
-                footer.style.transform = vkHeight > 0
-                    ? 'translateY(-' + vkHeight + 'px)'
-                    : 'translateY(0)';
-            });
-        });
     }
 
     // 🌐 언어 선택 바인딩 (admin-settings.html과 동일)
@@ -5348,16 +5326,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Event Listeners (디바운스 적용) ---
     startCameraFromFeaturesBtn?.addEventListener('click', handleStartFeaturesClick);
-    // ⚠️ 수정금지(승인필요): 2026-04-04 기존 버튼 로직 복원 (네이티브 분기 제거)
-    // 삼성폰: App.js의 NativeFooter가 WebView 외부에서 이 버튼들을 injectJS로 클릭
-    // 아이폰/웹: 기존 WebView 버튼 그대로 사용
+    // ⚠️ 수정금지(승인필요): 2026-03-12 debounce 800→300ms (앱 터치 반응 개선)
     shootBtn?.addEventListener('click', () => debounceClick('shoot', capturePhoto, 300));
     uploadBtn?.addEventListener('click', () => uploadInput.click());
     micBtn?.addEventListener('click', () => {
+        // 🔊 음성 재생 즉시 중지 (debounce 전에 실행)
         if (synth.speaking || synth.pending) {
             synth.cancel();
             resetSpeechState();
         }
+        // ⚠️ 수정금지(승인필요): 2026-03-12 debounce 500→200ms (앱 터치 반응 개선)
         debounceClick('mic', handleMicButtonClick, 200);
     });
 
@@ -5618,15 +5596,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ⚠️ 수정금지(승인필요): 2026-04-03 구글 로그인 — 앱에서는 네이티브 OAuth (이중 레이어 해결)
-    googleLoginBtn?.addEventListener('click', () => {
-        if (window.ReactNativeWebView) {
-            const lang = localStorage.getItem('appLanguage') || 'ko';
-            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'openGoogleAuth', payload: { language: lang } }));
-        } else {
-            openOAuthFlow('/api/auth/google', 'google_oauth');
-        }
-    });
+    googleLoginBtn?.addEventListener('click', () => openOAuthFlow('/api/auth/google', 'google_oauth'));
     kakaoLoginBtn?.addEventListener('click', () => openOAuthFlow('/api/auth/kakao', 'kakao_oauth'));
 
     // ⚠️ 수정금지(승인필요): 2026-03-20 Apple 로그인 버튼 — iOS 앱 OR iOS 브라우저에서 표시 (detectPlatform ios)
