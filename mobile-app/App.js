@@ -672,7 +672,7 @@ export default function App() {
         injectedJavaScript={INJECTED_JS}
         onShouldStartLoadWithRequest={handleNavigationRequest}
         onMessage={handleMessage}
-        androidLayerType="software"  // ⚠️ 수정금지(승인필요): 2026-03-24 software — SurfaceView→TextureView 전환, 카메라 video 터치 가로채기 방지
+        androidLayerType="none"  // ⚠️ 수정금지(승인필요): 2026-04-04 none으로 변경 — software는 Chromium 공식 video/WebGL 미지원 (카메라/마이크 먹통 원인)
         nestedScrollEnabled={true}  // ⚠️ 수정금지(승인필요): 2026-03-24 Android onClick 미발동 워크어라운드 (Issue #2478)
         onAndroidPermissionRequest={handlePermissionRequest}
         // ⚠️ 수정금지(승인필요): 2026-03-17 플랫폼별 UA 적용 (Google OAuth 403 방지)
