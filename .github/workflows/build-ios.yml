@@ -13,20 +13,18 @@ jobs:
         run: npm install -g eas-cli
       - name: Install dependencies
         run: cd mobile-app && npm ci
-      - name: Backup credentials
+      - name: Restore .p8 key from Secret
         run: |
-          cp mobile-app/AuthKey_H92XS2QHYH.p8 /tmp/AuthKey_H92XS2QHYH.p8
-          echo "Backed up .p8 key file"
+          echo "${{ secrets.APPLE_API_KEY_BASE64 }}" | base64 --decode > mobile-app/AuthKey_H92XS2QHYH.p8
+          echo "AuthKey restored: $(ls -la mobile-app/AuthKey_H92XS2QHYH.p8)"
       - name: Build IPA locally
         working-directory: mobile-app
         run: eas build --local --platform ios --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      - name: Restore credentials and Submit to TestFlight
+      - name: Submit to TestFlight
         working-directory: mobile-app
         run: |
-          cp /tmp/AuthKey_H92XS2QHYH.p8 ./AuthKey_H92XS2QHYH.p8 2>/dev/null || true
-          echo "AuthKey exists: $(ls -la AuthKey_H92XS2QHYH.p8 2>&1)"
           IPA=$(find . -name "*.ipa" -maxdepth 1 | head -1)
           echo "Found IPA: $IPA"
           eas submit --platform ios --path "$IPA" --non-interactive
