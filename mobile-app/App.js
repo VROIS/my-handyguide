@@ -1,11 +1,12 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, SafeAreaView, Platform, BackHandler, PermissionsAndroid, Linking } from 'react-native';
+import { StyleSheet, View, SafeAreaView, Platform, BackHandler, PermissionsAndroid, Linking, TouchableOpacity } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useRef, useEffect, useCallback, useState } from 'react';
-// ⚠️ 수정금지(승인필요): 2026-04-03 하이브리드 오버레이 컴포넌트 import
-import CameraOverlay from './src/components/CameraOverlay';
+// ⚠️ 수정금지(승인필요): 2026-04-04 하이브리드 오버레이 — DetailViewer/GoogleAuth는 유지, CameraOverlay는 NativeFooter로 대체
 import DetailViewer from './src/components/DetailViewer';
 import GoogleAuthHandler from './src/components/GoogleAuthHandler';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Constants from 'expo-constants';
 // ⚠️ 수정금지(승인필요): 2026-03-12 Google OAuth 외부 브라우저 + Stripe 결제용
 import * as WebBrowser from 'expo-web-browser';
@@ -81,6 +82,17 @@ const INJECTED_JS = `
 true;
 `;
 
+// ⚠️ 수정금지(승인필요): 2026-04-04 삼성폰 하단 버튼 4단계 방어적 레이아웃
+// 리서치 근거: Android 16 Edge-to-Edge 강제화 + Chromium v140 버그 + One UI 제스처 충돌
+const IS_ANDROID = Platform.OS === 'android';
+const NATIVE_FOOTER_HEIGHT = 110;
+const FOOTER_BUTTONS = [
+  { id: 'shootBtn', icon: 'camera' },
+  { id: 'micBtn', icon: 'mic' },
+  { id: 'uploadBtn', icon: 'image' },
+  { id: 'archiveBtn', icon: 'archive' },
+];
+
 async function requestAndroidPermissions() {
   if (Platform.OS !== 'android') return;
   try {
@@ -97,8 +109,7 @@ async function requestAndroidPermissions() {
 export default function App() {
   const webViewRef = useRef(null);
 
-  // ⚠️ 수정금지(승인필요): 2026-04-03 하이브리드 오버레이 상태
-  const [showCamera, setShowCamera] = useState(false);
+  // ⚠️ 수정금지(승인필요): 2026-04-04 오버레이 상태 (DetailViewer/GoogleAuth 유지, CameraOverlay 제거→NativeFooter로 대체)
   const [showDetail, setShowDetail] = useState(false);
   const [showGoogleAuth, setShowGoogleAuth] = useState(false);
   const [detailData, setDetailData] = useState(null);
@@ -368,14 +379,7 @@ export default function App() {
           break;
         }
 
-        // --- ⚠️ 수정금지(승인필요): 2026-04-03 하이브리드 오버레이 브릿지 ---
-        case 'openNativeCamera': {
-          // 네이티브 카메라 오버레이 표시 (삼성 Galaxy A35 하단 버튼 해결)
-          const webLang = payload?.language || 'ko';
-          setAppLang(webLang);
-          setShowCamera(true);
-          break;
-        }
+        // --- ⚠️ 수정금지(승인필요): 2026-04-04 오버레이 브릿지 (openNativeCamera 제거 → NativeFooter로 대체) ---
         case 'showNativeDetail': {
           // 네이티브 DetailViewer 표시 (TTS 자동재생 해결)
           setAppLang(payload?.lang || 'ko');
@@ -647,10 +651,11 @@ export default function App() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" backgroundColor="#4285F4" />
+      <View style={{flex: 1}} pointerEvents="box-none">
       <WebView
         ref={webViewRef}
         source={{ uri: WEB_APP_URL }}
-        style={styles.webview}
+        style={[styles.webview, IS_ANDROID && { marginBottom: NATIVE_FOOTER_HEIGHT }]}
         javaScriptEnabled={true}
         domStorageEnabled={true}
         startInLoadingState={true}
@@ -673,39 +678,23 @@ export default function App() {
         // ⚠️ 수정금지(승인필요): 2026-03-17 플랫폼별 UA 적용 (Google OAuth 403 방지)
         userAgent={Platform.OS === 'android' ? ANDROID_USER_AGENT : IOS_USER_AGENT}
       />
+      </View>
 
-      {/* ⚠️ 수정금지(승인필요): 2026-04-03 하이브리드 오버레이 — WebView 위에 네이티브 컴포넌트 */}
-
-      {/* 카메라 오버레이 (삼성 Galaxy A35 하단 버튼 해결) */}
-      {showCamera && (
-        <CameraOverlay
-          lang={appLang}
-          onCapture={(data) => {
-            setShowCamera(false);
-            // ⚠️ 수정금지(승인필요): sendToWeb(postMessage) 사용 — injectJavaScript에 대용량 base64 전달 시 크래시 위험
-            sendToWeb('nativeImage', { base64: data.base64, location: data.location });
-          }}
-          onVoice={() => {
-            // 음성: 네이티브 STT 시작 (기존 브릿지 사용)
-            const lang = appLang === 'ko' ? 'ko-KR' : appLang;
-            ExpoSpeechRecognitionModule.requestPermissionsAsync().then(({ granted }) => {
-              if (granted) ExpoSpeechRecognitionModule.start({ lang, interimResults: false });
-              else sendToWeb('speechResult', { error: '마이크 권한이 필요합니다' });
-            });
-          }}
-          onUpload={(data) => {
-            setShowCamera(false);
-            sendToWeb('nativeImage', { base64: data.base64, location: data.location });
-          }}
-          onArchive={() => {
-            setShowCamera(false);
-            webViewRef.current?.injectJavaScript('showArchivePage(); true;');
-          }}
-          onClose={() => setShowCamera(false)}
-        />
+      {/* ⚠️ 수정금지(승인필요): 2026-04-04 삼성폰 네이티브 Footer — 형제 노드 배치 (터치 스왈로잉 차단)
+          리서치 근거: WebView와 겹치지 않는 형제 노드 + elevation:99 + pointerEvents + safe area + 20px 추가 */}
+      {IS_ANDROID && (
+        <View style={styles.nativeFooter}>
+          {FOOTER_BUTTONS.map(({ id, icon }) => (
+            <TouchableOpacity key={id} style={styles.nativeBtn} onPress={() => {
+              webViewRef.current?.injectJavaScript(`document.getElementById("${id}")?.click(); true;`);
+            }}>
+              <Ionicons name={icon} size={28} color="#4285F4" />
+            </TouchableOpacity>
+          ))}
+        </View>
       )}
 
-      {/* DetailViewer 오버레이 (TTS 자동재생 해결) */}
+      {/* DetailViewer 오버레이 (TTS 자동재생 해결) — 메인 버튼과 무관, 유지 */}
       {showDetail && detailData && (
         <DetailViewer
           imageUri={detailData.imageUri}
@@ -730,7 +719,7 @@ export default function App() {
           onAskAgain={() => {
             setShowDetail(false);
             setDetailData(null);
-            setShowCamera(true);
+            // 메인 페이지로 복귀 (WebView가 카메라 라이브뷰 유지)
           }}
         />
       )}
@@ -773,5 +762,22 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
+  },
+  // ⚠️ 수정금지(승인필요): 2026-04-04 네이티브 footer 스타일
+  nativeFooter: {
+    height: NATIVE_FOOTER_HEIGHT,
+    elevation: 99,
+    zIndex: 99,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  nativeBtn: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

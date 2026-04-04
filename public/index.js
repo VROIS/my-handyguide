@@ -89,31 +89,26 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // ⚠️ 수정금지(승인필요): 2026-04-03 네이티브 오버레이 → WebView 데이터 수신 (postMessage 기반)
-        // nativeImage: 카메라/갤러리 촬영 결과 → AI 분석 시작
-        // nativeSave: DetailViewer 저장 → handleSaveClick 실행
-        window.addEventListener('nativeResponse', (e2) => {
-            const d = e2.detail;
-            if (d.type === 'nativeImage' && d.base64) {
-                console.log('[Bridge] 네이티브 이미지 수신, AI 분석 시작');
-                const dataUrl = 'data:image/jpeg;base64,' + d.base64;
-                if (d.location) {
-                    window.currentGPS = { latitude: d.location.latitude, longitude: d.location.longitude, locationName: null };
-                }
-                const btn = document.getElementById('shootBtn');
-                if (btn) processImage(dataUrl, btn);
-            }
-            if (d.type === 'nativeSave' && d.description) {
-                console.log('[Bridge] 네이티브 저장 요청');
-                // currentContent에 네이티브 데이터 설정 후 저장 버튼 클릭
-                window._nativeSaveOverride = {
-                    description: d.description,
-                    imageUri: d.imageUri,
-                    locationName: d.locationName,
-                };
-                const saveBtn = document.getElementById('saveBtn');
-                if (saveBtn) saveBtn.click();
-            }
+        // ⚠️ 수정금지(승인필요): 2026-04-04 삼성폰 방어 — Android 앱에서 WebView 내부 footer 숨김
+        // 리서치 근거: NativeFooter가 WebView 외부에서 버튼 제공하므로 WebView footer는 불필요
+        if (/android/i.test(navigator.userAgent)) {
+            const mainFooter = document.querySelector('#mainPage .footer-safe-area');
+            if (mainFooter) mainFooter.style.display = 'none';
+        }
+    }
+
+    // ⚠️ 수정금지(승인필요): 2026-04-04 geometrychange 이벤트로 footer 오프셋 동적 보정
+    // 리서치 근거: 삼성 브라우저 키보드 닫을 때 뷰포트 재계산 오류 → footer가 데드존으로 밀림
+    if ('virtualKeyboard' in navigator) {
+        navigator.virtualKeyboard.overlaysContent = true;
+        const cachedFooters = document.querySelectorAll('.footer-safe-area');
+        navigator.virtualKeyboard.addEventListener('geometrychange', () => {
+            const vkHeight = navigator.virtualKeyboard.boundingRect.height;
+            cachedFooters.forEach(footer => {
+                footer.style.transform = vkHeight > 0
+                    ? 'translateY(-' + vkHeight + 'px)'
+                    : 'translateY(0)';
+            });
         });
     }
 
@@ -5353,28 +5348,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Event Listeners (디바운스 적용) ---
     startCameraFromFeaturesBtn?.addEventListener('click', handleStartFeaturesClick);
-    // ⚠️ 수정금지(승인필요): 2026-04-03 하이브리드 오버레이 — 앱에서는 네이티브 카메라 오버레이 사용 (삼성 A35 해결)
-    if (window.ReactNativeWebView) {
-        // 앱: 메인 footer 버튼 클릭 시 네이티브 CameraOverlay 표시
-        const openNativeCamera = () => {
-            const lang = localStorage.getItem('appLanguage') || 'ko';
-            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'openNativeCamera', payload: { language: lang } }));
-        };
-        shootBtn?.addEventListener('click', openNativeCamera);
-        uploadBtn?.addEventListener('click', openNativeCamera);
-        micBtn?.addEventListener('click', openNativeCamera);
-    } else {
-        // 웹: 기존 로직 그대로
-        shootBtn?.addEventListener('click', () => debounceClick('shoot', capturePhoto, 300));
-        uploadBtn?.addEventListener('click', () => uploadInput.click());
-        micBtn?.addEventListener('click', () => {
-            if (synth.speaking || synth.pending) {
-                synth.cancel();
-                resetSpeechState();
-            }
-            debounceClick('mic', handleMicButtonClick, 200);
-        });
-    }
+    // ⚠️ 수정금지(승인필요): 2026-04-04 기존 버튼 로직 복원 (네이티브 분기 제거)
+    // 삼성폰: App.js의 NativeFooter가 WebView 외부에서 이 버튼들을 injectJS로 클릭
+    // 아이폰/웹: 기존 WebView 버튼 그대로 사용
+    shootBtn?.addEventListener('click', () => debounceClick('shoot', capturePhoto, 300));
+    uploadBtn?.addEventListener('click', () => uploadInput.click());
+    micBtn?.addEventListener('click', () => {
+        if (synth.speaking || synth.pending) {
+            synth.cancel();
+            resetSpeechState();
+        }
+        debounceClick('mic', handleMicButtonClick, 200);
+    });
 
     // 🎤 상세페이지 마이크 버튼 (다시 질문) - 메인페이지와 동일 로직
     detailMicBtn?.addEventListener('click', () => {
