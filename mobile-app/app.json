@@ -61,7 +61,7 @@
       },
       "edgeToEdgeEnabled": false,
       "package": "com.sonanie.guide",
-      "versionCode": 17,
+      "versionCode": 18,
       "blockedPermissions": [
         "ACTIVITY_RECOGNITION",
         "READ_CONTACTS",

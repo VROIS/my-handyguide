@@ -656,7 +656,7 @@ export default function App() {
         injectedJavaScript={INJECTED_JS}
         onShouldStartLoadWithRequest={handleNavigationRequest}
         onMessage={handleMessage}
-        androidLayerType="none"  // ⚠️ 수정금지(승인필요): 2026-04-05 software→none — Chromium 공식 video/WebGL 미지원 해결 (삼성폰 하얀화면+카메라 먹통 원인)
+        androidLayerType="hardware"  // ⚠️ 수정금지(승인필요): 2026-04-05 hardware 시도 — PR #854 근거, 삼성 Exynos GPU 컴포지팅 호환 테스트
         nestedScrollEnabled={true}  // ⚠️ 수정금지(승인필요): 2026-03-24 Android onClick 미발동 워크어라운드 (Issue #2478)
         onAndroidPermissionRequest={handlePermissionRequest}
         // ⚠️ 수정금지(승인필요): 2026-03-17 플랫폼별 UA 적용 (Google OAuth 403 방지)
