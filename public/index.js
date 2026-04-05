@@ -1733,13 +1733,17 @@ document.addEventListener('DOMContentLoaded', () => {
         [featuresPage, mainPage, detailPage, archivePage, settingsPage, adminSettingsPage].forEach(page => {
             if (page) page.classList.toggle('visible', page === pageToShow);
         });
-        // 전환 후 상태 확인
-        setTimeout(() => {
-            if (pageToShow) {
-                const cs = window.getComputedStyle(pageToShow);
-                window._dbg('📄 ' + pageToShow.id + ' → visible=' + pageToShow.classList.contains('visible') + ' opacity=' + cs.opacity + ' visibility=' + cs.visibility + ' display=' + cs.display + ' height=' + cs.height);
-            }
-        }, 100);
+        // ⚠️ 수정금지(승인필요): 2026-04-05 삼성 Exynos GPU 강제 리페인트
+        // 근거: flutter #139039 — 삼성 WebView가 CSS opacity/visibility 변경 후 화면 갱신 안 함
+        // SurfaceFlinger가 캐시된 프레임을 재사용 → 강제로 레이아웃 재계산 트리거
+        if (pageToShow) {
+            void pageToShow.offsetHeight;
+            pageToShow.style.transform = 'translateZ(0)';
+            requestAnimationFrame(() => {
+                void pageToShow.offsetHeight;
+                window._dbg('📄 리페인트 강제 실행: ' + pageToShow.id);
+            });
+        }
     }
 
     function showMainPage() {
