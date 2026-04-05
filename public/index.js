@@ -569,10 +569,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const lastClick = buttonDebounceMap.get(buttonId) || 0;
 
         if (now - lastClick < delay) {
+            window._dbg('⏳ debounce 무시: ' + buttonId + ' (' + (now - lastClick) + 'ms < ' + delay + 'ms)');
             return false; // 클릭 무시
         }
 
         buttonDebounceMap.set(buttonId, now);
+        window._dbg('✅ debounce 통과: ' + buttonId + ' → callback 실행');
         callback();
         return true;
     }
@@ -2526,6 +2528,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 📍 브라우저 위치 권한 요청 (백그라운드 실행)
             requestBrowserLocation();
 
+            window._dbg('📷 canvas 캡처 완료 → processImage 호출');
             processImage(canvas.toDataURL('image/jpeg'), shootBtn);
         }
     }
@@ -2680,11 +2683,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function processImage(dataUrl, sourceButton) {
+        window._dbg('🖼️ processImage() 진입! dataUrl 길이=' + (dataUrl ? dataUrl.length : 0));
         // 🚨 2026-01-24: AI 중복 호출 차단 (비용 절감 핵심)
         if (isAIProcessing) {
+            window._dbg('🖼️ isAIProcessing=true → 리턴');
             return;
         }
         isAIProcessing = true;
+        window._dbg('🖼️ AI 처리 시작, showDetailPage 호출');
 
         sourceButton.disabled = true;
         cameFromArchive = false;
