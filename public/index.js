@@ -14,6 +14,28 @@ window._dbg = function(msg) {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    // ⚠️ 디버그: 초기 상태 확인 (삼성폰 디버깅용 — 테스트 후 제거)
+    setTimeout(() => {
+        window._dbg('=== 초기 상태 ===');
+        window._dbg('🌐 언어: appLanguage=' + localStorage.getItem('appLanguage'));
+        window._dbg('🌐 googtrans=' + localStorage.getItem('googtrans'));
+        window._dbg('🌐 landingVisited=' + localStorage.getItem('landingVisited'));
+        window._dbg('🔐 auth_success=' + localStorage.getItem('auth_success'));
+        window._dbg('🔐 cookie=' + (document.cookie || '(없음)').substring(0, 100));
+        window._dbg('📱 ReactNativeWebView=' + !!window.ReactNativeWebView);
+        window._dbg('📱 UA=' + navigator.userAgent.substring(0, 80));
+        window._dbg('📹 mediaDevices=' + !!navigator.mediaDevices);
+        window._dbg('📹 getUserMedia=' + !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+        window._dbg('🎤 SpeechRecognition=' + !!(window.SpeechRecognition || window.webkitSpeechRecognition));
+        // Google Translate 상태
+        window._dbg('🌐 google.translate=' + (typeof google !== 'undefined' && google.translate ? 'loaded' : 'not loaded'));
+        // footer 버튼 존재 확인
+        window._dbg('🔘 shootBtn=' + !!document.getElementById('shootBtn'));
+        window._dbg('🔘 micBtn=' + !!document.getElementById('micBtn'));
+        window._dbg('🔘 uploadBtn=' + !!document.getElementById('uploadBtn'));
+        window._dbg('🔘 archiveBtn=' + !!document.getElementById('archiveBtn'));
+    }, 2000);
+
     // ⚠️ 수정금지(승인필요) — Stripe 결제 후 SPA 복귀 감지 (2026-03-10)
     const paymentParams = new URLSearchParams(window.location.search);
     const paymentStatus = paymentParams.get('payment');
@@ -2588,7 +2610,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 기능: 사진 업로드 시 GPS EXIF 자동 추출 → 지도 표시
     // ═══════════════════════════════════════════════════════════════
     async function handleFileSelect(event) {
+        window._dbg('📁 handleFileSelect() 진입');
         const file = event.target.files?.[0];
+        window._dbg('📁 file=' + (file ? file.name + ' (' + file.size + 'bytes)' : 'null'));
         if (file) {
             // 🚨 2026-01-24: AI 처리 중이면 업로드 무시
             if (isAIProcessing) {
