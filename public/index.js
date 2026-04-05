@@ -7,8 +7,11 @@ window._dbg = function(msg) {
     const p = document.getElementById('debugPanel');
     if (p) {
         p.style.display = 'block';
-        p.innerHTML = new Date().toLocaleTimeString() + ' ' + msg + '<br>' + p.innerHTML;
-        if (p.children.length > 50) p.innerHTML = p.innerHTML.substring(0, p.innerHTML.lastIndexOf('<br>'));
+        const line = document.createElement('div');
+        line.textContent = new Date().toLocaleTimeString() + ' ' + msg;
+        p.insertBefore(line, p.firstChild);
+        while (p.childNodes.length > 80) p.removeChild(p.lastChild);
+        p.scrollTop = 0;
     }
     console.log('[DBG]', msg);
 };
