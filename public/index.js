@@ -1,43 +1,10 @@
 // Import services and utils from the root directory
 import * as gemini from './geminiService.js';
 import { optimizeImage } from './imageOptimizer.js';
+window._dbg = function() {}; // 디버그 비활성화 (호출부 54개 무해하게 유지)
 
-// ⚠️ 디버그 함수 (삼성폰 버튼 디버깅용 — 테스트 후 제거)
-window._dbg = function(msg) {
-    const p = document.getElementById('debugPanel');
-    if (p) {
-        p.style.display = 'block';
-        const line = document.createElement('div');
-        line.textContent = new Date().toLocaleTimeString() + ' ' + msg;
-        p.insertBefore(line, p.firstChild);
-        while (p.childNodes.length > 80) p.removeChild(p.lastChild);
-        p.scrollTop = 0;
-    }
-    console.log('[DBG]', msg);
-};
 
 document.addEventListener('DOMContentLoaded', () => {
-    // ⚠️ 디버그: 초기 상태 확인 (삼성폰 디버깅용 — 테스트 후 제거)
-    setTimeout(() => {
-        window._dbg('=== 초기 상태 ===');
-        window._dbg('🌐 언어: appLanguage=' + localStorage.getItem('appLanguage'));
-        window._dbg('🌐 googtrans=' + localStorage.getItem('googtrans'));
-        window._dbg('🌐 landingVisited=' + localStorage.getItem('landingVisited'));
-        window._dbg('🔐 auth_success=' + localStorage.getItem('auth_success'));
-        window._dbg('🔐 cookie=' + (document.cookie || '(없음)').substring(0, 100));
-        window._dbg('📱 ReactNativeWebView=' + !!window.ReactNativeWebView);
-        window._dbg('📱 UA=' + navigator.userAgent.substring(0, 80));
-        window._dbg('📹 mediaDevices=' + !!navigator.mediaDevices);
-        window._dbg('📹 getUserMedia=' + !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
-        window._dbg('🎤 SpeechRecognition=' + !!(window.SpeechRecognition || window.webkitSpeechRecognition));
-        // Google Translate 상태
-        window._dbg('🌐 google.translate=' + (typeof google !== 'undefined' && google.translate ? 'loaded' : 'not loaded'));
-        // footer 버튼 존재 확인
-        window._dbg('🔘 shootBtn=' + !!document.getElementById('shootBtn'));
-        window._dbg('🔘 micBtn=' + !!document.getElementById('micBtn'));
-        window._dbg('🔘 uploadBtn=' + !!document.getElementById('uploadBtn'));
-        window._dbg('🔘 archiveBtn=' + !!document.getElementById('archiveBtn'));
-    }, 2000);
 
     // ⚠️ 수정금지(승인필요) — Stripe 결제 후 SPA 복귀 감지 (2026-03-10)
     const paymentParams = new URLSearchParams(window.location.search);
@@ -1729,21 +1696,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Page Control ---
     function showPage(pageToShow) {
-        window._dbg('📄 showPage: ' + (pageToShow?.id || 'null'));
         [featuresPage, mainPage, detailPage, archivePage, settingsPage, adminSettingsPage].forEach(page => {
             if (page) page.classList.toggle('visible', page === pageToShow);
         });
-        // ⚠️ 수정금지(승인필요): 2026-04-05 삼성 Exynos GPU 강제 리페인트
-        // 근거: flutter #139039 — 삼성 WebView가 CSS opacity/visibility 변경 후 화면 갱신 안 함
-        // SurfaceFlinger가 캐시된 프레임을 재사용 → 강제로 레이아웃 재계산 트리거
-        if (pageToShow) {
-            void pageToShow.offsetHeight;
-            pageToShow.style.transform = 'translateZ(0)';
-            requestAnimationFrame(() => {
-                void pageToShow.offsetHeight;
-                window._dbg('📄 리페인트 강제 실행: ' + pageToShow.id);
-            });
-        }
     }
 
     function showMainPage() {

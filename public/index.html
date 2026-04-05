@@ -144,7 +144,7 @@
             justify-content: space-around;
             align-items: center;
             padding: 0 1rem;
-            margin-bottom: 120px; /* ⚠️ 수정금지(승인필요): 2026-04-05 삼성 시스템 바/제스처 영역 회피 테스트 — 원래값 env(safe-area-inset-bottom, 0px) */
+            margin-bottom: env(safe-area-inset-bottom, 0px);
         }
         .loader-container { 
             height: 100%; 
@@ -1006,9 +1006,6 @@
              <!-- The title is now part of the cameraStartOverlay for a better intro experience -->
         </header>
         <div class="flex-1"></div>
-        <!-- ⚠️ 디버그 패널 (삼성폰 버튼 디버깅용 — 테스트 후 제거) -->
-        <div id="debugToggle" style="position:fixed; top:8px; left:8px; width:36px; height:36px; background:#0f0; color:#000; font-size:16px; font-weight:bold; border-radius:50%; z-index:100000; display:flex; align-items:center; justify-content:center; cursor:pointer;" onclick="var p=document.getElementById('debugPanel');p.style.display=p.style.display==='none'?'block':'none';">D</div>
-        <div id="debugPanel" style="position:fixed; top:50px; left:0; right:0; max-height:35vh; overflow-y:auto; background:rgba(0,0,0,0.9); color:#0f0; font-size:10px; font-family:monospace; padding:6px; z-index:99999; display:none; pointer-events:auto;"></div>
         <footer class="footer-safe-area">
             <div class="flex flex-col items-center gap-1">
                 <button id="shootBtn" aria-label="사진 촬영" class="w-14 h-14 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl">
