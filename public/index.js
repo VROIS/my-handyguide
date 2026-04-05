@@ -2,6 +2,17 @@
 import * as gemini from './geminiService.js';
 import { optimizeImage } from './imageOptimizer.js';
 
+// ⚠️ 디버그 함수 (삼성폰 버튼 디버깅용 — 테스트 후 제거)
+window._dbg = function(msg) {
+    const p = document.getElementById('debugPanel');
+    if (p) {
+        p.style.display = 'block';
+        p.innerHTML = new Date().toLocaleTimeString() + ' ' + msg + '<br>' + p.innerHTML;
+        if (p.children.length > 50) p.innerHTML = p.innerHTML.substring(0, p.innerHTML.lastIndexOf('<br>'));
+    }
+    console.log('[DBG]', msg);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     // ⚠️ 수정금지(승인필요) — Stripe 결제 후 SPA 복귀 감지 (2026-03-10)
     const paymentParams = new URLSearchParams(window.location.search);
@@ -2395,15 +2406,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function startCamera() {
+        window._dbg('📹 startCamera() 진입');
         return new Promise(async (resolve, reject) => {
             if (stream) {
+                window._dbg('📹 기존 스트림 정리');
                 stream.getTracks().forEach(track => track.stop());
             }
 
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                window._dbg('📹 ❌ getUserMedia 미지원!');
                 const err = new Error("카메라 기능을 지원하지 않는 브라우저입니다.");
                 return reject(err);
             }
+            window._dbg('📹 getUserMedia 지원 확인');
 
             // ⚠️ 수정금지(승인필요): 2026-03-24 카메라 — stop/재요청 없이 단순 후면 우선
             // Samsung A36: getSettings+stop+재요청 시 스트림 1초 후 종료 → 전체 먹통
@@ -2411,21 +2426,27 @@ document.addEventListener('DOMContentLoaded', () => {
             let cameraStream;
 
             try {
+                window._dbg('📹 getUserMedia 호출 (environment)...');
                 cameraStream = await navigator.mediaDevices.getUserMedia({
                     video: { facingMode: 'environment' }, audio: false
                 });
+                window._dbg('📹 ✅ getUserMedia 성공! tracks=' + cameraStream.getTracks().length);
             } catch (err) {
+                window._dbg('📹 ⚠️ environment 실패: ' + err.message + ' → fallback 시도');
                 try {
                     cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+                    window._dbg('📹 ✅ fallback 성공!');
                 } catch (fallbackErr) {
+                    window._dbg('📹 ❌ fallback도 실패: ' + fallbackErr.message);
                     return reject(fallbackErr);
                 }
             }
 
             stream = cameraStream;
             video.srcObject = stream;
-            video.play().catch(e => console.error("Video play failed:", e));
+            video.play().catch(e => { window._dbg('📹 ❌ video.play 실패: ' + e.message); });
             video.onloadedmetadata = () => {
+                window._dbg('📹 ✅ video 메타데이터 로드 완료: ' + video.videoWidth + 'x' + video.videoHeight);
                 // 2026-01-24: 버튼 활성화 로직 제거 (HTML에서 처음부터 활성화 상태)
                 isCameraActive = true;
                 resolve();
@@ -2454,20 +2475,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function capturePhoto() {
+        window._dbg('📷 capturePhoto() 진입');
         // 🚨 2026-01-24: AI 처리 중이면 촬영 무시
         if (isAIProcessing) {
+            window._dbg('📷 isAIProcessing=true → 리턴');
             return;
         }
 
         // 🔒 사용량 제한 체크 (AI 호출 전)
+        window._dbg('📷 checkUsageLimit 호출...');
         const canProceed = await checkUsageLimit('detail');
-        if (!canProceed) return;
+        if (!canProceed) { window._dbg('📷 사용량 초과 → 리턴'); return; }
+        window._dbg('📷 사용량 OK');
 
         // ⚠️ 수정금지(승인필요): 2026-03-17 촬영 웹 통일 — 네이티브 이미지피커 분기 제거
         // getUserMedia는 Android/iOS WebView 모두 지원됨 (App.js에 권한 설정 이미 있음)
         // 웹과 동일하게 라이브뷰 화면에서 바로 캡처 (1단계)
         // getUserMedia → canvas → base64
-        if (!video.videoWidth || !video.videoHeight) return;
+        window._dbg('📷 video.videoWidth=' + video.videoWidth + ' height=' + video.videoHeight);
+        if (!video.videoWidth || !video.videoHeight) { window._dbg('📷 video 크기 0 → 리턴'); return; }
 
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
@@ -2773,18 +2799,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function handleMicButtonClick() {
+        window._dbg('🎤 handleMicButtonClick() 진입');
         // ⚠️ 수정금지(승인필요): 2026-03-20 마이크 — 네이티브 우선 → 웹 폴백
         // 앱(WebView): postMessage로 네이티브 음성인식 호출 (expo-speech-recognition)
         // 웹(브라우저): Web Speech API 사용
         if (window.ReactNativeWebView) {
+            window._dbg('🎤 ReactNativeWebView 감지 → 네이티브 STT');
             // 앱: 네이티브 음성인식 브릿지
             const lang = localStorage.getItem('appLanguage') || 'ko-KR';
+            window._dbg('🎤 lang=' + lang);
             window.ReactNativeWebView.postMessage(JSON.stringify({
                 type: 'startSpeechRecognition', payload: { language: lang }
             }));
+            window._dbg('🎤 postMessage 전송 완료');
             micBtn?.classList.add('mic-listening');
             return;
         }
+        window._dbg('🎤 웹 모드 (ReactNativeWebView 없음)');
         if (!recognition) return showToast("음성 인식이 지원되지 않습니다. 텍스트로 질문해주세요.");
         if (isRecognizing) return recognition.stop();
 
@@ -5327,9 +5358,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Event Listeners (디바운스 적용) ---
     startCameraFromFeaturesBtn?.addEventListener('click', handleStartFeaturesClick);
     // ⚠️ 수정금지(승인필요): 2026-03-12 debounce 800→300ms (앱 터치 반응 개선)
-    shootBtn?.addEventListener('click', () => debounceClick('shoot', capturePhoto, 300));
-    uploadBtn?.addEventListener('click', () => uploadInput.click());
+    window._dbg('🔗 이벤트 리스너 등록: shootBtn=' + !!shootBtn + ' micBtn=' + !!micBtn + ' uploadBtn=' + !!uploadBtn + ' archiveBtn=' + !!archiveBtn);
+    shootBtn?.addEventListener('click', () => { window._dbg('🔘 shootBtn 클릭!'); debounceClick('shoot', capturePhoto, 300); });
+    uploadBtn?.addEventListener('click', () => { window._dbg('🔘 uploadBtn 클릭!'); uploadInput.click(); });
     micBtn?.addEventListener('click', () => {
+        window._dbg('🔘 micBtn 클릭!');
         // 🔊 음성 재생 즉시 중지 (debounce 전에 실행)
         if (synth.speaking || synth.pending) {
             synth.cancel();
@@ -5350,7 +5383,7 @@ document.addEventListener('DOMContentLoaded', () => {
         debounceClick('detailMic', handleDetailMicClick, 200);
     });
 
-    archiveBtn?.addEventListener('click', () => debounceClick('archive', showArchivePage, 300));
+    archiveBtn?.addEventListener('click', () => { window._dbg('🔘 archiveBtn 클릭!'); debounceClick('archive', showArchivePage, 300); });
     uploadInput?.addEventListener('change', handleFileSelect);
 
     backBtn?.addEventListener('click', () => cameFromArchive ? showArchivePage() : showMainPage());

@@ -1006,6 +1006,8 @@
              <!-- The title is now part of the cameraStartOverlay for a better intro experience -->
         </header>
         <div class="flex-1"></div>
+        <!-- ⚠️ 디버그 패널 (삼성폰 버튼 디버깅용 — 테스트 후 제거) -->
+        <div id="debugPanel" style="position:fixed; top:0; left:0; right:0; max-height:40vh; overflow-y:auto; background:rgba(0,0,0,0.85); color:#0f0; font-size:11px; font-family:monospace; padding:8px; z-index:99999; pointer-events:none; display:none;"></div>
         <footer class="footer-safe-area">
             <div class="flex flex-col items-center gap-1">
                 <button id="shootBtn" aria-label="사진 촬영" class="w-14 h-14 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl">
