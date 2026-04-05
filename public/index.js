@@ -1729,9 +1729,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Page Control ---
     function showPage(pageToShow) {
+        window._dbg('📄 showPage: ' + (pageToShow?.id || 'null'));
         [featuresPage, mainPage, detailPage, archivePage, settingsPage, adminSettingsPage].forEach(page => {
             if (page) page.classList.toggle('visible', page === pageToShow);
         });
+        // 전환 후 상태 확인
+        setTimeout(() => {
+            if (pageToShow) {
+                const cs = window.getComputedStyle(pageToShow);
+                window._dbg('📄 ' + pageToShow.id + ' → visible=' + pageToShow.classList.contains('visible') + ' opacity=' + cs.opacity + ' visibility=' + cs.visibility + ' display=' + cs.display + ' height=' + cs.height);
+            }
+        }, 100);
     }
 
     function showMainPage() {
