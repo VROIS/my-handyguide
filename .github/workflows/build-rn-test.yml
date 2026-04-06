@@ -1,0 +1,32 @@
+name: Build RN Test APK
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
+      - name: Install dependencies
+        run: cd main-input-screen-rn-v1.0 && npm install
+      - name: Initialize EAS project
+        run: cd main-input-screen-rn-v1.0 && eas init --force --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      - name: Build APK locally
+        run: cd main-input-screen-rn-v1.0 && eas build --local --platform android --profile preview --non-interactive
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: rn-test-apk
+          path: main-input-screen-rn-v1.0/*.apk

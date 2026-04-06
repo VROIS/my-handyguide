@@ -40,6 +40,9 @@ import * as SMS from 'expo-sms';
 import * as TaskManager from 'expo-task-manager';
 import * as Updates from 'expo-updates';
 
+// ⚠️ 수정금지(승인필요): 2026-04-05 RN 메인 카메라 화면 — 삼성 Exynos WebView 렌더링 버그 우회
+import MainCameraScreen from './packages/camera-guide/src/screens/MainCameraScreen';
+
 // ⚠️ 수정금지(승인필요): 2026-03-11 fallback URL에 "1" 누락 수정 — 실제 도메인은 my-handyguide1.replit.app
 const WEB_APP_URL = Constants.expoConfig?.extra?.webAppUrl || 'https://my-handyguide1.replit.app';
 
@@ -96,6 +99,9 @@ export default function App() {
   const webViewRef = useRef(null);
   // ⚠️ 수정금지(승인필요): 2026-04-05 네이티브 Google OAuth 상태
   const [showGoogleAuth, setShowGoogleAuth] = useState(false);
+  // ⚠️ 수정금지(승인필요): RN 메인 카메라 ↔ WebView 전환 (삼성 렌더링 버그 우회)
+  const [showNativeMain, setShowNativeMain] = useState(true);
+  const [appLanguage, setAppLanguage] = useState('ko');
 
   useEffect(() => {
     requestAndroidPermissions();
@@ -175,6 +181,16 @@ export default function App() {
       const { type, payload } = message;
 
       switch (type) {
+        // ⚠️ 수정금지(승인필요): WebView → RN 메인 카메라로 복귀
+        case 'showMainPage': {
+          setShowNativeMain(true);
+          break;
+        }
+        // ⚠️ 수정금지(승인필요): WebView에서 언어 변경 알림 → RN i18n 동기화
+        case 'languageChanged': {
+          if (payload?.language) setAppLanguage(payload.language);
+          break;
+        }
         // --- TTS (텍스트 음성 변환) ---
         case 'speak': {
           // ⚠️ 수정금지(승인필요): 2026-03-12 네이티브 TTS + 언어별 최적 음성 하드코딩 강제
@@ -633,12 +649,50 @@ export default function App() {
     return true; // 나머지 URL은 WebView 내에서 정상 이동
   }, [openExternal]);
 
+  // ⚠️ 수정금지(승인필요): RN 메인 → WebView 전환 콜백
+  const handleNavigateToWebView = useCallback((page, data) => {
+    setShowNativeMain(false);
+    // 촬영/업로드 → 상세 페이지, 보관함 → 보관함 페이지
+    if (page === 'detail' && data?.imageBase64) {
+      // WebView 로드 후 이미지 전달 (onLoadEnd에서 처리)
+      setTimeout(() => {
+        webViewRef.current?.injectJavaScript(`
+          if (typeof processImageFromNative === 'function') {
+            processImageFromNative('data:image/jpeg;base64,${data.imageBase64}');
+          } else {
+            // processImageFromNative 없으면 기존 processImage fallback
+            window._nativeImageData = 'data:image/jpeg;base64,${data.imageBase64}';
+          }
+          true;
+        `);
+      }, 1000);
+    } else if (page === 'archive') {
+      setTimeout(() => {
+        webViewRef.current?.injectJavaScript(`
+          if (typeof showArchivePage === 'function') { showArchivePage(); }
+          true;
+        `);
+      }, 500);
+    }
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" backgroundColor="#4285F4" />
+
+      {/* ⚠️ 수정금지(승인필요): RN 메인 카메라 (삼성 렌더링 버그 우회) */}
+      {showNativeMain && (
+        <MainCameraScreen
+          onNavigateToWebView={handleNavigateToWebView}
+          lang={appLanguage}
+        />
+      )}
+
+      {/* WebView (showNativeMain=false일 때 표시, 또는 숨겨서 유지) */}
       <WebView
         ref={webViewRef}
         source={{ uri: WEB_APP_URL }}
+        style={[styles.webview, showNativeMain && { height: 0, opacity: 0 }]}
         style={styles.webview}
         javaScriptEnabled={true}
         domStorageEnabled={true}

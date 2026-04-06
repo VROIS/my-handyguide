@@ -1715,6 +1715,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         showPage(mainPage);
 
+        // ⚠️ 수정금지(승인필요): 2026-04-06 상세/보관함에서 메인 복귀 시 → RN 전환
+        if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage('showMainPage');
+            return; // RN이 메인 카메라를 표시
+        }
+
         detailPage.classList.remove('bg-friendly');
         cameraStartOverlay.classList.add('hidden');
         mainFooter.classList.remove('hidden');
@@ -2373,6 +2379,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         showPage(mainPage);
         cameraStartOverlay.classList.add('hidden');
+
+        // ⚠️ 수정금지(승인필요): 2026-04-06 RN 메인 카메라 전환 — 삼성 Exynos 렌더링 버그 우회
+        // WebView 랜딩/기능설명 통과 후 메인 입력 진입 시 → RN 네이티브 화면으로 전환
+        if (window.ReactNativeWebView) {
+            window.ReactNativeWebView.postMessage('showNativeMain');
+            return; // RN이 메인 카메라를 표시하므로 WebView 카메라 시작 불필요
+        }
 
         // 2026-03-17: speech unlock은 initSpeechUnlock() IIFE로 통합 (첫 터치/클릭 시 자동 해제)
 
