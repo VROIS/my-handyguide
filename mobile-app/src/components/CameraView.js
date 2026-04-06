@@ -5,15 +5,13 @@ import { CameraView as ExpoCameraView } from 'expo-camera';
 import { theme } from '../styles/theme';
 import { CONFIG } from '../config/constants';
 
-// ⚠️ 수정금지(승인필요): 전체 화면 카메라 배경
-// cameraRef: useCamera()에서 받은 ref
-// facing: 'back' | 'front'
-export default React.forwardRef(function CameraView({ facing }, ref) {
+// ⚠️ 수정금지(승인필요): 전체 화면 카메라 배경 — 후면 고정 (삼성 전후면 전환 버그 방지)
+export default React.forwardRef(function CameraView(props, ref) {
   return (
     <ExpoCameraView
       ref={ref}
       style={theme.cameraFull}
-      facing={facing || CONFIG.CAMERA.FACING}
+      facing="back"
     />
   );
 });

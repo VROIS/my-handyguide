@@ -2,10 +2,9 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, SafeAreaView, Platform, BackHandler, PermissionsAndroid, Linking, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useRef, useEffect, useCallback, useState } from 'react';
-// ⚠️ 수정금지(승인필요): 2026-04-06 Native Stack Navigator — Vercel 권장 패턴
-// WebView ↔ RN 카메라 네이티브 화면 전환 (삼성 Exynos 렌더링 버그 우회)
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+// ⚠️ 수정금지(승인필요): 2026-04-06 오버레이 방식 — WebView 항상 마운트 + RN 카메라 위에 덮음
+// Stack Navigator는 WebView를 파괴(unmount)해서 삼성에서 재로딩 → 하얀 화면 발생
+// 오버레이 방식: WebView 상태 유지 + RN 카메라 absoluteFill로 위에 덮음
 // ⚠️ 수정금지(승인필요): 2026-04-05 네이티브 Google OAuth 핸들러 (외부 브라우저 안 열림)
 import GoogleAuthHandler from './src/components/GoogleAuthHandler';
 import Constants from 'expo-constants';
@@ -47,8 +46,7 @@ import * as Updates from 'expo-updates';
 // ⚠️ 수정금지(승인필요): 2026-04-06 RN 메인 카메라 화면 — 삼성 Exynos WebView 렌더링 버그 우회
 import MainCameraScreen from './src/screens/MainCameraScreen';
 
-// ⚠️ 수정금지(승인필요): 2026-04-06 Native Stack Navigator 생성
-const Stack = createNativeStackNavigator();
+// ⚠️ 수정금지(승인필요): 2026-04-06 Stack Navigator 제거 — WebView 파괴 방지
 
 // ⚠️ 수정금지(승인필요): 2026-03-11 fallback URL에 "1" 누락 수정 — 실제 도메인은 my-handyguide1.replit.app
 const WEB_APP_URL = Constants.expoConfig?.extra?.webAppUrl || 'https://my-handyguide1.replit.app';
@@ -102,35 +100,16 @@ async function requestAndroidPermissions() {
   }
 }
 
-// ⚠️ 수정금지(승인필요): 2026-04-06 WebViewScreen — 기존 App 함수 그대로 (이름만 변경)
-function WebViewScreen({ navigation, route }) {
+// ⚠️ 수정금지(승인필요): 2026-04-06 오버레이 방식 — WebView 항상 마운트 + RN 카메라 위에 덮음
+export default function App() {
   const webViewRef = useRef(null);
   // ⚠️ 수정금지(승인필요): 2026-04-05 네이티브 Google OAuth 상태
   const [showGoogleAuth, setShowGoogleAuth] = useState(false);
   const [appLanguage, setAppLanguage] = useState('ko');
-
-  // ⚠️ 수정금지(승인필요): 2026-04-06 Camera → WebView 복귀 시 route.params 처리
-  // 촬영/업로드: processImage 호출, 보관함: showArchivePage 호출
-  useEffect(() => {
-    if (route?.params?.action && webViewRef.current) {
-      const { action, data } = route.params;
-      setTimeout(() => {
-        if (action === 'detail' && data?.imageBase64) {
-          webViewRef.current?.injectJavaScript(`
-            if (typeof processImage === 'function') {
-              processImage('data:image/jpeg;base64,${data.imageBase64}');
-            }
-            true;
-          `);
-        } else if (action === 'archive') {
-          webViewRef.current?.injectJavaScript(`
-            if (typeof showArchivePage === 'function') { showArchivePage(); }
-            true;
-          `);
-        }
-      }, 300);
-    }
-  }, [route?.params]);
+  // ⚠️ 수정금지(승인필요): 2026-04-06 RN 카메라 오버레이 토글
+  // true → RN 카메라가 WebView 위에 덮음 (메인 입력 화면)
+  // false → RN 숨김 → WebView 보임 (상세/보관함/설정 등)
+  const [showNativeMain, setShowNativeMain] = useState(false);
 
   useEffect(() => {
     requestAndroidPermissions();
@@ -167,6 +146,11 @@ function WebViewScreen({ navigation, route }) {
 
     if (Platform.OS === 'android') {
       const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+        // ⚠️ 수정금지(승인필요): RN 카메라 모드에서 뒤로가기 → WebView로 복귀
+        if (showNativeMain) {
+          setShowNativeMain(false);
+          return true;
+        }
         if (webViewRef.current) {
           webViewRef.current.goBack();
           return true;
@@ -210,10 +194,10 @@ function WebViewScreen({ navigation, route }) {
       const { type, payload } = message;
 
       switch (type) {
-        // ⚠️ 수정금지(승인필요): WebView → RN 메인 카메라로 전환 (Native Stack)
+        // ⚠️ 수정금지(승인필요): WebView → RN 메인 카메라로 전환 (오버레이)
         case 'showMainPage':
         case 'showNativeMain': {
-          navigation.navigate('Camera');
+          setShowNativeMain(true);
           break;
         }
         // ⚠️ 수정금지(승인필요): WebView에서 언어 변경 알림 → RN i18n 동기화
@@ -679,31 +663,26 @@ function WebViewScreen({ navigation, route }) {
     return true; // 나머지 URL은 WebView 내에서 정상 이동
   }, [openExternal]);
 
-  // ⚠️ 수정금지(승인필요): RN 메인 → WebView 전환 콜백 (Native Stack)
+  // ⚠️ 수정금지(승인필요): RN 메인 → WebView 전환 콜백 (오버레이 — WebView 파괴 안 됨)
   const handleNavigateToWebView = useCallback((page, data) => {
-    navigation.navigate('WebView');
-    // 촬영/업로드 → 상세 페이지, 보관함 → 보관함 페이지
-    if (page === 'detail' && data?.imageBase64) {
-      // WebView 로드 후 이미지 전달 (onLoadEnd에서 처리)
-      setTimeout(() => {
+    // 1. RN 카메라 숨김 → WebView 보임 (이미 살아있으니 즉시)
+    setShowNativeMain(false);
+    // 2. WebView에 명령 주입 (재로딩 없이 즉시 실행)
+    setTimeout(() => {
+      if (page === 'detail' && data?.imageBase64) {
         webViewRef.current?.injectJavaScript(`
           if (typeof processImageFromNative === 'function') {
             processImageFromNative('data:image/jpeg;base64,${data.imageBase64}');
-          } else {
-            // processImageFromNative 없으면 기존 processImage fallback
-            window._nativeImageData = 'data:image/jpeg;base64,${data.imageBase64}';
           }
           true;
         `);
-      }, 1000);
-    } else if (page === 'archive') {
-      setTimeout(() => {
+      } else if (page === 'archive') {
         webViewRef.current?.injectJavaScript(`
           if (typeof showArchivePage === 'function') { showArchivePage(); }
           true;
         `);
-      }, 500);
-    }
+      }
+    }, 100);
   }, []);
 
   return (
@@ -738,6 +717,17 @@ function WebViewScreen({ navigation, route }) {
         userAgent={Platform.OS === 'android' ? ANDROID_USER_AGENT : IOS_USER_AGENT}
       />
 
+      {/* ⚠️ 수정금지(승인필요): 2026-04-06 RN 메인 카메라 오버레이 — WebView 위에 덮음 */}
+      {/* WebView는 항상 마운트 유지 (파괴 안 됨) → 삼성 재로딩 하얀 화면 방지 */}
+      {showNativeMain && (
+        <View style={StyleSheet.absoluteFill}>
+          <MainCameraScreen
+            onNavigateToWebView={handleNavigateToWebView}
+            lang={appLanguage}
+          />
+        </View>
+      )}
+
       {/* ⚠️ 수정금지(승인필요): 2026-04-05 네이티브 Google OAuth — 외부 브라우저 안 열림 */}
       {showGoogleAuth && (
         <GoogleAuthHandler
@@ -759,36 +749,6 @@ function WebViewScreen({ navigation, route }) {
       )}
 
     </SafeAreaView>
-  );
-}
-
-// ⚠️ 수정금지(승인필요): 2026-04-06 CameraScreen — RN 메인 입력 화면
-// navigation.navigate('WebView') + params로 WebView 기존 함수 호출
-function CameraScreen({ navigation }) {
-  return (
-    <View style={{ flex: 1, backgroundColor: '#000' }}>
-      <MainCameraScreen
-        onNavigateToWebView={(page, data) => {
-          navigation.navigate('WebView', { action: page, data });
-        }}
-      />
-    </View>
-  );
-}
-
-// ⚠️ 수정금지(승인필요): 2026-04-06 App — Native Stack Navigator (Vercel 권장)
-// WebView(기존 앱) ↔ Camera(RN 메인) 네이티브 화면 전환
-export default function App() {
-  return (
-    <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName="WebView"
-        screenOptions={{ headerShown: false, animation: 'fade' }}
-      >
-        <Stack.Screen name="WebView" component={WebViewScreen} />
-        <Stack.Screen name="Camera" component={CameraScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
   );
 }
 

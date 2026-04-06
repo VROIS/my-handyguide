@@ -5,7 +5,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CONFIG } from '../config/constants';
 
 const ARCHIVE_KEY = 'archive_items';
-import { CONFIG } from '../config/constants';
 const BASE_URL = CONFIG.API.SERVER_URL;
 
 // ⚠️ 수정금지(승인필요): 보관함에 저장 (로컬 + 서버 동시)

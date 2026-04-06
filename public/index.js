@@ -2652,6 +2652,12 @@ document.addEventListener('DOMContentLoaded', () => {
         event.target.value = '';
     }
 
+    // ⚠️ 수정금지(승인필요): RN 네이티브에서 촬영/업로드 이미지 전달받는 브릿지 함수
+    // RN App.js → injectJavaScript → processImageFromNative(base64) → 기존 processImage 호출
+    window.processImageFromNative = function(dataUrl) {
+      processImage(dataUrl, null);
+    };
+
     async function processImage(dataUrl, sourceButton) {
         window._dbg('🖼️ processImage() 진입! dataUrl 길이=' + (dataUrl ? dataUrl.length : 0));
         // 🚨 2026-01-24: AI 중복 호출 차단 (비용 절감 핵심)

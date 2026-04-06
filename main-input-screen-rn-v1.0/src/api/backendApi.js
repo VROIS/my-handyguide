@@ -1,6 +1,7 @@
 // ⚠️ 수정금지(승인필요): 기존 백엔드 API 호출 — 현재 앱과 동일한 엔드포인트
 // server/routes.ts와 1:1 매칭
-const BASE_URL = 'https://myhandyguide.replit.app';
+import { CONFIG } from '../config/constants';
+const BASE_URL = CONFIG.API.SERVER_URL;
 
 // ⚠️ 수정금지(승인필요): 보관함 저장 — POST /api/guides/batch
 // 현재 앱 public/index.js:3075 handleSaveClick과 동일

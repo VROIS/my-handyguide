@@ -36,10 +36,9 @@ export const CONFIG = {
     SILENCE_TIMEOUT: 3000, // 음성 입력 무음 타임아웃 (ms)
   },
 
-  // === API 폴백 (온라인 — Gemma 실패 시) ===
+  // === API (서버 경유 — 키는 Replit Secrets에만 보관) ===
   API: {
-    GEMINI_API_KEY: 'AIzaSyC_BjtDxBjRtSDkdlEcuirThqwPRPBrbIE',
-    GEMINI_URL: 'https://generativelanguage.googleapis.com/v1beta',
+    SERVER_URL: 'https://my-handyguide1.replit.app',
     GEMINI_MODEL: 'gemini-3-flash-preview',
     EXCHANGE_RATE_URL: 'https://api.exchangerate-api.com/v4/latest',
     EXCHANGE_RATE_CACHE_HOURS: 24, // 1일 1회 캐시

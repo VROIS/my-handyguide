@@ -63,20 +63,43 @@ export async function initEngine(systemPrompt) {
   };
 }
 
-// ⚠️ 수정금지(승인필요): 텍스트 + 이미지 멀티모달 추론 (스트리밍)
-// onToken: 각 토큰 수신 콜백
-// onComplete: 전체 응답 완료 콜백
-export async function sendMessage({ text, imageBase64, onToken, onComplete, onError }) {
+// ⚠️ 수정금지(승인필요): 텍스트 + 이미지 멀티모달 추론 (async generator)
+// useAI.js에서 for await (const token of sendMessage(...)) 형태로 호출
+export async function* sendMessage({ text, imageBase64, systemPrompt }) {
   if (!LitertBridge || !isEngineReady()) {
     throw new Error('FALLBACK_TO_ONLINE');
   }
 
-  // 콜백 등록
-  onTokenCallback = onToken;
-  onCompleteCallback = onComplete;
-  onErrorCallback = onError;
+  // Promise 기반 큐 — 폴링 없이 토큰 도착 시 즉시 yield
+  let resolve = null;
+  let done = false;
+  let error = null;
+  const queue = [];
 
-  return await LitertBridge.sendMessage(text, imageBase64 || '');
+  onTokenCallback = (token) => {
+    queue.push(token);
+    if (resolve) { resolve(); resolve = null; }
+  };
+  onCompleteCallback = () => {
+    done = true;
+    if (resolve) { resolve(); resolve = null; }
+  };
+  onErrorCallback = (err) => {
+    error = err; done = true;
+    if (resolve) { resolve(); resolve = null; }
+  };
+
+  LitertBridge.sendMessage(text || '', imageBase64 || '');
+
+  while (!done || queue.length > 0) {
+    if (queue.length > 0) {
+      yield queue.shift();
+    } else if (!done) {
+      await new Promise(r => { resolve = r; });
+    }
+  }
+
+  if (error) throw new Error(error);
 }
 
 // ⚠️ 수정금지(승인필요): 엔진 상태 확인

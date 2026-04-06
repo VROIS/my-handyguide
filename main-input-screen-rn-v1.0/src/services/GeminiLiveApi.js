@@ -37,10 +37,10 @@ export function startChat(systemPrompt) {
   return chat;
 }
 
-// ⚠️ 수정금지(승인필요): 텍스트 메시지 전송 (스트리밍)
-export async function* sendTextStream(text) {
-  if (!chat) {
-    startChat(CONFIG.PROMPTS.GUIDE);
+// ⚠️ 수정금지(승인필요): 텍스트 메시지 전송 (스트리밍) — 서버 페르소나 적용
+export async function* sendTextStream(text, systemPrompt) {
+  if (!chat || systemPrompt) {
+    startChat(systemPrompt || CONFIG.PROMPTS.GUIDE);
   }
   if (!chat) throw new Error('Gemini 초기화 실패');
 
@@ -69,9 +69,16 @@ export async function analyzeImage(imageBase64, prompt) {
   return result.response.text();
 }
 
-// ⚠️ 수정금지(승인필요): 이미지 분석 (스트리밍)
-export async function* analyzeImageStream(imageBase64, prompt) {
-  if (!model) throw new Error('Gemini 초기화 실패');
+// ⚠️ 수정금지(승인필요): 이미지 분석 (스트리밍) — 서버 페르소나 프롬프트 적용
+// systemPrompt = 서버에서 가져온 언어별 페르소나 (PromptService.fetchPrompt)
+export async function* analyzeImageStream(imageBase64, systemPrompt) {
+  if (!genAI) throw new Error('Gemini 초기화 실패');
+
+  // systemInstruction 포함 모델 생성 (언어별 페르소나 적용)
+  const modelWithPrompt = genAI.getGenerativeModel({
+    model: CONFIG.API.GEMINI_MODEL,
+    systemInstruction: systemPrompt || undefined,
+  });
 
   const imagePart = {
     inlineData: {
@@ -80,8 +87,8 @@ export async function* analyzeImageStream(imageBase64, prompt) {
     },
   };
 
-  const result = await model.generateContentStream([
-    prompt || CONFIG.PROMPTS.ANALYZER,
+  const result = await modelWithPrompt.generateContentStream([
+    '이 이미지를 분석해주세요.',
     imagePart,
   ]);
   for await (const chunk of result.stream) {

@@ -1,124 +1,131 @@
-// ⚠️ 수정금지(승인필요): AI 통합 훅 — Gemma 4 온디바이스 ↔ Gemini API 자동 전환
-// 음성 중심 UX: 모든 AI 응답은 텍스트 + TTS 출력
-import { useCallback, useEffect } from 'react';
+// ⚠️ 수정금지(승인필요): AI 통합 훅 — Gemma 4 온디바이스 ↔ 서버 API 자동 전환
+// Gemma 4 (디폴트) → 실패 시 → 기존 서버 API 폴백 (Replit 경유, 키 노출 없음)
+// 사용자 언어(store.language) → 해당 페르소나 자동 적용 → 음성도 해당 언어
+import { useCallback, useEffect, useRef } from 'react';
 import * as Speech from 'expo-speech';
 import { useStore } from '../state/store';
 import { CONFIG } from '../config/constants';
 import { isEngineReady, sendMessage as gemmaSend } from '../services/GemmaEngine';
-import { initGemini, sendTextStream, analyzeImageStream, isGeminiReady } from '../services/GeminiLiveApi';
+import { analyzeImageViaServer } from '../api/backendApi';
+import { fetchPrompt, preloadPrompts, getTTSLanguage } from '../services/PromptService';
 
 export function useAI() {
   const {
-    liveMode, setLiveMode,
-    addMessage, setActiveFeature,
+    addMessage,
     useOnlineFallback, setOnlineFallback,
   } = useStore();
 
-  // ⚠️ 수정금지(승인필요): 앱 시작 시 Gemini API 자동 초기화 (Gemma 4 폴백용)
-  useEffect(() => {
-    if (CONFIG.API.GEMINI_API_KEY) {
-      initGemini(CONFIG.API.GEMINI_API_KEY);
-    }
-  }, []);
+  // ⚠️ 수정금지(승인필요): store.language 구독 — 언어 변경 시 자동 반영
+  const language = useStore((s) => s.language) || 'ko';
+  const promptsRef = useRef({ image: '', text: '' });
 
-  // ⚠️ 수정금지(승인필요): AI에 텍스트 전송 + 스트리밍 응답 + TTS
-  // Gemma → 실패 시 Gemini → 둘 다 실패 시 에러
-  const sendText = useCallback(async (text, { speak = true, systemPrompt } = {}) => {
-    addMessage({ role: 'user', text });
+  // ⚠️ 수정금지(승인필요): 앱 시작 시 프롬프트 프리로드 (서버에서 페르소나 가져오기)
+  useEffect(() => {
+    loadPrompts(language);
+  }, [language]);
+
+  // ⚠️ 수정금지(승인필요): 언어별 프롬프트 로딩
+  async function loadPrompts(lang) {
+    try {
+      await preloadPrompts(lang);
+      promptsRef.current.image = await fetchPrompt(lang, 'image');
+      promptsRef.current.text = await fetchPrompt(lang, 'text');
+      console.log(`[useAI] ${lang} 페르소나 로딩 완료`);
+    } catch (e) {
+      console.warn('[useAI] 프롬프트 로딩 실패:', e.message);
+    }
+  }
+
+  // ⚠️ 수정금지(승인필요): TTS — 사용자 언어로 음성 출력
+  const speak = useCallback((text) => {
+    if (!text) return;
+    Speech.speak(text, {
+      language: getTTSLanguage(language),
+      rate: CONFIG.VOICE.TTS_RATE,
+      pitch: CONFIG.VOICE.TTS_PITCH,
+    });
+  }, [language]);
+
+  // ⚠️ 수정금지(승인필요): AI에 텍스트 전송 + 응답 + TTS
+  // ⚠️ 수정금지(승인필요): 서버 API 폴백 공통 헬퍼 (Gemma 실패 시)
+  const fallbackToServer = useCallback(async (imageBase64, prompt) => {
+    setOnlineFallback(true);
+    const result = await analyzeImageViaServer(imageBase64, prompt, language);
+    return result.description || result.text || '';
+  }, [setOnlineFallback, language]);
+
+  // ⚠️ 수정금지(승인필요): Gemma → 서버 폴백 공통 흐름
+  const runAI = useCallback(async ({ text, imageBase64, systemPrompt, speakResult = true, userMessage }) => {
+    addMessage({ role: 'user', text: userMessage || text || '[이미지 분석 중...]' });
     let fullResponse = '';
 
     try {
-      // 1순위: Gemma 4 온디바이스
       if (isEngineReady()) {
-        for await (const token of gemmaSend({ text, systemPrompt })) {
+        for await (const token of gemmaSend({ text, imageBase64, systemPrompt })) {
           fullResponse += token;
         }
       } else {
-        throw new Error('FALLBACK_TO_ONLINE');
+        throw new Error('FALLBACK_TO_SERVER');
       }
     } catch {
-      // 2순위: Gemini API 온라인
-      if (isGeminiReady()) {
-        setOnlineFallback(true);
-        for await (const token of sendTextStream(text)) {
-          fullResponse += token;
-        }
-      } else {
-        fullResponse = '인터넷 연결을 확인해주세요. 오프라인 AI 모델을 먼저 다운로드하세요.';
+      try {
+        fullResponse = await fallbackToServer(imageBase64, systemPrompt || text);
+      } catch (serverErr) {
+        console.error('[useAI] 서버 API 실패:', serverErr.message);
+        fullResponse = getLocalizedMessage('ai_error', language);
       }
     }
 
     addMessage({ role: 'ai', text: fullResponse });
-
-    // 음성 출력 (핵심 UX — 화면 안 봐도 됨)
-    if (speak && fullResponse) {
-      Speech.speak(fullResponse, {
-        language: CONFIG.VOICE.LANGUAGE,
-        rate: CONFIG.VOICE.TTS_RATE,
-        pitch: CONFIG.VOICE.TTS_PITCH,
-      });
-    }
-
+    if (speakResult) speak(fullResponse);
     return fullResponse;
-  }, [addMessage, setOnlineFallback]);
+  }, [addMessage, fallbackToServer, speak, language]);
 
-  // ⚠️ 수정금지(승인필요): 이미지 분석 + 음성 응답
-  const analyzeImage = useCallback(async (imageBase64, { speak = true, prompt } = {}) => {
-    addMessage({ role: 'user', text: '[이미지 분석 중...]' });
-    let fullResponse = '';
+  // ⚠️ 수정금지(승인필요): 텍스트 전송
+  const sendText = useCallback(async (text, { speakResult = true, type = 'text' } = {}) => {
+    const systemPrompt = type === 'image' ? promptsRef.current.image : promptsRef.current.text;
+    return runAI({ text, systemPrompt, speakResult, userMessage: text });
+  }, [runAI]);
 
-    try {
-      if (isEngineReady()) {
-        for await (const token of gemmaSend({ imageBase64, text: prompt, systemPrompt: CONFIG.PROMPTS.ANALYZER })) {
-          fullResponse += token;
-        }
-      } else {
-        throw new Error('FALLBACK_TO_ONLINE');
-      }
-    } catch (gemmaErr) {
-      console.log('[useAI] Gemma 실패, Gemini 폴백 시도. isGeminiReady:', isGeminiReady());
-      if (isGeminiReady()) {
-        try {
-          setOnlineFallback(true);
-          for await (const token of analyzeImageStream(imageBase64, prompt || CONFIG.PROMPTS.ANALYZER)) {
-            fullResponse += token;
-          }
-        } catch (geminiErr) {
-          console.error('[useAI] Gemini API 호출 실패:', geminiErr.message);
-          fullResponse = 'AI 분석 중 오류가 발생했습니다: ' + geminiErr.message;
-        }
-      } else {
-        console.error('[useAI] Gemini 미초기화 — initGemini 호출 확인 필요');
-        fullResponse = 'AI 엔진을 초기화하고 있습니다. 잠시 후 다시 시도해주세요.';
-      }
-    }
-
-    addMessage({ role: 'ai', text: fullResponse });
-
-    if (speak && fullResponse) {
-      Speech.speak(fullResponse, {
-        language: CONFIG.VOICE.LANGUAGE,
-        rate: CONFIG.VOICE.TTS_RATE,
-      });
-    }
-
-    return fullResponse;
-  }, [addMessage, setOnlineFallback]);
+  // ⚠️ 수정금지(승인필요): 이미지 분석
+  const analyzeImage = useCallback(async (imageBase64, { speakResult = true, prompt } = {}) => {
+    const systemPrompt = promptsRef.current.image || prompt;
+    return runAI({ imageBase64, text: prompt, systemPrompt, speakResult });
+  }, [runAI]);
 
   // ⚠️ 수정금지(승인필요): TTS 중지
-  const stopSpeaking = useCallback(() => {
-    Speech.stop();
-  }, []);
-
-  // ⚠️ 수정금지(승인필요): TTS 상태 확인
-  const isSpeaking = useCallback(async () => {
-    return Speech.isSpeakingAsync();
-  }, []);
+  const stopSpeaking = useCallback(() => Speech.stop(), []);
 
   return {
     sendText,
     analyzeImage,
+    speak,
     stopSpeaking,
-    isSpeaking,
+    language,
   };
+}
+
+// ⚠️ 수정금지(승인필요): 언어별 시스템 메시지 — 모듈 레벨 상수 (매 호출마다 재생성 방지)
+const LOCALIZED_MESSAGES = {
+  ai_initializing: {
+    ko: 'AI 엔진을 초기화하고 있습니다. 잠시 후 다시 시도해주세요.',
+    en: 'Initializing AI engine. Please try again shortly.',
+    ja: 'AIエンジンを初期化中です。しばらくしてからもう一度お試しください。',
+    'zh-CN': 'AI引擎初始化中，请稍后再试。',
+    fr: 'Initialisation du moteur IA. Veuillez réessayer dans un instant.',
+    de: 'KI-Engine wird initialisiert. Bitte versuchen Sie es gleich erneut.',
+    es: 'Inicializando motor IA. Por favor, inténtelo de nuevo en un momento.',
+  },
+  ai_error: {
+    ko: 'AI 분석 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+    en: 'An error occurred during AI analysis. Please try again.',
+    ja: 'AI分析中にエラーが発生しました。しばらくしてからもう一度お試しください。',
+    'zh-CN': 'AI分析过程中出现错误，请稍后再试。',
+    fr: 'Une erreur est survenue. Veuillez réessayer.',
+    de: 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.',
+    es: 'Se produjo un error. Por favor, inténtelo de nuevo.',
+  },
+};
+function getLocalizedMessage(key, lang) {
+  return LOCALIZED_MESSAGES[key]?.[lang] || LOCALIZED_MESSAGES[key]?.['en'] || key;
 }
