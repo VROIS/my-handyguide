@@ -1,49 +1,298 @@
-// ⚠️ 수정금지(승인필요): 메인 카메라 화면 — 5개 버튼 + 카메라 라이브뷰
-// 촬영/업로드/보관함 → onNavigateToWebView로 WebView 전환
-// 라이브/여행비서 → 메인 화면 유지 + 음성 모드 토글
-// Alert 사용 금지 — 모든 안내는 음성 (백엔드 담당)
-import React, { useState, useCallback, useRef } from 'react';
+// ⚠️ 수정금지(승인필요): RN 메인 입력 페이지 — WebView 메인 완전 대체
+// 카메라 라이브뷰(후방 고정) + 5개 버튼
+// 촬영/업로드/음성 → 크레딧 체크 + 캡처 + GPS + WebView 전달
+// 보관함 → WebView showArchivePage 전달
+// 라이브/여행비서 → 준비 중 음성 안내
+import React, { useState, useCallback } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as ImagePicker from 'expo-image-picker';
+import * as Speech from 'expo-speech';
+import * as Location from 'expo-location';
+import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 
 import CameraView from '../components/CameraView';
 import FooterButtons from '../components/FooterButtons';
 import LiveChat from '../components/LiveChat';
-import TravelAssistant from '../components/TravelAssistant';
 import { useCamera } from '../hooks/useCamera';
-import { useAI } from '../hooks/useAI';
 import { useStore } from '../state/store';
 import { theme } from '../styles/theme';
 import { CONFIG } from '../config/constants';
+import { getTTSLanguage } from '../services/PromptService';
 
 // ⚠️ 수정금지(승인필요): debounce — 기존 index.js:537-550 debounceClick 클론
 const debounceMap = new Map();
-function debounceClick(key, callback, delay = 500) {
+function debounceClick(key, callback, delay = 300) {
   const now = Date.now();
   if (now - (debounceMap.get(key) || 0) < delay) return;
   debounceMap.set(key, now);
   callback();
 }
 
-export default function MainCameraScreen({ onNavigateToWebView, lang }) {
-  const { cameraRef, takePicture, startFrameCapture, stopFrameCapture } = useCamera();
-  const { sendText, analyzeImage, stopSpeaking } = useAI();
+export default function MainCameraScreen({ onNavigateToWebView, onInjectJS, lang }) {
+  const { cameraRef, takePicture } = useCamera();
   const {
-    liveMode, setLiveMode,
-    setActiveFeature, activeFeature,
-    addMessage,
+    setActiveFeature,
     setLanguage,
   } = useStore();
 
+  const language = useStore((s) => s.language) || 'ko';
+
   // ⚠️ 수정금지(승인필요): App.js에서 전달받은 언어를 store에 동기화
-  // WebView 언어 선택 → lang prop → store.language → useAI/TTS/프롬프트 자동 반영
   React.useEffect(() => {
     if (lang) setLanguage(lang);
   }, [lang]);
 
-  const [showAssistant, setShowAssistant] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+
+  // ⚠️ 수정금지(승인필요): 오디오 정리 헬퍼 — TTS/STT/상태 일괄 중지
+  const stopAllAudio = useCallback(() => {
+    Speech.stop();
+    if (isListening) {
+      ExpoSpeechRecognitionModule.stop();
+      setIsListening(false);
+    }
+    setActiveFeature(null);
+  }, [isListening, setActiveFeature]);
+
+  // ⚠️ 수정금지(승인필요): 음성 안내 — 사용자 언어로 TTS (Voice-First UX)
+  const speak = useCallback((text) => {
+    if (!text) return;
+    Speech.speak(text, {
+      language: getTTSLanguage(language),
+      rate: CONFIG.VOICE.TTS_RATE,
+      pitch: CONFIG.VOICE.TTS_PITCH,
+    });
+  }, [language]);
+
+  // ⚠️ 수정금지(승인필요): 크레딧 체크 — 프로모션 기간 return true (CLAUDE.md 제9조)
+  // 프로모션 종료 후: backendApi.checkCredits(userId) 전환
+  const checkUsageLimit = useCallback(async () => {
+    return true;
+  }, []);
+
+  // ⚠️ 수정금지(승인필요): GPS → WebView window.currentGPS 전달
+  const sendGPSToWebView = useCallback(() => {
+    if (onInjectJS) {
+      // 백그라운드 — 기다리지 않음 (기존 requestBrowserLocation과 동일)
+      (async () => {
+        try {
+          const { status } = await Location.requestForegroundPermissionsAsync();
+          if (status !== 'granted') return;
+          const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          onInjectJS(`
+            window.currentGPS = {
+              latitude: ${loc.coords.latitude},
+              longitude: ${loc.coords.longitude},
+              locationName: null
+            };
+            true;
+          `);
+        } catch (e) {
+          console.warn('[GPS] 위치 요청 실패:', e.message);
+        }
+      })();
+    }
+  }, [onInjectJS]);
+
+  // ═══════════════════════════════════════════════
+  // 촬영 버튼 (#1~4)
+  // 기존: capturePhoto → checkUsageLimit → canvas.drawImage → requestBrowserLocation → processImage
+  // ═══════════════════════════════════════════════
+  const handleCapture = useCallback(async () => {
+    if (isProcessing) return;
+
+    // #1 크레딧 체크
+    const canProceed = await checkUsageLimit();
+    if (!canProceed) {
+      speak('크레딧이 부족합니다.');
+      return;
+    }
+
+    setIsProcessing(true);
+    setActiveFeature('capture');
+
+    try {
+      // #2 카메라 프레임 캡처 → base64
+      const photo = await takePicture();
+      if (!photo?.base64) {
+        speak('촬영에 실패했습니다.');
+        return;
+      }
+
+      // #3 GPS 위치 요청 (백그라운드 — 기다리지 않음)
+      sendGPSToWebView();
+
+      // #4 WebView 전환 + processImageFromNative 호출
+      if (onNavigateToWebView) {
+        onNavigateToWebView('detail', { imageBase64: photo.base64 });
+      }
+    } catch (e) {
+      console.error('[촬영 오류]', e.message);
+      speak('촬영 중 오류가 발생했습니다.');
+    } finally {
+      setIsProcessing(false);
+      setActiveFeature(null);
+    }
+  }, [isProcessing, checkUsageLimit, takePicture, sendGPSToWebView, onNavigateToWebView, speak, setActiveFeature]);
+
+  // ═══════════════════════════════════════════════
+  // 업로드 버튼 (#15~18)
+  // 기존: uploadInput.click → handleFileSelect → checkUsageLimit → exifr.gps → processImage
+  // ═══════════════════════════════════════════════
+  const handleUpload = useCallback(async () => {
+    if (isProcessing) return;
+
+    try {
+      // #15 기기 갤러리 열기
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        base64: true,
+        quality: 0.8,
+      });
+      if (result.canceled || !result.assets?.[0]?.base64) return;
+
+      // #16 크레딧 체크
+      const canProceed = await checkUsageLimit();
+      if (!canProceed) {
+        speak('크레딧이 부족합니다.');
+        return;
+      }
+
+      setIsProcessing(true);
+      setActiveFeature('upload');
+
+      // #17 GPS — 현재 위치 직접 사용 (RN에서 EXIF 추출 불필요)
+      sendGPSToWebView();
+
+      // #18 WebView 전달 → processImageFromNative → 이후 촬영과 동일
+      if (onNavigateToWebView) {
+        onNavigateToWebView('detail', { imageBase64: result.assets[0].base64 });
+      }
+    } catch (e) {
+      console.error('[업로드 오류]', e.message);
+      speak('업로드 중 오류가 발생했습니다.');
+    } finally {
+      setIsProcessing(false);
+      setActiveFeature(null);
+    }
+  }, [isProcessing, checkUsageLimit, sendGPSToWebView, onNavigateToWebView, speak, setActiveFeature]);
+
+  // ⚠️ 수정금지(승인필요): 언마운트 시 마이크 타임아웃 정리 (메모리 누수 방지)
+  React.useEffect(() => {
+    return () => {
+      if (micTimeoutRef.current) clearTimeout(micTimeoutRef.current);
+    };
+  }, []);
+
+  // ═══════════════════════════════════════════════
+  // 음성 버튼 (#19~24) — 라이브 버튼으로 대체 예정, 현재는 기존 음성 로직
+  // 기존: synth.cancel → checkUsageLimit → recognition.start → 10초 타임아웃 → processTextQuery
+  // ═══════════════════════════════════════════════
+  const micTimeoutRef = React.useRef(null);
+
+  // #22~23 STT 결과 수신 + 타임아웃
+  useSpeechRecognitionEvent('result', (event) => {
+    const text = event.results?.[0]?.transcript || '';
+    if (text) {
+      // 타임아웃 해제
+      if (micTimeoutRef.current) {
+        clearTimeout(micTimeoutRef.current);
+        micTimeoutRef.current = null;
+      }
+      setIsListening(false);
+      setActiveFeature(null);
+
+      // #24 WebView 전달 → processTextQuery
+      if (onNavigateToWebView) {
+        onNavigateToWebView('voice', { text });
+      }
+    }
+  });
+
+  useSpeechRecognitionEvent('error', (event) => {
+    if (micTimeoutRef.current) {
+      clearTimeout(micTimeoutRef.current);
+      micTimeoutRef.current = null;
+    }
+    setIsListening(false);
+    setActiveFeature(null);
+    speak('음성 인식 중 오류가 발생했습니다.');
+  });
+
+  const handleVoice = useCallback(async () => {
+    if (isProcessing || isListening) return;
+
+    // #19 TTS 재생 중이면 즉시 중지
+    Speech.stop();
+
+    // #20 크레딧 체크
+    const canProceed = await checkUsageLimit();
+    if (!canProceed) {
+      speak('크레딧이 부족합니다.');
+      return;
+    }
+
+    // #21 마이크 리스닝 상태 (프론트엔드 — store로 전달)
+    setIsListening(true);
+    setActiveFeature('live');
+
+    try {
+      // #22 네이티브 STT 시작
+      const { granted } = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!granted) {
+        speak('마이크 권한이 필요합니다.');
+        setIsListening(false);
+        setActiveFeature(null);
+        return;
+      }
+
+      const ttsLang = getTTSLanguage(language);
+      ExpoSpeechRecognitionModule.start({
+        lang: ttsLang,
+        interimResults: true,
+        continuous: false,
+        requiresOnDeviceRecognition: false,
+      });
+
+      // #23 10초 타임아웃
+      micTimeoutRef.current = setTimeout(() => {
+        stopAllAudio();
+        speak('음성을 듣지 못했어요. 다시 시도해볼까요?');
+      }, 10000);
+
+    } catch (e) {
+      console.error('[음성 오류]', e.message);
+      setIsListening(false);
+      setActiveFeature(null);
+      speak('음성 인식을 시작할 수 없습니다.');
+    }
+  }, [isProcessing, isListening, checkUsageLimit, language, speak, setActiveFeature]);
+
+  // ═══════════════════════════════════════════════
+  // 보관함 버튼 (#27~31)
+  // 기존: pauseCamera → synth.cancel → recognition.stop → toggleSelectionMode → showArchivePage
+  // ═══════════════════════════════════════════════
+  const handleArchive = useCallback(() => {
+    // #27~29 카메라/TTS/마이크 일괄 중지
+    stopAllAudio();
+    // #30~34 WebView showArchivePage → 내부에서 전부 처리
+    if (onNavigateToWebView) {
+      onNavigateToWebView('archive');
+    }
+  }, [stopAllAudio, onNavigateToWebView]);
+
+  // ═══════════════════════════════════════════════
+  // 라이브 / 여행비서 — 준비 중 (이후 단계)
+  // ═══════════════════════════════════════════════
+  const handleLive = useCallback(() => {
+    speak('라이브 기능을 준비하고 있습니다.');
+  }, [speak]);
+
+  const handleAssistant = useCallback(() => {
+    speak('여행비서 기능을 준비하고 있습니다.');
+  }, [speak]);
 
   // ⚠️ 수정금지(승인필요): 5개 버튼 핸들러 분기
   const handleButtonPress = useCallback((buttonId) => {
@@ -52,123 +301,31 @@ export default function MainCameraScreen({ onNavigateToWebView, lang }) {
         handleLive();
         break;
       case 'capture':
-        debounceClick('capture', () => handleCapture(), 300); // 기존: 300ms
+        debounceClick('capture', () => handleCapture(), 300);
         break;
       case 'upload':
-        handleUpload(); // 기존: debounce 없음
+        handleUpload();
         break;
       case 'assistant':
         handleAssistant();
         break;
       case 'archive':
-        debounceClick('archive', () => handleArchive(), 300); // 기존: 300ms
+        debounceClick('archive', () => handleArchive(), 300);
         break;
     }
-  }, [liveMode, isProcessing, showAssistant]);
-
-  // ⚠️ 수정금지(승인필요): 라이브 — Always-Listening 토글 (메인 화면 유지 + 음성)
-  const handleLive = useCallback(() => {
-    if (liveMode !== 'off') {
-      setLiveMode('off');
-      stopFrameCapture();
-      stopSpeaking();
-      setActiveFeature(null);
-    } else {
-      setLiveMode('listening');
-      setActiveFeature('live');
-      startFrameCapture(async (frame) => {
-        // 카메라 프레임 → AI 분석 (백엔드 담당)
-      });
-    }
-  }, [liveMode, setLiveMode, startFrameCapture, stopFrameCapture, stopSpeaking, setActiveFeature]);
-
-  // ⚠️ 수정금지(승인필요): 촬영 → WebView 상세 페이지 전환
-  // 기존 흐름: capturePhoto → processImage(dataUrl, shootBtn) → showDetailPage()
-  const handleCapture = useCallback(async () => {
-    if (isProcessing) return;
-    setIsProcessing(true);
-    setActiveFeature('capture');
-
-    try {
-      const photo = await takePicture();
-      if (photo?.base64 && onNavigateToWebView) {
-        // WebView 상세 페이지로 전환 + 이미지 전달
-        onNavigateToWebView('detail', { imageBase64: photo.base64 });
-      }
-    } catch (e) {
-      // 에러 시 음성 안내 (백엔드 useAI가 처리)
-      console.error('[촬영 오류]', e.message);
-    } finally {
-      setIsProcessing(false);
-      setActiveFeature(null);
-    }
-  }, [isProcessing, takePicture, onNavigateToWebView, setActiveFeature]);
-
-  // ⚠️ 수정금지(승인필요): 업로드 → 갤러리 선택 → WebView 상세 페이지 전환
-  // 기존 흐름: uploadInput.click() → handleFileSelect() → processImage(dataUrl, uploadBtn)
-  const handleUpload = useCallback(async () => {
-    if (isProcessing) return;
-
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        base64: true,
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]?.base64 && onNavigateToWebView) {
-        setIsProcessing(true);
-        setActiveFeature('upload');
-        // WebView 상세 페이지로 전환 + 이미지 전달
-        onNavigateToWebView('detail', { imageBase64: result.assets[0].base64 });
-      }
-    } catch (e) {
-      console.error('[업로드 오류]', e.message);
-    } finally {
-      setIsProcessing(false);
-      setActiveFeature(null);
-    }
-  }, [isProcessing, onNavigateToWebView, setActiveFeature]);
-
-  // ⚠️ 수정금지(승인필요): 여행비서 — 메인 화면 유지 + 음성 모드 토글
-  const handleAssistant = useCallback(() => {
-    setShowAssistant(!showAssistant);
-    setActiveFeature(showAssistant ? null : 'assistant');
-  }, [showAssistant, setActiveFeature]);
-
-  // ⚠️ 수정금지(승인필요): 보관함 → WebView 보관함 페이지 전환
-  // 기존 흐름: showArchivePage() → pauseCamera() + showPage(archivePage) + renderArchive()
-  const handleArchive = useCallback(() => {
-    if (onNavigateToWebView) {
-      onNavigateToWebView('archive');
-    }
-  }, [onNavigateToWebView]);
-
-  // ⚠️ 수정금지(승인필요): 여행비서 서브메뉴 선택 (백엔드 담당)
-  const handleAssistantSelect = useCallback(async (menuId) => {
-    setShowAssistant(false);
-    // 백엔드 서비스 호출 (음성 안내)
-  }, []);
+  }, [handleLive, handleCapture, handleUpload, handleAssistant, handleArchive]);
 
   return (
     <View style={theme.container}>
-      {/* ⚠️ 수정금지(승인필요): StatusBar 투명 — 상단 검정 띠 제거 */}
       <StatusBar style="light" translucent backgroundColor="transparent" />
 
-      {/* 카메라 전체 화면 배경 */}
+      {/* 카메라 전체 화면 배경 (후방 고정) */}
       <CameraView ref={cameraRef} />
 
-      {/* 라이브 대화 오버레이 (음성 보조 시각화) */}
+      {/* 라이브 대화 오버레이 */}
       <LiveChat />
 
-      {/* 여행비서 서브메뉴 */}
-      <TravelAssistant
-        visible={showAssistant}
-        onSelect={handleAssistantSelect}
-        onClose={() => { setShowAssistant(false); setActiveFeature(null); }}
-      />
-
-      {/* ⚠️ 수정금지(승인필요): 처리 중 스피너 — 기존 .loader animate-spin 클론 */}
+      {/* 처리 중 스피너 */}
       {isProcessing && (
         <View style={theme.spinnerOverlay}>
           <ActivityIndicator size="large" color={CONFIG.GEMINI_BLUE} />

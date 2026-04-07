@@ -83,6 +83,36 @@ const INJECTED_JS = `
     '.gallery-footer { padding-bottom: 0 !important; }' +
     '.bottom-nav { padding-bottom: 0 !important; }';
   document.head.appendChild(style);
+
+  // ⚠️ 수정금지(승인필요): 2026-04-07 RN 메인 페이지 대체
+  // WebView 메인 페이지 전체 비활성화 (카메라+풋터+이벤트 전부)
+  // showMainPage 오버라이드 → RN으로 복귀 (postMessage)
+  var _attempts = 0;
+  var _waitForMain = setInterval(function() {
+    if (++_attempts > 50) { clearInterval(_waitForMain); return; }
+    var mainPage = document.getElementById('mainPage');
+    if (mainPage) {
+      clearInterval(_waitForMain);
+      mainPage.style.display = 'none';
+      // showMainPage 호출 시 WebView 메인 대신 RN 메인으로 전환
+      if (window.ReactNativeWebView) {
+        var _origShowMainPage = window.showMainPage;
+        window.showMainPage = function() {
+          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'showNativeMain' }));
+        };
+        // 뒤로가기 버튼도 RN으로 전환
+        var backBtn = document.getElementById('detail-back') || document.querySelector('[id*="back"]');
+        if (backBtn && !backBtn._rnBound) {
+          backBtn._rnBound = true;
+          backBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'showNativeMain' }));
+          }, true);
+        }
+      }
+    }
+  }, 100);
 })();
 true;
 `;
@@ -664,15 +694,26 @@ export default function App() {
   }, [openExternal]);
 
   // ⚠️ 수정금지(승인필요): RN 메인 → WebView 전환 콜백 (오버레이 — WebView 파괴 안 됨)
+  // ⚠️ 수정금지(승인필요): 2026-04-07 RN 메인 → WebView 전환 콜백
+  // 촬영/업로드: processImageFromNative(base64) → 상세 페이지
+  // 음성: processTextQuery(텍스트) → 상세 페이지 (음성 모드)
+  // 보관함: showArchivePage()
   const handleNavigateToWebView = useCallback((page, data) => {
-    // 1. RN 카메라 숨김 → WebView 보임 (이미 살아있으니 즉시)
     setShowNativeMain(false);
-    // 2. WebView에 명령 주입 (재로딩 없이 즉시 실행)
     setTimeout(() => {
       if (page === 'detail' && data?.imageBase64) {
         webViewRef.current?.injectJavaScript(`
           if (typeof processImageFromNative === 'function') {
             processImageFromNative('data:image/jpeg;base64,${data.imageBase64}');
+          }
+          true;
+        `);
+      } else if (page === 'voice' && data?.text) {
+        // 음성 모드 — processTextQuery 호출
+        const safeText = data.text.replace(/'/g, "\\'").replace(/\n/g, ' ');
+        webViewRef.current?.injectJavaScript(`
+          if (typeof processTextQuery === 'function') {
+            processTextQuery('${safeText}');
           }
           true;
         `);
@@ -683,6 +724,11 @@ export default function App() {
         `);
       }
     }, 100);
+  }, []);
+
+  // ⚠️ 수정금지(승인필요): WebView에 JS 주입 (MainCameraScreen에서 GPS 전달용)
+  const injectJSToWebView = useCallback((js) => {
+    webViewRef.current?.injectJavaScript(js);
   }, []);
 
   return (
@@ -723,6 +769,7 @@ export default function App() {
         <View style={StyleSheet.absoluteFill}>
           <MainCameraScreen
             onNavigateToWebView={handleNavigateToWebView}
+            onInjectJS={injectJSToWebView}
             lang={appLanguage}
           />
         </View>
