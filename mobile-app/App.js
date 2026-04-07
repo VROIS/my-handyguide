@@ -238,6 +238,11 @@ export default function App() {
           setShowNativeMain(true);
           break;
         }
+        // ⚠️ 수정금지(승인필요): WebView 페이지 전환 완료 → RN 메인 숨김
+        case 'pageReady': {
+          setShowNativeMain(false);
+          break;
+        }
         // ⚠️ 수정금지(승인필요): WebView에서 언어 변경 알림 → RN i18n 동기화
         case 'languageChanged': {
           if (payload?.language) setAppLanguage(payload.language);
@@ -704,17 +709,15 @@ export default function App() {
   // ⚠️ 수정금지(승인필요): 2026-04-07 RN 메인 → WebView 전환 콜백
   // sendToWeb(CustomEvent 'nativeResponse') 방식 — IIFE 로컬 스코프 함수에 접근 가능
   // 기존 speechResult/location/imageResult 등과 동일한 검증된 패턴
+  // ⚠️ 수정금지(승인필요): RN → WebView 전환 — sendToWeb 먼저, WebView 'pageReady' 수신 후 RN 숨김
   const handleNavigateToWebView = useCallback((page, data) => {
-    setShowNativeMain(false);
-    setTimeout(() => {
-      if (page === 'detail' && data?.imageBase64) {
-        sendToWeb('nativeImage', { base64: data.imageBase64 });
-      } else if (page === 'voice' && data?.text) {
-        sendToWeb('speechResult', { text: data.text });
-      } else if (page === 'archive') {
-        sendToWeb('nativeArchive', {});
-      }
-    }, 100);
+    if (page === 'detail' && data?.imageBase64) {
+      sendToWeb('nativeImage', { base64: data.imageBase64 });
+    } else if (page === 'voice' && data?.text) {
+      sendToWeb('speechResult', { text: data.text });
+    } else if (page === 'archive') {
+      sendToWeb('nativeArchive', {});
+    }
   }, [sendToWeb]);
 
   // ⚠️ 수정금지(승인필요): WebView에 JS 주입 (MainCameraScreen에서 GPS 전달용)
