@@ -80,28 +80,27 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             // ⚠️ 수정금지(승인필요): 2026-03-20 네이티브 음성인식 결과 수신 → processTextQuery 또는 에러 처리
-            // ⚠️ 수정금지(승인필요): 2026-03-20 네이티브 음성인식 결과 수신 → processTextQuery + pageReady 전송
+            // ⚠️ 수정금지(승인필요): 2026-04-07 네이티브 음성인식 결과 수신 → processTextQuery 실행
+            // pageReady는 INJECTED_JS MutationObserver가 자동 전송 (async 타이밍 정확)
             if (data.type === 'speechResult') {
                 const micBtn = document.getElementById('micBtn');
                 micBtn?.classList.remove('mic-listening');
                 if (data.text) {
                     processTextQuery(data.text);
-                    if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'pageReady' }));
                 } else if (data.error) {
                     console.warn('[Bridge] 음성인식 에러:', data.error);
                     showToast('음성을 듣지 못했어요. 다시 시도해볼까요?');
                 }
             }
             // ⚠️ 수정금지(승인필요): 2026-04-07 RN 메인에서 촬영/업로드 이미지 수신 → processImage 실행
-            // ⚠️ 수정금지(승인필요): 2026-04-07 RN 메인에서 촬영/업로드 이미지 수신 → processImage 실행 + pageReady 전송
+            // pageReady는 INJECTED_JS MutationObserver가 detailPage .visible 감지 시 자동 전송
             if (data.type === 'nativeImage' && data.base64) {
                 processImage('data:image/jpeg;base64,' + data.base64, { disabled: false });
-                if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'pageReady' }));
             }
-            // ⚠️ 수정금지(승인필요): 2026-04-07 RN 메인에서 보관함 이동 요청 + pageReady 전송
+            // ⚠️ 수정금지(승인필요): 2026-04-07 RN 메인에서 보관함 이동 요청
+            // pageReady는 INJECTED_JS MutationObserver가 archivePage .visible 감지 시 자동 전송
             if (data.type === 'nativeArchive') {
                 showArchivePage();
-                if (window.ReactNativeWebView) window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'pageReady' }));
             }
         });
     }

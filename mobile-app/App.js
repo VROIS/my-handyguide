@@ -74,51 +74,115 @@ const IOS_USER_AGENT =
 // ⚠️ 수정금지(승인필요): 2026-03-12 SafeAreaView가 safe-area 처리하므로 CSS 이중 패딩 제거
 // Z Fold 등 큰 safe-area-inset-bottom 기기에서 하단 버튼 밀림 방지
 // touch-action: manipulation → 300ms 터치 딜레이 제거
+// ⚠️ 수정금지(승인필요): 2026-04-07 INJECTED_JS 전체 재작성
+// 목적: (A) WebView mainPage 완전 차단 (B) MutationObserver 자동 pageReady (C) 모니터링
 const INJECTED_JS = `
 (function() {
+  // ─── (A) CSS 패딩 정리 ───
   var style = document.createElement('style');
-  // ⚠️ 수정금지(승인필요): 2026-03-24 touch-action:manipulation 제거 — Android WebView click 합성 방해 (Issue #2478)
   style.textContent =
     '.footer-safe-area { padding-bottom: 0 !important; }' +
     '.gallery-footer { padding-bottom: 0 !important; }' +
     '.bottom-nav { padding-bottom: 0 !important; }';
   document.head.appendChild(style);
 
-  // ⚠️ 수정금지(승인필요): 2026-04-07 RN 메인 페이지 대체
-  // WebView 메인 페이지 전체 비활성화 (카메라+풋터+이벤트 전부)
-  // showMainPage 오버라이드 → RN으로 복귀 (postMessage)
+  // ─── (B) 모니터링 패널 (삼성 테스트용, 트리플탭 토글) ───
+  var _monDiv = document.createElement('div');
+  _monDiv.id = '_rnMonitor';
+  _monDiv.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9000;background:rgba(0,0,0,0.75);color:#0f0;font:10px monospace;max-height:100px;overflow-y:auto;padding:4px;display:none;';
+  document.body.appendChild(_monDiv);
+  var _monLogs = [];
+  window.__rnMonitor = function(msg) {
+    var ts = new Date().toISOString().substr(11,8);
+    _monLogs.push(ts + ' ' + msg);
+    if (_monLogs.length > 50) _monLogs.shift();
+    _monDiv.innerHTML = _monLogs.join('<br>');
+    _monDiv.scrollTop = _monDiv.scrollHeight;
+  };
+  var _monTaps = 0, _monTimer = null;
+  document.addEventListener('touchstart', function() {
+    _monTaps++;
+    if (_monTimer) clearTimeout(_monTimer);
+    _monTimer = setTimeout(function() { _monTaps = 0; }, 500);
+    if (_monTaps >= 3) {
+      _monTaps = 0;
+      _monDiv.style.display = _monDiv.style.display === 'none' ? 'block' : 'none';
+    }
+  });
+
+  // ─── (C) nativeResponse 수신 모니터링 ───
+  window.addEventListener('nativeResponse', function(e) {
+    if (window.__rnMonitor && e.detail) {
+      window.__rnMonitor('RX: ' + (e.detail.type || 'unknown'));
+    }
+  });
+
+  // ─── (D) mainPage 완전 차단 — WebView 메인 화면 비활성화 ───
   var _attempts = 0;
   var _waitForMain = setInterval(function() {
     if (++_attempts > 50) { clearInterval(_waitForMain); return; }
     var mainPage = document.getElementById('mainPage');
-    // mainPage가 존재하고 visible 상태일 때만 (랜딩/인증 중에는 안 뜸)
-    if (mainPage && mainPage.classList.contains('visible')) {
+    if (mainPage) {
       clearInterval(_waitForMain);
-      // display:none 안 함 — WebView 내부 JS(processImage, showPage)가 정상 작동하려면
-      // mainPage가 DOM에 존재해야 함. RN 오버레이가 위에서 가릴 뿐.
-      // 카메라만 중지 (하드웨어 충돌 방지)
+
+      // (D-1) mainPage display:none — 완전 시각 제거
+      // detailPage/archivePage는 형제 div라 영향 없음
+      mainPage.style.display = 'none';
+      if (window.__rnMonitor) window.__rnMonitor('mainPage display:none 완료');
+
+      // (D-2) 카메라 하드웨어 해제
       if (typeof pauseCamera === 'function') pauseCamera();
-      // RN 오버레이 즉시 활성화
+
+      // (D-3) mainPage 내 버튼 이벤트 전부 해제 (cloneNode — 리스너 스트립)
+      ['shootBtn','micBtn','uploadBtn','archiveBtn','upload-input'].forEach(function(id) {
+        var btn = document.getElementById(id);
+        if (btn && btn.parentNode) btn.replaceWith(btn.cloneNode(true));
+      });
+
+      // (D-4) showMainPage 오버라이드 → RN 메인으로 전환
+      // IIFE 스코프의 showMainPage()가 호출되어도 mainPage가 display:none이라 안 보임 (이중 방어)
+      window.showMainPage = function() {
+        if (window.__rnMonitor) window.__rnMonitor('TX: showNativeMain (showMainPage 오버라이드)');
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'showNativeMain' }));
+      };
+
+      // (D-5) RN 메인 활성화 요청
       if (window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'showNativeMain' }));
+        if (window.__rnMonitor) window.__rnMonitor('TX: showNativeMain (초기)');
       }
-      // showMainPage 호출 시 WebView 메인 대신 RN 메인으로 전환
-      if (window.ReactNativeWebView) {
-        var _origShowMainPage = window.showMainPage;
-        window.showMainPage = function() {
-          window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'showNativeMain' }));
-        };
-        // 뒤로가기 버튼도 RN으로 전환
-        var backBtn = document.getElementById('detail-back') || document.querySelector('[id*="back"]');
-        if (backBtn && !backBtn._rnBound) {
-          backBtn._rnBound = true;
-          backBtn.addEventListener('click', function(e) {
-            e.stopPropagation();
-            e.preventDefault();
-            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'showNativeMain' }));
-          }, true);
-        }
-      }
+    }
+  }, 100);
+
+  // ─── (E) MutationObserver — 자동 pageReady ───
+  // detailPage/archivePage/settingsPage가 .visible 클래스를 받으면 자동으로 pageReady 전송
+  // 기존 index.js의 수동 pageReady(async 무시 버그)를 대체
+  var _observerAttempts = 0;
+  var _waitForPages = setInterval(function() {
+    if (++_observerAttempts > 50) { clearInterval(_waitForPages); return; }
+    var dp = document.getElementById('detailPage');
+    var ap = document.getElementById('archivePage');
+    if (dp && ap) {
+      clearInterval(_waitForPages);
+      var _pageObserver = new MutationObserver(function(mutations) {
+        mutations.forEach(function(m) {
+          if (m.attributeName === 'class') {
+            var el = m.target;
+            if (el.id !== 'mainPage' && el.classList.contains('visible')) {
+              if (window.ReactNativeWebView) {
+                var msg = JSON.stringify({ type: 'pageReady', page: el.id });
+                window.ReactNativeWebView.postMessage(msg);
+                if (window.__rnMonitor) window.__rnMonitor('TX: pageReady (' + el.id + ')');
+              }
+            }
+          }
+        });
+      });
+      ['detailPage','archivePage','settingsPage','adminSettingsPage'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) _pageObserver.observe(el, { attributes: true, attributeFilter: ['class'] });
+      });
+      if (window.__rnMonitor) window.__rnMonitor('MutationObserver 등록 완료');
     }
   }, 100);
 })();
@@ -144,10 +208,17 @@ export default function App() {
   // ⚠️ 수정금지(승인필요): 2026-04-05 네이티브 Google OAuth 상태
   const [showGoogleAuth, setShowGoogleAuth] = useState(false);
   const [appLanguage, setAppLanguage] = useState('ko');
-  // ⚠️ 수정금지(승인필요): 2026-04-06 RN 카메라 오버레이 토글
-  // true → RN 카메라가 WebView 위에 덮음 (메인 입력 화면)
-  // false → RN 숨김 → WebView 보임 (상세/보관함/설정 등)
+  // ⚠️ 수정금지(승인필요): 2026-04-07 RN 메인 독립 실행 토글
+  // true → RN 메인 화면 표시 + WebView 숨김 (opacity:0)
+  // false → WebView 표시 (상세/보관함/설정 등) + RN 숨김
   const [showNativeMain, setShowNativeMain] = useState(false);
+  // ⚠️ 수정금지(승인필요): 2026-04-07 STT 이중 핸들러 방지용 ref
+  // useSpeechRecognitionEvent 콜백은 클로저라서 state 직접 참조 시 stale 값 사용
+  // ref로 최신 값 동기화하여 RN 메인 활성 시 App.js STT 핸들러 비활성화
+  const showNativeMainRef = useRef(false);
+
+  // ⚠️ 수정금지(승인필요): 2026-04-07 ref 동기화 — state 변경 시 ref도 업데이트
+  useEffect(() => { showNativeMainRef.current = showNativeMain; }, [showNativeMain]);
 
   useEffect(() => {
     requestAndroidPermissions();
@@ -203,33 +274,44 @@ export default function App() {
     return () => linkingSub.remove();
   }, []);
 
-  // ⚠️ 수정금지(승인필요): 2026-03-11 네이티브 → 웹 응답 전송 함수
+  // ⚠️ 수정금지(승인필요): 2026-04-07 네이티브 → 웹 응답 전송 함수 + 모니터링 로깅
   const sendToWeb = useCallback((type, payload) => {
+    const ts = new Date().toISOString().substr(11, 12);
     if (webViewRef.current) {
       const data = JSON.stringify({ type, ...payload });
+      console.log(`[RN→WV][${ts}] ${type}`, JSON.stringify(payload || {}).substring(0, 150));
       webViewRef.current.injectJavaScript(`
         (function() {
           window.dispatchEvent(new CustomEvent('nativeResponse', { detail: ${data} }));
+          if (window.__rnMonitor) window.__rnMonitor('RX(WV): ${type}');
         })();
         true;
       `);
+    } else {
+      console.warn(`[RN→WV][${ts}] FAIL (webViewRef null): ${type}`);
     }
   }, []);
 
-  // ⚠️ 수정금지(승인필요): 2026-03-20 네이티브 음성인식 결과/에러 → 웹에 전달
+  // ⚠️ 수정금지(승인필요): 2026-04-07 네이티브 음성인식 결과/에러 → 웹에 전달
+  // showNativeMainRef 가드: RN 메인 활성 시 MainCameraScreen의 핸들러가 처리하므로 여기선 스킵
+  // 이중 핸들러 방지 — MainCameraScreen.useSpeechRecognitionEvent + 여기 양쪽 등록 → speechResult 2번 전송 버그
   useSpeechRecognitionEvent('result', (event) => {
+    if (showNativeMainRef.current) return; // RN 메인 활성 → MainCameraScreen이 처리
     const text = event.results?.[0]?.transcript || '';
     if (text) sendToWeb('speechResult', { text });
   });
   useSpeechRecognitionEvent('error', (event) => {
+    if (showNativeMainRef.current) return; // RN 메인 활성 → MainCameraScreen이 처리
     sendToWeb('speechResult', { error: event.error || 'unknown' });
   });
 
-  // ⚠️ 수정금지(승인필요): 2026-03-11 웹 → 네이티브 메시지 처리 (onMessage 핸들러)
+  // ⚠️ 수정금지(승인필요): 2026-04-07 웹 → 네이티브 메시지 처리 (onMessage 핸들러) + 모니터링 로깅
   const handleMessage = useCallback(async (event) => {
     try {
       const message = JSON.parse(event.nativeEvent.data);
       const { type, payload } = message;
+      // 모니터링: WebView → RN 수신 로그
+      console.log(`[WV→RN] ${type}`, JSON.stringify(payload || {}).substring(0, 150));
 
       switch (type) {
         // ⚠️ 수정금지(승인필요): WebView → RN 메인 카메라로 전환 (오버레이)
@@ -729,45 +811,50 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" backgroundColor="#4285F4" />
 
-      {/* WebView — 기존 앱 전체 (랜딩/기능설명/상세/보관함) */}
-      <WebView
-        ref={webViewRef}
-        source={{ uri: WEB_APP_URL }}
-        style={styles.webview}
-        javaScriptEnabled={true}
-        domStorageEnabled={true}
-        startInLoadingState={true}
-        allowsBackForwardNavigationGestures={true}
-        mediaPlaybackRequiresUserAction={false}
-        allowsInlineMediaPlayback={true}
-        geolocationEnabled={true}
-        cacheEnabled={true}
-        originWhitelist={['*']}
-        mixedContentMode="compatibility"
-        sharedCookiesEnabled={true}
-        thirdPartyCookiesEnabled={true}
-        mediaCapturePermissionGrantType="grant"  // ⚠️ 수정금지(승인필요): 2026-03-24 카메라/마이크 무조건 허용 (grantIfSameHostElsePrompt → grant)
-        injectedJavaScript={INJECTED_JS}
-        onShouldStartLoadWithRequest={handleNavigationRequest}
-        onMessage={handleMessage}
-        androidLayerType="hardware"  // ⚠️ 수정금지(승인필요): 2026-04-05 hardware 시도 — PR #854 근거, 삼성 Exynos GPU 컴포지팅 호환 테스트
-        nestedScrollEnabled={true}  // ⚠️ 수정금지(승인필요): 2026-03-24 Android onClick 미발동 워크어라운드 (Issue #2478)
-        onAndroidPermissionRequest={handlePermissionRequest}
-        // ⚠️ 수정금지(승인필요): 2026-03-17 플랫폼별 UA 적용 (Google OAuth 403 방지)
-        userAgent={Platform.OS === 'android' ? ANDROID_USER_AGENT : IOS_USER_AGENT}
-      />
-
-      {/* ⚠️ 수정금지(승인필요): 2026-04-06 RN 메인 카메라 오버레이 — WebView 위에 덮음 */}
-      {/* WebView는 항상 마운트 유지 (파괴 안 됨) → 삼성 재로딩 하얀 화면 방지 */}
+      {/* ⚠️ 수정금지(승인필요): 2026-04-07 RN 메인 — 기본 화면 (오버레이 아님) */}
+      {/* 삼성 Exynos WebView 렌더링 버그 우회: 메인 입력 화면을 RN 네이티브로 실행 */}
       {showNativeMain && (
-        <View style={StyleSheet.absoluteFill}>
-          <MainCameraScreen
-            onNavigateToWebView={handleNavigateToWebView}
-            onInjectJS={injectJSToWebView}
-            lang={appLanguage}
-          />
-        </View>
+        <MainCameraScreen
+          onNavigateToWebView={handleNavigateToWebView}
+          onInjectJS={injectJSToWebView}
+          lang={appLanguage}
+        />
       )}
+
+      {/* ⚠️ 수정금지(승인필요): 2026-04-07 WebView — 항상 마운트 유지 (삼성 재로딩 방지) */}
+      {/* showNativeMain=true → opacity:0 + pointerEvents:none (시각·터치 완전 숨김) */}
+      {/* showNativeMain=false → 상세/보관함/설정 등 WebView 페이지 표시 */}
+      <View style={[
+        StyleSheet.absoluteFill,
+        showNativeMain && styles.webviewHidden
+      ]}>
+        <WebView
+          ref={webViewRef}
+          source={{ uri: WEB_APP_URL }}
+          style={styles.webview}
+          javaScriptEnabled={true}
+          domStorageEnabled={true}
+          startInLoadingState={true}
+          allowsBackForwardNavigationGestures={true}
+          mediaPlaybackRequiresUserAction={false}
+          allowsInlineMediaPlayback={true}
+          geolocationEnabled={true}
+          cacheEnabled={true}
+          originWhitelist={['*']}
+          mixedContentMode="compatibility"
+          sharedCookiesEnabled={true}
+          thirdPartyCookiesEnabled={true}
+          mediaCapturePermissionGrantType="grant"  // ⚠️ 수정금지(승인필요): 2026-03-24 카메라/마이크 무조건 허용 (grantIfSameHostElsePrompt → grant)
+          injectedJavaScript={INJECTED_JS}
+          onShouldStartLoadWithRequest={handleNavigationRequest}
+          onMessage={handleMessage}
+          androidLayerType="hardware"  // ⚠️ 수정금지(승인필요): 2026-04-05 hardware 시도 — PR #854 근거, 삼성 Exynos GPU 컴포지팅 호환 테스트
+          nestedScrollEnabled={true}  // ⚠️ 수정금지(승인필요): 2026-03-24 Android onClick 미발동 워크어라운드 (Issue #2478)
+          onAndroidPermissionRequest={handlePermissionRequest}
+          // ⚠️ 수정금지(승인필요): 2026-03-17 플랫폼별 UA 적용 (Google OAuth 403 방지)
+          userAgent={Platform.OS === 'android' ? ANDROID_USER_AGENT : IOS_USER_AGENT}
+        />
+      </View>
 
       {/* ⚠️ 수정금지(승인필요): 2026-04-05 네이티브 Google OAuth — 외부 브라우저 안 열림 */}
       {showGoogleAuth && (
@@ -800,5 +887,11 @@ const styles = StyleSheet.create({
   },
   webview: {
     flex: 1,
+  },
+  // ⚠️ 수정금지(승인필요): 2026-04-07 WebView 숨김 — RN 메인 활성 시 시각·터치 완전 차단
+  // opacity:0 + pointerEvents:none = WebView 마운트 유지하면서 안 보이고 터치 안 됨
+  webviewHidden: {
+    opacity: 0,
+    pointerEvents: 'none',
   },
 });
