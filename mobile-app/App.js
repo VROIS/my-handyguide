@@ -94,8 +94,11 @@ const INJECTED_JS = `
     // mainPage가 존재하고 visible 상태일 때만 (랜딩/인증 중에는 안 뜸)
     if (mainPage && mainPage.classList.contains('visible')) {
       clearInterval(_waitForMain);
-      mainPage.style.display = 'none';
-      // 메인 페이지 비활성화 후 RN 오버레이 즉시 활성화
+      // display:none 안 함 — WebView 내부 JS(processImage, showPage)가 정상 작동하려면
+      // mainPage가 DOM에 존재해야 함. RN 오버레이가 위에서 가릴 뿐.
+      // 카메라만 중지 (하드웨어 충돌 방지)
+      if (typeof pauseCamera === 'function') pauseCamera();
+      // RN 오버레이 즉시 활성화
       if (window.ReactNativeWebView) {
         window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'showNativeMain' }));
       }
