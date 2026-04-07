@@ -90,6 +90,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast('음성을 듣지 못했어요. 다시 시도해볼까요?');
                 }
             }
+            // ⚠️ 수정금지(승인필요): 2026-04-07 RN 메인에서 촬영/업로드 이미지 수신 → processImage 실행
+            if (data.type === 'nativeImage' && data.base64) {
+                processImage('data:image/jpeg;base64,' + data.base64, { disabled: false });
+            }
+            // ⚠️ 수정금지(승인필요): 2026-04-07 RN 메인에서 보관함 이동 요청
+            if (data.type === 'nativeArchive') {
+                showArchivePage();
+            }
         });
     }
 

@@ -701,38 +701,21 @@ export default function App() {
     return true; // 나머지 URL은 WebView 내에서 정상 이동
   }, [openExternal]);
 
-  // ⚠️ 수정금지(승인필요): RN 메인 → WebView 전환 콜백 (오버레이 — WebView 파괴 안 됨)
   // ⚠️ 수정금지(승인필요): 2026-04-07 RN 메인 → WebView 전환 콜백
-  // 촬영/업로드: processImageFromNative(base64) → 상세 페이지
-  // 음성: processTextQuery(텍스트) → 상세 페이지 (음성 모드)
-  // 보관함: showArchivePage()
+  // sendToWeb(CustomEvent 'nativeResponse') 방식 — IIFE 로컬 스코프 함수에 접근 가능
+  // 기존 speechResult/location/imageResult 등과 동일한 검증된 패턴
   const handleNavigateToWebView = useCallback((page, data) => {
     setShowNativeMain(false);
     setTimeout(() => {
       if (page === 'detail' && data?.imageBase64) {
-        webViewRef.current?.injectJavaScript(`
-          if (typeof processImageFromNative === 'function') {
-            processImageFromNative('data:image/jpeg;base64,${data.imageBase64}');
-          }
-          true;
-        `);
+        sendToWeb('nativeImage', { base64: data.imageBase64 });
       } else if (page === 'voice' && data?.text) {
-        // 음성 모드 — processTextQuery 호출
-        const safeText = data.text.replace(/'/g, "\\'").replace(/\n/g, ' ');
-        webViewRef.current?.injectJavaScript(`
-          if (typeof processTextQuery === 'function') {
-            processTextQuery('${safeText}');
-          }
-          true;
-        `);
+        sendToWeb('speechResult', { text: data.text });
       } else if (page === 'archive') {
-        webViewRef.current?.injectJavaScript(`
-          if (typeof showArchivePage === 'function') { showArchivePage(); }
-          true;
-        `);
+        sendToWeb('nativeArchive', {});
       }
     }, 100);
-  }, []);
+  }, [sendToWeb]);
 
   // ⚠️ 수정금지(승인필요): WebView에 JS 주입 (MainCameraScreen에서 GPS 전달용)
   const injectJSToWebView = useCallback((js) => {
