@@ -91,9 +91,14 @@ const INJECTED_JS = `
   var _waitForMain = setInterval(function() {
     if (++_attempts > 50) { clearInterval(_waitForMain); return; }
     var mainPage = document.getElementById('mainPage');
-    if (mainPage) {
+    // mainPage가 존재하고 visible 상태일 때만 (랜딩/인증 중에는 안 뜸)
+    if (mainPage && mainPage.classList.contains('visible')) {
       clearInterval(_waitForMain);
       mainPage.style.display = 'none';
+      // 메인 페이지 비활성화 후 RN 오버레이 즉시 활성화
+      if (window.ReactNativeWebView) {
+        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'showNativeMain' }));
+      }
       // showMainPage 호출 시 WebView 메인 대신 RN 메인으로 전환
       if (window.ReactNativeWebView) {
         var _origShowMainPage = window.showMainPage;
