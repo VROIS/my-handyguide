@@ -122,7 +122,9 @@ const INJECTED_JS = `
   var _waitForMain = setInterval(function() {
     if (++_attempts > 50) { clearInterval(_waitForMain); return; }
     var mainPage = document.getElementById('mainPage');
-    if (mainPage) {
+    // mainPage가 visible일 때만 차단 — 랜딩/인증 초기화 완료 후에만 실행
+    // visible 체크 없으면 featuresPage 상태에서 차단 → WebView 초기화 미완료 → 엉뚱한 페이지 표시
+    if (mainPage && mainPage.classList.contains('visible')) {
       clearInterval(_waitForMain);
 
       // (D-1) mainPage display:none — 완전 시각 제거
