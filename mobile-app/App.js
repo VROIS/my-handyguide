@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, SafeAreaView, Platform, BackHandler, PermissionsAndroid, Linking, View } from 'react-native';
+import { StyleSheet, SafeAreaView, Platform, BackHandler, PermissionsAndroid, Linking, View, AppState } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useRef, useEffect, useCallback, useState } from 'react';
 // ⚠️ 수정금지(승인필요): 2026-04-06 오버레이 방식 — WebView 항상 마운트 + RN 카메라 위에 덮음
@@ -23,10 +23,9 @@ import * as ImagePicker from 'expo-image-picker';
 import * as SecureStore from 'expo-secure-store';
 import * as Localization from 'expo-localization';
 
-// ⚠️ 수정금지(승인필요): 2026-03-14 미연결 모듈 풀연결 — 네이티브 우선 + 웹 fallback 구조
-import { Audio } from 'expo-audio';
-import { CameraView } from 'expo-camera';
-import { useVideoPlayer } from 'expo-video';
+// ⚠️ 수정금지(승인필요): 2026-04-08 미사용 모듈 4개 제거 (expo-audio, expo-camera, expo-video, expo-task-manager)
+// 이유: expo-audio → BOOT_COMPLETED 크래시(Play 스토어 경고), expo-camera → 웹 getUserMedia와 카메라 충돌
+// 이유: expo-video → 웹 video 태그와 충돌, expo-task-manager → 미사용
 import * as KeepAwake from 'expo-keep-awake';
 import * as Network from 'expo-network';
 import * as FileSystem from 'expo-file-system';
@@ -40,11 +39,9 @@ import * as MailComposer from 'expo-mail-composer';
 import * as Print from 'expo-print';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import * as SMS from 'expo-sms';
-import * as TaskManager from 'expo-task-manager';
 import * as Updates from 'expo-updates';
 
-// ⚠️ 수정금지(승인필요): 2026-04-06 RN 메인 카메라 화면 — 삼성 Exynos WebView 렌더링 버그 우회
-import MainCameraScreen from './src/screens/MainCameraScreen';
+// ⚠️ 수정금지(승인필요): 2026-04-08 RN 메인 카메라 화면 제거 — 웹 자체 카메라+4버튼 사용
 
 // ⚠️ 수정금지(승인필요): 2026-04-06 Stack Navigator 제거 — WebView 파괴 방지
 
@@ -117,76 +114,9 @@ const INJECTED_JS = `
     }
   });
 
-  // ─── (D) mainPage 완전 차단 — WebView 메인 화면 비활성화 ───
-  var _attempts = 0;
-  var _waitForMain = setInterval(function() {
-    if (++_attempts > 50) { clearInterval(_waitForMain); return; }
-    var mainPage = document.getElementById('mainPage');
-    // mainPage가 visible일 때만 차단 — 랜딩/인증 초기화 완료 후에만 실행
-    // visible 체크 없으면 featuresPage 상태에서 차단 → WebView 초기화 미완료 → 엉뚱한 페이지 표시
-    if (mainPage && mainPage.classList.contains('visible')) {
-      clearInterval(_waitForMain);
-
-      // (D-1) mainPage display:none — 완전 시각 제거
-      // detailPage/archivePage는 형제 div라 영향 없음
-      mainPage.style.display = 'none';
-      if (window.__rnMonitor) window.__rnMonitor('mainPage display:none 완료');
-
-      // (D-2) 카메라 하드웨어 해제
-      if (typeof pauseCamera === 'function') pauseCamera();
-
-      // (D-3) mainPage 내 버튼 이벤트 전부 해제 (cloneNode — 리스너 스트립)
-      ['shootBtn','micBtn','uploadBtn','archiveBtn','upload-input'].forEach(function(id) {
-        var btn = document.getElementById(id);
-        if (btn && btn.parentNode) btn.replaceWith(btn.cloneNode(true));
-      });
-
-      // (D-4) showMainPage 오버라이드 → RN 메인으로 전환
-      // IIFE 스코프의 showMainPage()가 호출되어도 mainPage가 display:none이라 안 보임 (이중 방어)
-      window.showMainPage = function() {
-        if (window.__rnMonitor) window.__rnMonitor('TX: showNativeMain (showMainPage 오버라이드)');
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'showNativeMain' }));
-      };
-
-      // (D-5) RN 메인 활성화 요청
-      if (window.ReactNativeWebView) {
-        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'showNativeMain' }));
-        if (window.__rnMonitor) window.__rnMonitor('TX: showNativeMain (초기)');
-      }
-    }
-  }, 100);
-
-  // ─── (E) MutationObserver — 자동 pageReady ───
-  // detailPage/archivePage/settingsPage가 .visible 클래스를 받으면 자동으로 pageReady 전송
-  // 기존 index.js의 수동 pageReady(async 무시 버그)를 대체
-  var _observerAttempts = 0;
-  var _waitForPages = setInterval(function() {
-    if (++_observerAttempts > 50) { clearInterval(_waitForPages); return; }
-    var dp = document.getElementById('detailPage');
-    var ap = document.getElementById('archivePage');
-    if (dp && ap) {
-      clearInterval(_waitForPages);
-      var _pageObserver = new MutationObserver(function(mutations) {
-        mutations.forEach(function(m) {
-          if (m.attributeName === 'class') {
-            var el = m.target;
-            if (el.id !== 'mainPage' && el.classList.contains('visible')) {
-              if (window.ReactNativeWebView) {
-                var msg = JSON.stringify({ type: 'pageReady', page: el.id });
-                window.ReactNativeWebView.postMessage(msg);
-                if (window.__rnMonitor) window.__rnMonitor('TX: pageReady (' + el.id + ')');
-              }
-            }
-          }
-        });
-      });
-      ['detailPage','archivePage','settingsPage','adminSettingsPage'].forEach(function(id) {
-        var el = document.getElementById(id);
-        if (el) _pageObserver.observe(el, { attributes: true, attributeFilter: ['class'] });
-      });
-      if (window.__rnMonitor) window.__rnMonitor('MutationObserver 등록 완료');
-    }
-  }, 100);
+  // ⚠️ 수정금지(승인필요): 2026-04-08 섹션 D(mainPage 차단) + 섹션 E(MutationObserver) 제거
+  // 이유: RN 메인 화면 제거 → 웹 자체 메인 페이지를 그대로 사용
+  // 웹 카메라+4버튼이 정상 작동하므로 mainPage 차단/오버라이드 불필요
 })();
 true;
 `;
@@ -210,17 +140,8 @@ export default function App() {
   // ⚠️ 수정금지(승인필요): 2026-04-05 네이티브 Google OAuth 상태
   const [showGoogleAuth, setShowGoogleAuth] = useState(false);
   const [appLanguage, setAppLanguage] = useState('ko');
-  // ⚠️ 수정금지(승인필요): 2026-04-07 RN 메인 독립 실행 토글
-  // true → RN 메인 화면 표시 + WebView 숨김 (opacity:0)
-  // false → WebView 표시 (상세/보관함/설정 등) + RN 숨김
-  const [showNativeMain, setShowNativeMain] = useState(false);
-  // ⚠️ 수정금지(승인필요): 2026-04-07 STT 이중 핸들러 방지용 ref
-  // useSpeechRecognitionEvent 콜백은 클로저라서 state 직접 참조 시 stale 값 사용
-  // ref로 최신 값 동기화하여 RN 메인 활성 시 App.js STT 핸들러 비활성화
-  const showNativeMainRef = useRef(false);
-
-  // ⚠️ 수정금지(승인필요): 2026-04-07 ref 동기화 — state 변경 시 ref도 업데이트
-  useEffect(() => { showNativeMainRef.current = showNativeMain; }, [showNativeMain]);
+  // ⚠️ 수정금지(승인필요): 2026-04-08 showNativeMain 제거 — RN 메인 화면 미사용
+  // 이유: 웹 자체 카메라+4버튼 사용, RN 메인은 Expo 모듈 충돌로 삼성 먹통 원인
 
   useEffect(() => {
     requestAndroidPermissions();
@@ -257,11 +178,7 @@ export default function App() {
 
     if (Platform.OS === 'android') {
       const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-        // ⚠️ 수정금지(승인필요): RN 카메라 모드에서 뒤로가기 → WebView로 복귀
-        if (showNativeMain) {
-          setShowNativeMain(false);
-          return true;
-        }
+        // ⚠️ 수정금지(승인필요): 2026-04-08 showNativeMain 분기 제거 — RN 메인 미사용
         if (webViewRef.current) {
           webViewRef.current.goBack();
           return true;
@@ -274,6 +191,20 @@ export default function App() {
       };
     }
     return () => linkingSub.remove();
+  }, []);
+
+  // ⚠️ 수정금지(승인필요): 2026-04-08 삼성 One UI WebView 렌더링 무효화 해결
+  // 앱 백그라운드 → 포그라운드 복귀 시 WebView가 새 프레임을 안 그리는 버그 (rn-webview #3524, flutter #139039)
+  // 강제 스크롤로 리페인트 트리거 — 삼성 전 기종(Exynos+Snapdragon) 공통 대응
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && webViewRef.current) {
+        webViewRef.current.injectJavaScript(`
+          window.scrollBy(0,1);setTimeout(function(){window.scrollBy(0,-1)},50);true;
+        `);
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   // ⚠️ 수정금지(승인필요): 2026-04-07 네이티브 → 웹 응답 전송 함수 + 모니터링 로깅
@@ -294,16 +225,13 @@ export default function App() {
     }
   }, []);
 
-  // ⚠️ 수정금지(승인필요): 2026-04-07 네이티브 음성인식 결과/에러 → 웹에 전달
-  // showNativeMainRef 가드: RN 메인 활성 시 MainCameraScreen의 핸들러가 처리하므로 여기선 스킵
-  // 이중 핸들러 방지 — MainCameraScreen.useSpeechRecognitionEvent + 여기 양쪽 등록 → speechResult 2번 전송 버그
+  // ⚠️ 수정금지(승인필요): 2026-04-08 네이티브 음성인식 결과/에러 → 웹에 전달
+  // showNativeMainRef 가드 제거 — RN 메인 미사용이므로 이중 핸들러 불가
   useSpeechRecognitionEvent('result', (event) => {
-    if (showNativeMainRef.current) return; // RN 메인 활성 → MainCameraScreen이 처리
     const text = event.results?.[0]?.transcript || '';
     if (text) sendToWeb('speechResult', { text });
   });
   useSpeechRecognitionEvent('error', (event) => {
-    if (showNativeMainRef.current) return; // RN 메인 활성 → MainCameraScreen이 처리
     sendToWeb('speechResult', { error: event.error || 'unknown' });
   });
 
@@ -316,17 +244,8 @@ export default function App() {
       console.log(`[WV→RN] ${type}`, JSON.stringify(payload || {}).substring(0, 150));
 
       switch (type) {
-        // ⚠️ 수정금지(승인필요): WebView → RN 메인 카메라로 전환 (오버레이)
-        case 'showMainPage':
-        case 'showNativeMain': {
-          setShowNativeMain(true);
-          break;
-        }
-        // ⚠️ 수정금지(승인필요): WebView 페이지 전환 완료 → RN 메인 숨김
-        case 'pageReady': {
-          setShowNativeMain(false);
-          break;
-        }
+        // ⚠️ 수정금지(승인필요): 2026-04-08 showMainPage/showNativeMain/pageReady 케이스 제거
+        // 이유: RN 메인 화면 미사용 → 웹이 자체적으로 페이지 전환 처리
         // ⚠️ 수정금지(승인필요): WebView에서 언어 변경 알림 → RN i18n 동기화
         case 'languageChanged': {
           if (payload?.language) setAppLanguage(payload.language);
@@ -790,46 +709,16 @@ export default function App() {
     return true; // 나머지 URL은 WebView 내에서 정상 이동
   }, [openExternal]);
 
-  // ⚠️ 수정금지(승인필요): 2026-04-07 RN 메인 → WebView 전환 콜백
-  // sendToWeb(CustomEvent 'nativeResponse') 방식 — IIFE 로컬 스코프 함수에 접근 가능
-  // 기존 speechResult/location/imageResult 등과 동일한 검증된 패턴
-  // ⚠️ 수정금지(승인필요): RN → WebView 전환 — sendToWeb 먼저, WebView 'pageReady' 수신 후 RN 숨김
-  const handleNavigateToWebView = useCallback((page, data) => {
-    if (page === 'detail' && data?.imageBase64) {
-      sendToWeb('nativeImage', { base64: data.imageBase64 });
-    } else if (page === 'voice' && data?.text) {
-      sendToWeb('speechResult', { text: data.text });
-    } else if (page === 'archive') {
-      sendToWeb('nativeArchive', {});
-    }
-  }, [sendToWeb]);
-
-  // ⚠️ 수정금지(승인필요): WebView에 JS 주입 (MainCameraScreen에서 GPS 전달용)
-  const injectJSToWebView = useCallback((js) => {
-    webViewRef.current?.injectJavaScript(js);
-  }, []);
+  // ⚠️ 수정금지(승인필요): 2026-04-08 handleNavigateToWebView + injectJSToWebView 제거
+  // 이유: RN 메인 화면 미사용 → 웹이 자체적으로 촬영/업로드/보관함 처리
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" backgroundColor="#4285F4" />
 
-      {/* ⚠️ 수정금지(승인필요): 2026-04-07 RN 메인 — 기본 화면 (오버레이 아님) */}
-      {/* 삼성 Exynos WebView 렌더링 버그 우회: 메인 입력 화면을 RN 네이티브로 실행 */}
-      {showNativeMain && (
-        <MainCameraScreen
-          onNavigateToWebView={handleNavigateToWebView}
-          onInjectJS={injectJSToWebView}
-          lang={appLanguage}
-        />
-      )}
-
-      {/* ⚠️ 수정금지(승인필요): 2026-04-07 WebView — 항상 마운트 유지 (삼성 재로딩 방지) */}
-      {/* showNativeMain=true → opacity:0 + pointerEvents:none (시각·터치 완전 숨김) */}
-      {/* showNativeMain=false → 상세/보관함/설정 등 WebView 페이지 표시 */}
-      <View style={[
-        StyleSheet.absoluteFill,
-        showNativeMain && styles.webviewHidden
-      ]}>
+      {/* ⚠️ 수정금지(승인필요): 2026-04-08 RN 메인 화면 제거 — 웹 자체 카메라+4버튼 사용 */}
+      {/* 이유: 미사용 Expo 모듈(audio/camera/video)이 웹과 하드웨어 충돌 → 삼성 먹통 원인 */}
+      <View style={StyleSheet.absoluteFill}>
         <WebView
           ref={webViewRef}
           source={{ uri: WEB_APP_URL }}
@@ -890,10 +779,5 @@ const styles = StyleSheet.create({
   webview: {
     flex: 1,
   },
-  // ⚠️ 수정금지(승인필요): 2026-04-07 WebView 숨김 — RN 메인 활성 시 시각·터치 완전 차단
-  // opacity:0 + pointerEvents:none = WebView 마운트 유지하면서 안 보이고 터치 안 됨
-  webviewHidden: {
-    opacity: 0,
-    pointerEvents: 'none',
-  },
+  // ⚠️ 수정금지(승인필요): 2026-04-08 webviewHidden 스타일 제거 — RN 메인 미사용
 });
