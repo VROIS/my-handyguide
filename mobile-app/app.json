@@ -61,7 +61,7 @@
       },
       "edgeToEdgeEnabled": false,
       "package": "com.sonanie.guide",
-      "versionCode": 22,
+      "versionCode": 23,
       "blockedPermissions": [
         "ACTIVITY_RECOGNITION",
         "READ_CONTACTS",
@@ -91,6 +91,7 @@
       }
     },
     "plugins": [
+      "./plugins/withEdgeToEdgeOptOut",
       "expo-secure-store",
       "expo-localization",
       "expo-web-browser",

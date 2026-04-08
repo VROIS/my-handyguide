@@ -1,5 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, SafeAreaView, Platform, BackHandler, PermissionsAndroid, Linking, View, AppState } from 'react-native';
+import { StyleSheet, SafeAreaView, Platform, BackHandler, PermissionsAndroid, Linking, AppState } from 'react-native';
 import { WebView } from 'react-native-webview';
 import { useRef, useEffect, useCallback, useState } from 'react';
 // ⚠️ 수정금지(승인필요): 2026-04-06 오버레이 방식 — WebView 항상 마운트 + RN 카메라 위에 덮음
@@ -75,13 +75,10 @@ const IOS_USER_AGENT =
 // 목적: (A) WebView mainPage 완전 차단 (B) MutationObserver 자동 pageReady (C) 모니터링
 const INJECTED_JS = `
 (function() {
-  // ─── (A) CSS 패딩 정리 ───
-  var style = document.createElement('style');
-  style.textContent =
-    '.footer-safe-area { padding-bottom: 0 !important; }' +
-    '.gallery-footer { padding-bottom: 0 !important; }' +
-    '.bottom-nav { padding-bottom: 0 !important; }';
-  document.head.appendChild(style);
+  // ⚠️ 수정금지(승인필요): 2026-04-08 CSS padding-bottom:0 제거
+  // 이유: Android 15 edge-to-edge 강제 적용 → 시스템 네비바가 WebView 위에 겹침
+  // padding-bottom:0 !important가 웹의 safe-area-inset-bottom 보정을 무력화 → 버튼 터치 차단
+  // 제거하여 웹 자체 env(safe-area-inset-bottom) 패딩이 정상 작동하도록 복원
 
   // ─── (B) 모니터링 패널 (삼성 테스트용, 트리플탭 토글) ───
   var _monDiv = document.createElement('div');
@@ -716,36 +713,34 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" backgroundColor="#4285F4" />
 
-      {/* ⚠️ 수정금지(승인필요): 2026-04-08 RN 메인 화면 제거 — 웹 자체 카메라+4버튼 사용 */}
-      {/* 이유: 미사용 Expo 모듈(audio/camera/video)이 웹과 하드웨어 충돌 → 삼성 먹통 원인 */}
-      <View style={StyleSheet.absoluteFill}>
-        <WebView
-          ref={webViewRef}
-          source={{ uri: WEB_APP_URL }}
-          style={styles.webview}
-          javaScriptEnabled={true}
-          domStorageEnabled={true}
-          startInLoadingState={true}
-          allowsBackForwardNavigationGestures={true}
-          mediaPlaybackRequiresUserAction={false}
-          allowsInlineMediaPlayback={true}
-          geolocationEnabled={true}
-          cacheEnabled={true}
-          originWhitelist={['*']}
-          mixedContentMode="compatibility"
-          sharedCookiesEnabled={true}
-          thirdPartyCookiesEnabled={true}
-          mediaCapturePermissionGrantType="grant"  // ⚠️ 수정금지(승인필요): 2026-03-24 카메라/마이크 무조건 허용 (grantIfSameHostElsePrompt → grant)
-          injectedJavaScript={INJECTED_JS}
-          onShouldStartLoadWithRequest={handleNavigationRequest}
-          onMessage={handleMessage}
-          androidLayerType="hardware"  // ⚠️ 수정금지(승인필요): 2026-04-05 hardware 시도 — PR #854 근거, 삼성 Exynos GPU 컴포지팅 호환 테스트
-          nestedScrollEnabled={true}  // ⚠️ 수정금지(승인필요): 2026-03-24 Android onClick 미발동 워크어라운드 (Issue #2478)
-          onAndroidPermissionRequest={handlePermissionRequest}
-          // ⚠️ 수정금지(승인필요): 2026-03-17 플랫폼별 UA 적용 (Google OAuth 403 방지)
-          userAgent={Platform.OS === 'android' ? ANDROID_USER_AGENT : IOS_USER_AGENT}
-        />
-      </View>
+      {/* ⚠️ 수정금지(승인필요): 2026-04-08 absoluteFill 제거 — SafeAreaView 인셋 복원 */}
+      {/* absoluteFill은 SafeAreaView의 시스템 바 인셋을 무시 → 하단 버튼이 네비바에 겹침 */}
+      <WebView
+        ref={webViewRef}
+        source={{ uri: WEB_APP_URL }}
+        style={styles.webview}
+        javaScriptEnabled={true}
+        domStorageEnabled={true}
+        startInLoadingState={true}
+        allowsBackForwardNavigationGestures={true}
+        mediaPlaybackRequiresUserAction={false}
+        allowsInlineMediaPlayback={true}
+        geolocationEnabled={true}
+        cacheEnabled={true}
+        originWhitelist={['*']}
+        mixedContentMode="compatibility"
+        sharedCookiesEnabled={true}
+        thirdPartyCookiesEnabled={true}
+        mediaCapturePermissionGrantType="grant"  // ⚠️ 수정금지(승인필요): 2026-03-24 카메라/마이크 무조건 허용 (grantIfSameHostElsePrompt → grant)
+        injectedJavaScript={INJECTED_JS}
+        onShouldStartLoadWithRequest={handleNavigationRequest}
+        onMessage={handleMessage}
+        androidLayerType="hardware"  // ⚠️ 수정금지(승인필요): 2026-04-05 hardware 시도 — PR #854 근거, 삼성 Exynos GPU 컴포지팅 호환 테스트
+        nestedScrollEnabled={true}  // ⚠️ 수정금지(승인필요): 2026-03-24 Android onClick 미발동 워크어라운드 (Issue #2478)
+        onAndroidPermissionRequest={handlePermissionRequest}
+        // ⚠️ 수정금지(승인필요): 2026-03-17 플랫폼별 UA 적용 (Google OAuth 403 방지)
+        userAgent={Platform.OS === 'android' ? ANDROID_USER_AGENT : IOS_USER_AGENT}
+      />
 
       {/* ⚠️ 수정금지(승인필요): 2026-04-05 네이티브 Google OAuth — 외부 브라우저 안 열림 */}
       {showGoogleAuth && (
