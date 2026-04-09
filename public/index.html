@@ -1006,7 +1006,7 @@
              <!-- The title is now part of the cameraStartOverlay for a better intro experience -->
         </header>
         <div class="flex-1"></div>
-        <footer class="footer-safe-area" style="position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; padding: 0 1rem calc(max(0px, env(safe-area-inset-bottom, 0px)));">
+        <footer class="footer-safe-area">
             <div class="flex flex-col items-center gap-1">
                 <button id="shootBtn" aria-label="사진 촬영" class="w-14 h-14 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-md text-gemini-blue interactive-btn shadow-2xl">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -1989,24 +1989,20 @@
     .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; visibility: hidden !important; }
     .VIpgJd-ZVi9od-aZ2wEe-wOHMyf { display: none !important; visibility: hidden !important; }
     .VIpgJd-ZVi9od-aZ2wEe-OiiCO { display: none !important; visibility: hidden !important; }
-    body > [class*="VIpgJd"] { display: none !important; visibility: hidden !important; }
-    /* ⚠️ 수정금지(승인필요): 2026-04-05 범위 축소 (body > ) — 하위 요소 번역 콘텐츠 숨김 방지 (Chromium Bug #872770) */
+    [class*="VIpgJd"] { display: none !important; visibility: hidden !important; }
     /* Safari 전용 구글 번역 요소 숨김 */
     .goog-te-ftab-link { display: none !important; }
     .goog-te-ftab-float { display: none !important; }
     div[id^="goog-gt-"] { display: none !important; }
-    body > div[class^="goog-te-"] { display: none !important; }
-    /* ⚠️ 수정금지(승인필요): 2026-04-05 범위 축소 (body > ) — footer 내 번역 콘텐츠 숨김 방지 */
+    div[class^="goog-te-"] { display: none !important; }
     /* 최상위 레벨 iframe 숨김 (Safari) */
     body > iframe[style*="z-index"] { display: none !important; }
     iframe[frameborder="0"][style*="position"] { display: none !important; }
     /* ⚠️ 수정금지(승인필요): 2026-03-12 Google Translate 동적 오버레이 완전 차단 */
     /* 번역 진행 중 생성되는 스피너/팝업 강제 숨김 (클래스 기반 — 성능 최적화) */
     .goog-te-spinner-animation { display: none !important; }
-    body > div[class*="VIpgJd"] { z-index: -1 !important; pointer-events: none; }
+    div[class*="VIpgJd"] { z-index: -1 !important; pointer-events: none; }
     body > div.skiptranslate { z-index: -1 !important; display: none !important; }
-    /* ⚠️ 수정금지(승인필요): 2026-04-05 Google Translate <font> 래핑 클릭 투과 — 삼성 WebView 버튼 먹통 방지 */
-    .footer-safe-area font { pointer-events: none; }
 </style>
 
 <!-- 커튼 효과 제거됨 (2025-12-07) -->

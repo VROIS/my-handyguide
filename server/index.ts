@@ -269,14 +269,6 @@ app.get('/s/:id', async (req, res) => {
 (async () => {
   console.log('[startup] Server initialization started');
 
-  // 필수 환경변수 확인 로그 — 배포 디버깅용
-  const requiredEnvs = ['DATABASE_URL', 'SESSION_SECRET', 'REPLIT_DOMAINS', 'GEMINI_API_KEY'];
-  for (const key of requiredEnvs) {
-    console.log(`[startup] ${key}: ${process.env[key] ? '✅ set' : '❌ MISSING'}`);
-  }
-  console.log(`[startup] NODE_ENV: ${process.env.NODE_ENV}`);
-  console.log(`[startup] PORT: ${process.env.PORT || '5000 (default)'}`);
-
   // 🔧 Ensure temp-user-id exists for share functionality
   try {
     const tempUser = await storage.getUser('temp-user-id');

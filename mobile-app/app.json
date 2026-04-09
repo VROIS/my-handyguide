@@ -29,27 +29,19 @@
         "NSPrivacyAccessedAPITypes": [
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
-            "NSPrivacyAccessedAPITypeReasons": [
-              "CA92.1"
-            ]
+            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
           },
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
-            "NSPrivacyAccessedAPITypeReasons": [
-              "C617.1"
-            ]
+            "NSPrivacyAccessedAPITypeReasons": ["C617.1"]
           },
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryDiskSpace",
-            "NSPrivacyAccessedAPITypeReasons": [
-              "E174.1"
-            ]
+            "NSPrivacyAccessedAPITypeReasons": ["E174.1"]
           },
           {
             "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategorySystemBootTime",
-            "NSPrivacyAccessedAPITypeReasons": [
-              "35F9.1"
-            ]
+            "NSPrivacyAccessedAPITypeReasons": ["35F9.1"]
           }
         ]
       }
@@ -61,52 +53,23 @@
       },
       "edgeToEdgeEnabled": false,
       "package": "com.sonanie.guide",
-      "versionCode": 23,
-      "blockedPermissions": [
-        "ACTIVITY_RECOGNITION",
-        "READ_CONTACTS",
-        "WRITE_CONTACTS",
-        "USE_BIOMETRIC",
-        "USE_FINGERPRINT"
-      ],
+      "versionCode": 24,
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
         "VIBRATE",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION",
-        "READ_MEDIA_IMAGES",
-        "READ_MEDIA_VIDEO",
-        "ACCESS_NETWORK_STATE",
-        "ACCESS_WIFI_STATE"
+        "ACCESS_COARSE_LOCATION"
       ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "webAppUrl": "https://My-handyguide1.replit.app",
+      "webAppUrl": "https://my-handyguide1.replit.app",
       "eas": {
         "projectId": "bbbbbc11-bcce-4dc2-93c6-d4b570adce59"
       }
-    },
-    "plugins": [
-      "./plugins/withEdgeToEdgeOptOut",
-      "expo-secure-store",
-      "expo-localization",
-      "expo-web-browser",
-      "expo-asset",
-      [
-        "expo-speech-recognition",
-        {
-          "microphonePermission": "음성으로 질문하기 위해 마이크 접근이 필요합니다",
-          "speechRecognitionPermission": "음성을 텍스트로 변환하기 위해 음성인식 접근이 필요합니다"
-        }
-      ],
-      "expo-font",
-      ["@react-native-google-signin/google-signin", {
-        "iosUrlScheme": "com.googleusercontent.apps.333291226529-j7ohjt6irc9a10plvcssr3qomlj84v8j"
-      }]
-    ]
+    }
   }
 }
