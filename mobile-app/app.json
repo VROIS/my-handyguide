@@ -8,6 +8,9 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "plugins": [
+      "./plugins/withAndroid15Fixes"
+    ],
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
@@ -51,15 +54,22 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#4285F4"
       },
-      "edgeToEdgeEnabled": false,
       "package": "com.sonanie.guide",
-      "versionCode": 24,
+      "versionCode": 25,
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
         "VIBRATE",
         "ACCESS_FINE_LOCATION",
-        "ACCESS_COARSE_LOCATION"
+        "ACCESS_COARSE_LOCATION",
+        "MODIFY_AUDIO_SETTINGS",
+        "READ_MEDIA_IMAGES",
+        "READ_MEDIA_VIDEO",
+        "READ_MEDIA_AUDIO",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_MICROPHONE",
+        "FOREGROUND_SERVICE_CAMERA",
+        "FOREGROUND_SERVICE_MEDIA_PROJECTION"
       ]
     },
     "web": {

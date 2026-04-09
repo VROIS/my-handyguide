@@ -1742,6 +1742,23 @@
 
 <script src="language-helper.js"></script>
 <script>
+    // ⚠️ 수정금지(승인필요): Android 15 백그라운드 네트워크 제한 대응
+    // App.js AppState active 복귀 시 injectJavaScript로 호출됨
+    // 백그라운드 → 포그라운드 전환 시 API 연결 상태 재확인
+    window.__handyReconnect = function() {
+        // 세션 상태 재확인 (백그라운드 네트워크 제한으로 끊긴 경우 복구)
+        fetch('/api/user', { method: 'GET', credentials: 'include' })
+            .then(res => {
+                if (res.status === 401) {
+                    // 세션 만료 → 현재 페이지 유지 (리다이렉트 금지)
+                    console.log('[HandyGuide] 백그라운드 복귀 후 세션 확인');
+                }
+            })
+            .catch(() => {
+                // 네트워크 오류 → 무시 (WebView가 3초 후 자동 재시도)
+            });
+    };
+
     document.addEventListener('DOMContentLoaded', () => {
         const landingPage = document.getElementById('landingPage');
         const featuresPage = document.getElementById('featuresPage');
