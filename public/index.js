@@ -2405,24 +2405,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 return reject(err);
             }
 
-            // ⚠️ 수정금지(승인필요): 2026-03-24 getSettings 기반 카메라 전환
-            // Samsung A36에서 facingMode:ideal 무시 → 먼저 열고 전면이면 후면으로 전환
+            // ⚠️ 수정금지(승인필요): 2026-04-09 후면카메라 우선 시도 → 실패 시 fallback
+            // Samsung WebView에서 facingMode:ideal 무시 문제 → exact:'environment' 먼저 시도
             let cameraStream;
 
             try {
-                cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                const track = cameraStream.getVideoTracks()[0];
-                const settings = track.getSettings();
-                if (settings.facingMode === 'user') {
-                    track.stop();
-                    try {
-                        cameraStream = await navigator.mediaDevices.getUserMedia({
-                            video: { facingMode: { exact: 'environment' } }, audio: false
-                        });
-                    } catch (e) {
-                        cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-                    }
-                }
+                cameraStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: { exact: 'environment' } }, audio: false
+                });
             } catch (err) {
                 try {
                     cameraStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });

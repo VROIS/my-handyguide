@@ -98,6 +98,8 @@
             filter: blur(8px);
             opacity: 0.7;
         }
+        /* ⚠️ 수정금지(승인필요): 2026-04-09 삼성 WebView landingPage hidden 시 터치 차단 해제 */
+        #landingPage.hidden { pointer-events: none !important; }
         .ui-layer { 
             position: fixed; 
             top: 0; 
