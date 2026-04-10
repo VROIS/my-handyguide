@@ -293,6 +293,7 @@ app.get('/s/:id', async (req, res) => {
   app.use(express.static(publicDir, {
     maxAge: '1d',  // 기본 캐시: 24시간
     etag: true,    // ETag 기반 유효성 검사
+    dotfiles: 'allow',  // ⚠️ 수정금지(승인필요): TWA .well-known/assetlinks.json 제공 (기본값 ignore는 점폴더 차단)
     setHeaders: (res, filePath) => {
       // HTML/JS만 캐시 비활성화 (업데이트 즉시 반영)
       // 이미지/CSS/폰트: 장기 캐시 (1일~30일)
