@@ -118,7 +118,7 @@ jobs:
                   android:allowBackup="true"
                   android:icon="@mipmap/ic_launcher"
                   android:label="${launcherName}"
-                  android:theme="@style/Theme.LauncherActivity">
+                  android:theme="@android:style/Theme.Translucent.NoTitleBar">
                   <meta-data
                       android:name="asset_statements"
                       android:value='${assetStatements}' />
@@ -153,18 +153,8 @@ jobs:
           </manifest>
           XMLEOF
 
-      - name: Create styles.xml and strings.xml
+      - name: Create strings.xml (styles불필요 — android:style/Theme.Translucent.NoTitleBar 사용)
         run: |
-          cat > twa-build/app/src/main/res/values/styles.xml << 'STYLES'
-          <?xml version="1.0" encoding="utf-8"?>
-          <resources>
-              <style name="Theme.LauncherActivity" parent="Theme.AppCompat.NoActionBar">
-                  <item name="android:windowBackground">#FFFEFA</item>
-                  <item name="android:statusBarColor">#4285F4</item>
-                  <item name="android:navigationBarColor">#4285F4</item>
-              </style>
-          </resources>
-          STYLES
           cat > twa-build/app/src/main/res/values/strings.xml << 'STRINGS'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
