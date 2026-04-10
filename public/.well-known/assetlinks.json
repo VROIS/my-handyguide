@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "com.sonanie.guide",
+    "sha256_cert_fingerprints": [
+      "CD:4A:8A:7F:82:13:A2:74:49:0D:3C:3F:AD:0F:46:41:FF:E0:08:BA:78:DF:36:0B:09:C4:B2:A4:B9:81:6F:BC"
+    ]
+  }
+}]
