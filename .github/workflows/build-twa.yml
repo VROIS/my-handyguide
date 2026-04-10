@@ -1,0 +1,89 @@
+name: Build TWA APK
+on: workflow_dispatch
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Install Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Create TWA project
+        run: |
+          mkdir -p twa-build && cd twa-build
+
+          # Bubblewrap init (non-interactive)
+          bubblewrap init --manifest="https://my-handyguide1.replit.app/manifest.json" << EOF
+          n
+          $JAVA_HOME
+          n
+          $ANDROID_HOME
+          EOF
+
+      - name: Update TWA config
+        run: |
+          cd twa-build
+          # twa-manifest.json 덮어쓰기 (정확한 설정)
+          cat > twa-manifest.json << 'TWACFG'
+          {
+            "packageId": "com.sonanie.guide",
+            "host": "my-handyguide1.replit.app",
+            "name": "My Handy Guide",
+            "launcherName": "My Handy Guide",
+            "display": "standalone",
+            "themeColor": "#4285F4",
+            "navigationColor": "#4285F4",
+            "navigationColorDark": "#000000",
+            "navigationDividerColor": "#4285F4",
+            "navigationDividerColorDark": "#000000",
+            "backgroundColor": "#FFFEFA",
+            "enableNotifications": false,
+            "startUrl": "/",
+            "iconUrl": "https://my-handyguide1.replit.app/icon-512.png",
+            "maskableIconUrl": "https://my-handyguide1.replit.app/icon-512.png",
+            "shortcuts": [],
+            "signingKey": {
+              "path": "./keystore.jks",
+              "alias": "key0"
+            },
+            "appVersionCode": 26,
+            "appVersionName": "1.0.1",
+            "splashScreenFadeOutDuration": 300,
+            "enableSiteSettingsShortcut": true,
+            "orientation": "portrait",
+            "fingerprints": [{
+              "relation": ["delegate_permission/common.handle_all_urls"],
+              "name": "My Handy Guide",
+              "value": "CD:4A:8A:7F:82:13:A2:74:49:0D:3C:3F:AD:0F:46:41:FF:E0:08:BA:78:DF:36:0B:09:C4:B2:A4:B9:81:6F:BC"
+            }]
+          }
+          TWACFG
+
+      - name: Copy keystore
+        run: cp mobile-app/keystore.jks twa-build/keystore.jks
+
+      - name: Build TWA APK
+        run: |
+          cd twa-build
+          bubblewrap build --skipPwaValidation << EOF
+          android
+          android
+          EOF
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME }}
+          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+
+      - name: Upload TWA APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: twa-apk
+          path: twa-build/app-release-signed.apk
