@@ -11,68 +11,67 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Create TWA Gradle project
+      - name: Create project directories
         run: |
           mkdir -p twa-build/app/src/main/res/values
           mkdir -p twa-build/app/src/main/res/mipmap-xxxhdpi
           mkdir -p twa-build/app/src/main/res/drawable
-
-          # 리포지토리 아이콘 복사 (서버 다운로드 대신 로컬 파일 사용)
+          mkdir -p twa-build/gradle/wrapper
           cp mobile-app/assets/icon-512.png twa-build/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          cp mobile-app/keystore.jks twa-build/keystore.jks
 
-          # settings.gradle
-          cat > twa-build/settings.gradle << 'EOF'
-          pluginManagement {
-              repositories {
-                  google()
-                  mavenCentral()
-                  gradlePluginPortal()
-              }
-          }
-          dependencyResolutionManagement {
-              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+      - name: Create settings.gradle
+        run: |
+          echo "include ':app'" > twa-build/settings.gradle
+
+      - name: Create root build.gradle
+        run: |
+          cat > twa-build/build.gradle << 'ROOTGRADLE'
+          buildscript {
               repositories {
                   google()
                   mavenCentral()
               }
+              dependencies {
+                  classpath 'com.android.tools.build:gradle:8.2.0'
+              }
           }
-          rootProject.name = "MyHandyGuide"
-          include ':app'
-          EOF
 
-          # build.gradle (root)
-          cat > twa-build/build.gradle << 'EOF'
-          plugins {
-              id 'com.android.application' version '8.2.0' apply false
+          allprojects {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
           }
-          EOF
+          ROOTGRADLE
 
-          # gradle.properties
-          cat > twa-build/gradle.properties << 'EOF'
-          android.useAndroidX=true
-          org.gradle.jvmargs=-Xmx2048m
-          EOF
+      - name: Create gradle.properties
+        run: |
+          printf '%s\n' \
+            'android.useAndroidX=true' \
+            'android.nonTransitiveRClass=false' \
+            'org.gradle.jvmargs=-Xmx2048m' \
+            > twa-build/gradle.properties
 
-          # app/build.gradle
-          cat > twa-build/app/build.gradle << 'APPEOF'
-          plugins {
-              id 'com.android.application'
-          }
+      - name: Create app/build.gradle
+        run: |
+          cat > twa-build/app/build.gradle << 'APPGRADLE'
+          apply plugin: 'com.android.application'
 
           android {
               namespace 'com.sonanie.guide'
-              compileSdk 35
+              compileSdk 34
 
               defaultConfig {
                   applicationId "com.sonanie.guide"
                   minSdk 23
-                  targetSdk 35
+                  targetSdk 34
                   versionCode 26
                   versionName "1.0.1"
 
                   manifestPlaceholders = [
-                      hostName: "my-handyguide1.replit.app",
-                      defaultUrl: "https://my-handyguide1.replit.app",
+                      hostName    : "my-handyguide1.replit.app",
+                      defaultUrl  : "https://my-handyguide1.replit.app",
                       launcherName: "My Handy Guide",
                       assetStatements: '[{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "com.sonanie.guide", "sha256_cert_fingerprints": ["CD:4A:8A:7F:82:13:A2:74:49:0D:3C:3F:AD:0F:46:41:FF:E0:08:BA:78:DF:36:0B:09:C4:B2:A4:B9:81:6F:BC"] } }]'
                   ]
@@ -103,29 +102,26 @@ jobs:
           dependencies {
               implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
           }
-          APPEOF
+          APPGRADLE
 
-          # AndroidManifest.xml
-          cat > twa-build/app/src/main/AndroidManifest.xml << 'MANIFEST'
+      - name: Create AndroidManifest.xml
+        run: |
+          cat > twa-build/app/src/main/AndroidManifest.xml << 'XMLEOF'
           <?xml version="1.0" encoding="utf-8"?>
           <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-
               <uses-permission android:name="android.permission.CAMERA" />
               <uses-permission android:name="android.permission.RECORD_AUDIO" />
               <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
               <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
               <uses-permission android:name="android.permission.VIBRATE" />
-
               <application
                   android:allowBackup="true"
                   android:icon="@mipmap/ic_launcher"
                   android:label="${launcherName}"
                   android:theme="@style/Theme.LauncherActivity">
-
                   <meta-data
                       android:name="asset_statements"
                       android:value='${assetStatements}' />
-
                   <activity
                       android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
                       android:exported="true"
@@ -144,29 +140,31 @@ jobs:
                           <data android:scheme="https" android:host="${hostName}" />
                       </intent-filter>
                   </activity>
-
                   <service
-                      android:name="com.google.androidbrowserhelper.trusted.TwaProviderPicker$Action"
+                      android:name="com.google.androidbrowserhelper.trusted.DelegationService"
                       android:enabled="true"
-                      android:exported="false" />
-
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.support.customtabs.trusted.TRUSTED_WEB_ACTIVITY_SERVICE" />
+                          <category android:name="android.intent.category.DEFAULT" />
+                      </intent-filter>
+                  </service>
               </application>
           </manifest>
-          MANIFEST
+          XMLEOF
 
-          # styles.xml
+      - name: Create styles.xml and strings.xml
+        run: |
           cat > twa-build/app/src/main/res/values/styles.xml << 'STYLES'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
-              <style name="Theme.LauncherActivity" parent="Theme.MaterialComponents.NoActionBar">
+              <style name="Theme.LauncherActivity" parent="Theme.AppCompat.NoActionBar">
                   <item name="android:windowBackground">#FFFEFA</item>
                   <item name="android:statusBarColor">#4285F4</item>
                   <item name="android:navigationBarColor">#4285F4</item>
               </style>
           </resources>
           STYLES
-
-          # strings.xml
           cat > twa-build/app/src/main/res/values/strings.xml << 'STRINGS'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
@@ -174,17 +172,19 @@ jobs:
           </resources>
           STRINGS
 
-          # gradle wrapper
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Create Gradle wrapper
+        run: |
           cd twa-build
           gradle wrapper --gradle-version 8.5
-
-      - name: Copy keystore
-        run: cp mobile-app/keystore.jks twa-build/keystore.jks
 
       - name: Build APK
         run: |
           cd twa-build
-          ./gradlew assembleRelease --no-daemon
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Upload TWA APK
         uses: actions/upload-artifact@v4
