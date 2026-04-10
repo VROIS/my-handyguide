@@ -102,7 +102,6 @@ jobs:
 
           dependencies {
               implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
-              implementation 'androidx.appcompat:appcompat:1.7.0'
           }
           APPEOF
 
@@ -159,7 +158,7 @@ jobs:
           cat > twa-build/app/src/main/res/values/styles.xml << 'STYLES'
           <?xml version="1.0" encoding="utf-8"?>
           <resources>
-              <style name="Theme.LauncherActivity" parent="Theme.AppCompat.NoActionBar">
+              <style name="Theme.LauncherActivity" parent="Theme.MaterialComponents.NoActionBar">
                   <item name="android:windowBackground">#FFFEFA</item>
                   <item name="android:statusBarColor">#4285F4</item>
                   <item name="android:navigationBarColor">#4285F4</item>
