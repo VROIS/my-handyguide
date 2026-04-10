@@ -55,7 +55,7 @@ export default defineConfig({
         });
         
         // ⚠️ 수정금지(승인필요): 2026-03-19 모든 디렉토리 재귀 복사 — 서브디렉토리 대응 (fs.cpSync, Node 16.7+)
-        const dirsToCopy = ['assets', 'shared-template', 'images', 'components'];
+        const dirsToCopy = ['assets', 'shared-template', 'images', 'components', '.well-known'];  // ⚠️ 수정금지(승인필요): TWA assetlinks.json 배포 포함
         dirsToCopy.forEach(dir => {
           const src = path.resolve(__dirname, 'public', dir);
           const dest = path.resolve(__dirname, 'dist/public', dir);
