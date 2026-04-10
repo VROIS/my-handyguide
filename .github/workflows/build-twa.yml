@@ -17,22 +17,76 @@ jobs:
       - name: Install Bubblewrap
         run: npm install -g @bubblewrap/cli
 
-      - name: Create TWA project
+      - name: Setup Bubblewrap config
         run: |
+          mkdir -p ~/.aspect/aspect-cli
+          # Bubblewrap이 JDK/SDK 경로를 묻지 않도록 사전 설정
+          mkdir -p $HOME/.nicolo-nicolo/nicolo-ribaudo 2>/dev/null || true
+
+          # Bubblewrap config 파일 생성 (인터랙티브 프롬프트 우회)
+          mkdir -p $HOME/.nicolo-nicolo 2>/dev/null || true
+          cat > $HOME/.nicolo-nicolo/nicolo-ribaudo.json 2>/dev/null << 'CFGEOF'
+          {"jdkPath":"$JAVA_HOME","androidSdkPath":"$ANDROID_HOME"}
+          CFGEOF
+
+          # llbubblewrap config 경로에도 설정
+          mkdir -p $HOME/.nicolo-nicolo 2>/dev/null || true
+
+      - name: Create TWA project with expect
+        run: |
+          sudo apt-get install -y expect > /dev/null 2>&1
           mkdir -p twa-build && cd twa-build
 
-          # Bubblewrap init (non-interactive)
-          bubblewrap init --manifest="https://my-handyguide1.replit.app/manifest.json" << EOF
-          n
-          $JAVA_HOME
-          n
-          $ANDROID_HOME
-          EOF
+          expect << 'EXPECTEOF'
+          set timeout 120
+          spawn bubblewrap init --manifest=https://my-handyguide1.replit.app/manifest.json
 
-      - name: Update TWA config
+          # JDK 설치 질문 → No
+          expect "Do you want Bubblewrap to install the JDK"
+          send "n\r"
+
+          # JDK 경로
+          expect "Path to your existing JDK"
+          send "$env(JAVA_HOME)\r"
+
+          # Android SDK 설치 질문 → No
+          expect "Do you want Bubblewrap to install the Android SDK"
+          send "n\r"
+
+          # Android SDK 경로
+          expect "Path to your existing Android SDK"
+          send "$env(ANDROID_HOME)\r"
+
+          # 나머지 질문들은 기본값 Enter
+          expect {
+            "Domain" { send "\r"; exp_continue }
+            "Display mode" { send "\r"; exp_continue }
+            "Application name" { send "\r"; exp_continue }
+            "Short name" { send "\r"; exp_continue }
+            "package" { send "\r"; exp_continue }
+            "Version" { send "\r"; exp_continue }
+            "Starting URL" { send "\r"; exp_continue }
+            "Color" { send "\r"; exp_continue }
+            "icon" { send "\r"; exp_continue }
+            "maskable" { send "\r"; exp_continue }
+            "notification" { send "\r"; exp_continue }
+            "key store" { send "\r"; exp_continue }
+            "location" { send "\r"; exp_continue }
+            "Signing key alias" { send "\r"; exp_continue }
+            "password" { send "\r"; exp_continue }
+            "Splash" { send "\r"; exp_continue }
+            "shortcut" { send "\r"; exp_continue }
+            "orientation" { send "\r"; exp_continue }
+            "Site Settings" { send "\r"; exp_continue }
+            "source" { send "\r"; exp_continue }
+            "Project generated" { }
+            eof { }
+          }
+          EXPECTEOF
+
+      - name: Override TWA manifest
         run: |
           cd twa-build
-          # twa-manifest.json 덮어쓰기 (정확한 설정)
           cat > twa-manifest.json << 'TWACFG'
           {
             "packageId": "com.sonanie.guide",
@@ -74,16 +128,26 @@ jobs:
       - name: Build TWA APK
         run: |
           cd twa-build
-          bubblewrap build --skipPwaValidation << EOF
-          android
-          android
-          EOF
-        env:
-          JAVA_HOME: ${{ env.JAVA_HOME }}
-          ANDROID_HOME: ${{ env.ANDROID_HOME }}
+          expect << 'BUILDEOF'
+          set timeout 300
+          spawn bubblewrap build --skipPwaValidation
+          expect {
+            "password" { send "android\r"; exp_continue }
+            "key password" { send "android\r"; exp_continue }
+            "Build result" { }
+            eof { }
+          }
+          BUILDEOF
+
+      - name: Find and upload APK
+        run: |
+          find twa-build -name "*.apk" -type f
+          ls -la twa-build/*.apk 2>/dev/null || ls -la twa-build/app/build/outputs/apk/**/*.apk 2>/dev/null || echo "APK not found in expected locations"
 
       - name: Upload TWA APK
         uses: actions/upload-artifact@v4
         with:
           name: twa-apk
-          path: twa-build/app-release-signed.apk
+          path: |
+            twa-build/*.apk
+            twa-build/app/build/outputs/apk/**/*.apk
