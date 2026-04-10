@@ -17,8 +17,8 @@ jobs:
           mkdir -p twa-build/app/src/main/res/mipmap-xxxhdpi
           mkdir -p twa-build/app/src/main/res/drawable
 
-          # Download icon
-          curl -sL "https://my-handyguide1.replit.app/icon-512.png" -o twa-build/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+          # 리포지토리 아이콘 복사 (서버 다운로드 대신 로컬 파일 사용)
+          cp mobile-app/assets/icon-512.png twa-build/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
           # settings.gradle
           cat > twa-build/settings.gradle << 'EOF'
