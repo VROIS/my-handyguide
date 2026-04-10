@@ -3049,7 +3049,12 @@ document.addEventListener('DOMContentLoaded', () => {
         synth.cancel();
         resetSpeechState();
 
+        // ⚠️ 수정금지(승인필요): 2026-04-10 인라인 버튼 상태 변경 (카카오/토스 패턴)
+        // 토스트 대신 버튼 자체가 상태를 보여줌 — 즉시 피드백 (~16ms)
+        const saveBtnOriginalHTML = saveBtn.innerHTML;
         saveBtn.disabled = true;
+        // 즉시 스피너 표시 (저장 중...)
+        saveBtn.innerHTML = '<div class="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>';
 
         try {
             // 📍 GPS 데이터 포함 (2025-10-26 콘텐츠 신뢰성 최적화)
@@ -3114,20 +3119,27 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             await addItem(itemToSave);
 
-            // 3. 저장 완료
-            showToast("저장 완료!");
+            // 3. 저장 완료 — 체크마크 표시 후 원래 아이콘 복원
+            saveBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>';
             triggerHapticNotification('success');
 
             // GPS 데이터 초기화
             window.currentGPS = null;
 
-            // 버튼 활성화
-            saveBtn.disabled = false;
+            // 1.5초 후 원래 아이콘 복원 + 버튼 활성화
+            setTimeout(() => {
+                saveBtn.innerHTML = saveBtnOriginalHTML;
+                saveBtn.disabled = false;
+            }, 1500);
         } catch (e) {
             console.error("Failed to save to archive:", e);
-            showToast("저장에 실패했습니다. 네트워크 연결을 확인해주세요.");
+            // 실패 — X 표시 후 원래 아이콘 복원
+            saveBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>';
             triggerHapticNotification('error');
-            saveBtn.disabled = false;
+            setTimeout(() => {
+                saveBtn.innerHTML = saveBtnOriginalHTML;
+                saveBtn.disabled = false;
+            }, 2000);
         }
     }
 
@@ -3781,9 +3793,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // 핵심: 인증 체크 후 직접 URL로 window.open() (about:blank 제거!)
     // ⚠️ 수정금지(승인필요): 2026-03-17 추천갤러리 클릭 — 인증 체크 제거 (공개 콘텐츠, 누구나 접근 가능)
     // X 버튼은 closePageOverlay()로 단순 닫기만 수행 (리다이렉트 없음, 부모 보관함 유지)
+    // ⚠️ 수정금지(승인필요): 2026-04-10 addLangToUrl 제거 — 독립페이지가 프로필처럼 localStorage에서 직접 읽음
+    // URL 파라미터(?lang=)로 전달하면 Google Translate 리다이렉트 유발 → 랜딩페이지로 이동
     window.handleFeaturedClick = function (shareUrl) {
-        const translatedUrl = addLangToUrl(shareUrl);
-        openPageOverlay(translatedUrl);
+        openPageOverlay(shareUrl);
     };
 
     async function renderArchive() {

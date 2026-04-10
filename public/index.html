@@ -665,39 +665,28 @@
                         executeLanguageSelection(lang);
                     };
                     
-                    // 실제 언어 선택 실행 함수
+                    // ⚠️ 수정금지(승인필요): 2026-04-10 언어 동기화 — localStorage 단일 소스 + 구글 번역 동기화
+                    // 원칙: localStorage appLanguage가 유일한 언어 소스, 구글 번역 쿠키는 동기화
+                    // 언어 변경 시: (1) 이전 쿠키 삭제 (2) 새 언어 저장 (3) 쿠키 동기화 (4) reload
                     function executeLanguageSelection(lang) {
-                        
+                        // (1) 이전 구글 번역 쿠키 삭제
+                        var domain = window.location.hostname;
+                        document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; domain=' + domain;
+                        document.cookie = 'googtrans=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/';
+
+                        // (2) 새 언어만 localStorage에 저장 (유일한 소스)
                         localStorage.setItem('appLanguage', lang);
-                        
-                        // PWA 모드: 직접 페이지 전환
-                        if (window.isPWAMode()) {
-                            var landing = document.getElementById('landingPage');
-                            var features = document.getElementById('featuresPage');
-                            if (landing && features) {
-                                landing.classList.add('hidden');
-                                features.classList.add('visible');
-                            }
-                            // 🔧 2026-01-19: Safari에서 구글 번역 직접 트리거
-                            if (isSafari() && lang !== 'ko') {
-                                setTimeout(function() { triggerGoogleTranslate(lang); }, 500);
-                            }
-                            return;
+
+                        // (3) 구글 번역 쿠키 동기화 (한국어면 쿠키 없이, 다른 언어면 쿠키 설정)
+                        if (lang !== 'ko') {
+                            document.cookie = 'googtrans=/ko/' + lang + '; path=/; domain=' + domain;
+                            document.cookie = 'googtrans=/ko/' + lang + '; path=/';
                         }
-                        
-                        // 일반 브라우저: 기존 동작
+
+                        // (4) 기타 정보(인증 등) 유지 — 건드리지 않음
+
+                        // (5) PWA/일반 모두 동일하게 reload (구글 번역 + TTS 모두 새 언어로 초기화)
                         localStorage.setItem('landingVisited', 'true');
-                        
-                        if (lang === 'ko') {
-                            localStorage.removeItem('googtrans');
-                            localStorage.removeItem('google_translate_element');
-                            Object.keys(localStorage).forEach(function(key) {
-                                if (key.startsWith('goog') || key.includes('translate')) {
-                                    localStorage.removeItem(key);
-                                }
-                            });
-                        }
-                        
                         window.location.reload();
                     }
                     
