@@ -1374,8 +1374,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'stopSpeech', payload: {} }));
             }
             if (synth.speaking) {
-                synth.pause();
-                synth.cancel();
+                // ⚠️ 수정금지(승인필요): iOS에서 cancel() 스킵 (세션 파괴 방지)
+                if (detectPlatform() !== 'ios') { synth.pause(); synth.cancel(); }
             }
             const playIcon = document.getElementById('play-icon');
             const pauseIcon = document.getElementById('pause-icon');
@@ -1699,7 +1699,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function showMainPage() {
         cameFromArchive = false; // Reset navigation state
         // ✅ 페이지 이동 시 음성 즉시 정지 - 2025.10.02 확보됨
-        synth.cancel();
         resetSpeechState();
         // 🎤 2026-01-18: 페이지 이동 시 마이크 종료 (AI 중복 호출 방지)
         if (recognition && isRecognizing) {
@@ -1739,7 +1738,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ═══════════════════════════════════════════════════════════════
     async function showArchivePage() {
         pauseCamera();
-        synth.cancel();
         resetSpeechState();
         // 🎤 2026-01-18: 페이지 이동 시 마이크 종료 (AI 중복 호출 방지)
         if (recognition && isRecognizing) {
@@ -1777,9 +1775,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         window.__nativePausedUtterance = null;
         // 🧹 메모리 최적화: 이전 음성 완전 정리 (2025-10-05)
-        synth.cancel();
-        // ⚠️ 2026-03-06: iOS Safari에서 cancel() 후 paused=true 고착 방지
-        if (synth.paused) {
+        // ⚠️ 수정금지(승인필요): iOS에서 cancel() 스킵 (세션 파괴 방지)
+        if (detectPlatform() !== 'ios') { synth.cancel(); }
+        // ⚠️ 수정금지(승인필요): iOS에서 paused 고착 + cancel 세션 파괴 방지
+        if (detectPlatform() !== 'ios' && synth.paused) {
             synth.resume();
             synth.cancel();
         }
@@ -2637,7 +2636,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         sourceButton.disabled = true;
         cameFromArchive = false;
-        if (synth.speaking || synth.pending) synth.cancel();
         resetSpeechState();
 
         showDetailPage();
@@ -2789,7 +2787,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 🔊 마이크 시작 전 음성 재생 즉시 중지
         if (synth.speaking || synth.pending) {
-            synth.cancel();
             resetSpeechState();
         }
 
@@ -2844,7 +2841,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 🔊 마이크 시작 전 음성 재생 즉시 중지
         if (synth.speaking || synth.pending) {
-            synth.cancel();
             resetSpeechState();
         }
 
@@ -2901,7 +2897,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         cameFromArchive = false;
-        if (synth.speaking || synth.pending) synth.cancel();
         resetSpeechState();
 
         showDetailPage();
@@ -3046,7 +3041,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!currentContent.imageDataUrl && !currentContent.voiceQuery) return;
 
         // 🔊 2025-12-15: 음성 재생 중이면 먼저 정지
-        synth.cancel();
         resetSpeechState();
 
         // ⚠️ 수정금지(승인필요): 2026-04-10 인라인 버튼 상태 변경 (카카오/토스 패턴)
@@ -3903,7 +3897,6 @@ document.addEventListener('DOMContentLoaded', () => {
             };
 
             // 🔊 2025-12-11: 표준 초기화 - 이전 음성 즉시 중지 (showDetailPage 전에!)
-            synth.cancel();
             resetSpeechState();
 
             showDetailPage(true);
@@ -3936,7 +3929,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // ✅ 음성 자동재생 로직 - 2025.10.02 확보됨
             // 핵심: 문장 분할 → span 생성 → queueForSpeech 호출 순서
-            synth.cancel();
             resetSpeechState();
             descriptionText.innerHTML = '';
 
@@ -5344,7 +5336,6 @@ document.addEventListener('DOMContentLoaded', () => {
     micBtn?.addEventListener('click', () => {
         // 🔊 음성 재생 즉시 중지 (debounce 전에 실행)
         if (synth.speaking || synth.pending) {
-            synth.cancel();
             resetSpeechState();
         }
         // ⚠️ 수정금지(승인필요): 2026-03-12 debounce 500→200ms (앱 터치 반응 개선)
@@ -5355,7 +5346,6 @@ document.addEventListener('DOMContentLoaded', () => {
     detailMicBtn?.addEventListener('click', () => {
         // 🔊 음성 재생 즉시 중지 (debounce 전에 실행)
         if (synth.speaking || synth.pending) {
-            synth.cancel();
             resetSpeechState();
         }
         // ⚠️ 수정금지(승인필요): 2026-03-12 debounce 500→200ms (앱 터치 반응 개선)
