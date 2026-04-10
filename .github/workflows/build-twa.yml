@@ -14,80 +14,61 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Bubblewrap
-        run: npm install -g @bubblewrap/cli
-
-      - name: Setup Bubblewrap config
+      - name: Install Bubblewrap and expect
         run: |
-          mkdir -p ~/.aspect/aspect-cli
-          # Bubblewrap이 JDK/SDK 경로를 묻지 않도록 사전 설정
-          mkdir -p $HOME/.nicolo-nicolo/nicolo-ribaudo 2>/dev/null || true
+          npm install -g @bubblewrap/cli
+          sudo apt-get install -y expect > /dev/null 2>&1
 
-          # Bubblewrap config 파일 생성 (인터랙티브 프롬프트 우회)
-          mkdir -p $HOME/.nicolo-nicolo 2>/dev/null || true
-          cat > $HOME/.nicolo-nicolo/nicolo-ribaudo.json 2>/dev/null << 'CFGEOF'
+      - name: Pre-configure Bubblewrap (skip interactive prompts)
+        run: |
+          # Bubblewrap 설정 디렉토리 + config 파일 생성
+          mkdir -p $HOME/.nicolo-nicolo
+          cat > $HOME/.nicolo-nicolo/nicolo-ribaudo.json << CFGEOF
           {"jdkPath":"$JAVA_HOME","androidSdkPath":"$ANDROID_HOME"}
           CFGEOF
 
-          # llbubblewrap config 경로에도 설정
-          mkdir -p $HOME/.nicolo-nicolo 2>/dev/null || true
-
-      - name: Create TWA project with expect
+      - name: Init TWA project
         run: |
-          sudo apt-get install -y expect > /dev/null 2>&1
           mkdir -p twa-build && cd twa-build
-
           expect << 'EXPECTEOF'
-          set timeout 120
+          set timeout 180
           spawn bubblewrap init --manifest=https://my-handyguide1.replit.app/manifest.json
-
-          # JDK 설치 질문 → No
-          expect "Do you want Bubblewrap to install the JDK"
-          send "n\r"
-
-          # JDK 경로
-          expect "Path to your existing JDK"
-          send "$env(JAVA_HOME)\r"
-
-          # Android SDK 설치 질문 → No
-          expect "Do you want Bubblewrap to install the Android SDK"
-          send "n\r"
-
-          # Android SDK 경로
-          expect "Path to your existing Android SDK"
-          send "$env(ANDROID_HOME)\r"
-
-          # 나머지 질문들은 기본값 Enter
           expect {
-            "Domain" { send "\r"; exp_continue }
-            "Display mode" { send "\r"; exp_continue }
-            "Application name" { send "\r"; exp_continue }
-            "Short name" { send "\r"; exp_continue }
-            "package" { send "\r"; exp_continue }
-            "Version" { send "\r"; exp_continue }
-            "Starting URL" { send "\r"; exp_continue }
-            "Color" { send "\r"; exp_continue }
-            "icon" { send "\r"; exp_continue }
-            "maskable" { send "\r"; exp_continue }
-            "notification" { send "\r"; exp_continue }
-            "key store" { send "\r"; exp_continue }
-            "location" { send "\r"; exp_continue }
-            "Signing key alias" { send "\r"; exp_continue }
-            "password" { send "\r"; exp_continue }
-            "Splash" { send "\r"; exp_continue }
-            "shortcut" { send "\r"; exp_continue }
-            "orientation" { send "\r"; exp_continue }
-            "Site Settings" { send "\r"; exp_continue }
-            "source" { send "\r"; exp_continue }
+            -re "JDK.*Y/n" { send "n\r"; exp_continue }
+            -re "Path.*JDK" { send "$env(JAVA_HOME)\r"; exp_continue }
+            -re "Android SDK.*Y/n" { send "n\r"; exp_continue }
+            -re "Path.*Android SDK" { send "$env(ANDROID_HOME)\r"; exp_continue }
+            -re "Domain.*:" { send "\r"; exp_continue }
+            -re "Display mode.*:" { send "\r"; exp_continue }
+            -re "Application name.*:" { send "My Handy Guide\r"; exp_continue }
+            -re "Short name.*:" { send "My Handy Guide\r"; exp_continue }
+            -re "package.*:" { send "com.sonanie.guide\r"; exp_continue }
+            -re "Version name.*:" { send "1.0.1\r"; exp_continue }
+            -re "Version code.*:" { send "26\r"; exp_continue }
+            -re "Starting URL.*:" { send "/\r"; exp_continue }
+            -re "Color.*:" { send "\r"; exp_continue }
+            -re "icon.*:" { send "\r"; exp_continue }
+            -re "maskable.*:" { send "\r"; exp_continue }
+            -re "monochrome.*:" { send "\r"; exp_continue }
+            -re "notification.*:" { send "\r"; exp_continue }
+            -re "key store.*:" { send "./keystore.jks\r"; exp_continue }
+            -re "key.*alias.*:" { send "key0\r"; exp_continue }
+            -re "Splash.*:" { send "\r"; exp_continue }
+            -re "shortcut.*:" { send "\r"; exp_continue }
+            -re "orientation.*:" { send "\r"; exp_continue }
+            -re "Settings.*:" { send "\r"; exp_continue }
+            -re "source.*:" { send "\r"; exp_continue }
+            -re "\\?" { send "\r"; exp_continue }
             "Project generated" { }
             eof { }
           }
           EXPECTEOF
 
-      - name: Override TWA manifest
+      - name: Copy keystore + override manifest
         run: |
-          cd twa-build
-          cat > twa-manifest.json << 'TWACFG'
+          cp mobile-app/keystore.jks twa-build/keystore.jks
+
+          cat > twa-build/twa-manifest.json << 'TWACFG'
           {
             "packageId": "com.sonanie.guide",
             "host": "my-handyguide1.replit.app",
@@ -122,32 +103,45 @@ jobs:
           }
           TWACFG
 
-      - name: Copy keystore
-        run: cp mobile-app/keystore.jks twa-build/keystore.jks
-
       - name: Build TWA APK
         run: |
           cd twa-build
           expect << 'BUILDEOF'
-          set timeout 300
+          set timeout 600
           spawn bubblewrap build --skipPwaValidation
           expect {
-            "password" { send "android\r"; exp_continue }
-            "key password" { send "android\r"; exp_continue }
+            -re "JDK.*Y/n" { send "n\r"; exp_continue }
+            -re "Path.*JDK" { send "$env(JAVA_HOME)\r"; exp_continue }
+            -re "Android SDK.*Y/n" { send "n\r"; exp_continue }
+            -re "Path.*Android SDK" { send "$env(ANDROID_HOME)\r"; exp_continue }
+            -re "password" { send "android\r"; exp_continue }
+            -re "\\?" { send "\r"; exp_continue }
             "Build result" { }
             eof { }
           }
           BUILDEOF
 
-      - name: Find and upload APK
+      - name: Find APK
         run: |
-          find twa-build -name "*.apk" -type f
-          ls -la twa-build/*.apk 2>/dev/null || ls -la twa-build/app/build/outputs/apk/**/*.apk 2>/dev/null || echo "APK not found in expected locations"
+          echo "=== Searching for APK files ==="
+          find twa-build -name "*.apk" -type f 2>/dev/null
+          echo "=== twa-build root ==="
+          ls -la twa-build/ 2>/dev/null
+          echo "=== twa-build/app ==="
+          ls -la twa-build/app/build/outputs/apk/release/ 2>/dev/null || echo "no release dir"
 
       - name: Upload TWA APK
         uses: actions/upload-artifact@v4
         with:
           name: twa-apk
+          path: twa-build/app-release-signed.apk
+          if-no-files-found: warn
+
+      - name: Upload any APK found
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: twa-apk-all
           path: |
-            twa-build/*.apk
-            twa-build/app/build/outputs/apk/**/*.apk
+            twa-build/**/*.apk
+          if-no-files-found: warn
