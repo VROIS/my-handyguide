@@ -6,142 +6,187 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
       - uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
-      - name: Install Bubblewrap and expect
+      - name: Create TWA Gradle project
         run: |
-          npm install -g @bubblewrap/cli
-          sudo apt-get install -y expect > /dev/null 2>&1
+          mkdir -p twa-build/app/src/main/res/values
+          mkdir -p twa-build/app/src/main/res/mipmap-xxxhdpi
+          mkdir -p twa-build/app/src/main/res/drawable
 
-      - name: Pre-configure Bubblewrap (skip interactive prompts)
-        run: |
-          # Bubblewrap 설정 디렉토리 + config 파일 생성
-          mkdir -p $HOME/.nicolo-nicolo
-          cat > $HOME/.nicolo-nicolo/nicolo-ribaudo.json << CFGEOF
-          {"jdkPath":"$JAVA_HOME","androidSdkPath":"$ANDROID_HOME"}
-          CFGEOF
+          # Download icon
+          curl -sL "https://my-handyguide1.replit.app/icon-512.png" -o twa-build/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
 
-      - name: Init TWA project
-        run: |
-          mkdir -p twa-build && cd twa-build
-          expect << 'EXPECTEOF'
-          set timeout 180
-          spawn bubblewrap init --manifest=https://my-handyguide1.replit.app/manifest.json
-          expect {
-            -re "JDK.*Y/n" { send "n\r"; exp_continue }
-            -re "Path.*JDK" { send "$env(JAVA_HOME)\r"; exp_continue }
-            -re "Android SDK.*Y/n" { send "n\r"; exp_continue }
-            -re "Path.*Android SDK" { send "$env(ANDROID_HOME)\r"; exp_continue }
-            -re "Domain.*:" { send "\r"; exp_continue }
-            -re "Display mode.*:" { send "\r"; exp_continue }
-            -re "Application name.*:" { send "My Handy Guide\r"; exp_continue }
-            -re "Short name.*:" { send "My Handy Guide\r"; exp_continue }
-            -re "package.*:" { send "com.sonanie.guide\r"; exp_continue }
-            -re "Version name.*:" { send "1.0.1\r"; exp_continue }
-            -re "Version code.*:" { send "26\r"; exp_continue }
-            -re "Starting URL.*:" { send "/\r"; exp_continue }
-            -re "Color.*:" { send "\r"; exp_continue }
-            -re "icon.*:" { send "\r"; exp_continue }
-            -re "maskable.*:" { send "\r"; exp_continue }
-            -re "monochrome.*:" { send "\r"; exp_continue }
-            -re "notification.*:" { send "\r"; exp_continue }
-            -re "key store.*:" { send "./keystore.jks\r"; exp_continue }
-            -re "key.*alias.*:" { send "key0\r"; exp_continue }
-            -re "Splash.*:" { send "\r"; exp_continue }
-            -re "shortcut.*:" { send "\r"; exp_continue }
-            -re "orientation.*:" { send "\r"; exp_continue }
-            -re "Settings.*:" { send "\r"; exp_continue }
-            -re "source.*:" { send "\r"; exp_continue }
-            -re "\\?" { send "\r"; exp_continue }
-            "Project generated" { }
-            eof { }
+          # settings.gradle
+          cat > twa-build/settings.gradle << 'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
           }
-          EXPECTEOF
-
-      - name: Copy keystore + override manifest
-        run: |
-          cp mobile-app/keystore.jks twa-build/keystore.jks
-
-          cat > twa-build/twa-manifest.json << 'TWACFG'
-          {
-            "packageId": "com.sonanie.guide",
-            "host": "my-handyguide1.replit.app",
-            "name": "My Handy Guide",
-            "launcherName": "My Handy Guide",
-            "display": "standalone",
-            "themeColor": "#4285F4",
-            "navigationColor": "#4285F4",
-            "navigationColorDark": "#000000",
-            "navigationDividerColor": "#4285F4",
-            "navigationDividerColorDark": "#000000",
-            "backgroundColor": "#FFFEFA",
-            "enableNotifications": false,
-            "startUrl": "/",
-            "iconUrl": "https://my-handyguide1.replit.app/icon-512.png",
-            "maskableIconUrl": "https://my-handyguide1.replit.app/icon-512.png",
-            "shortcuts": [],
-            "signingKey": {
-              "path": "./keystore.jks",
-              "alias": "key0"
-            },
-            "appVersionCode": 26,
-            "appVersionName": "1.0.1",
-            "splashScreenFadeOutDuration": 300,
-            "enableSiteSettingsShortcut": true,
-            "orientation": "portrait",
-            "fingerprints": [{
-              "relation": ["delegate_permission/common.handle_all_urls"],
-              "name": "My Handy Guide",
-              "value": "CD:4A:8A:7F:82:13:A2:74:49:0D:3C:3F:AD:0F:46:41:FF:E0:08:BA:78:DF:36:0B:09:C4:B2:A4:B9:81:6F:BC"
-            }]
+          dependencyResolution {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
           }
-          TWACFG
+          rootProject.name = "MyHandyGuide"
+          include ':app'
+          EOF
 
-      - name: Build TWA APK
+          # build.gradle (root)
+          cat > twa-build/build.gradle << 'EOF'
+          plugins {
+              id 'com.android.application' version '8.2.0' apply false
+          }
+          EOF
+
+          # gradle.properties
+          cat > twa-build/gradle.properties << 'EOF'
+          android.useAndroidX=true
+          org.gradle.jvmargs=-Xmx2048m
+          EOF
+
+          # app/build.gradle
+          cat > twa-build/app/build.gradle << 'APPEOF'
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.sonanie.guide'
+              compileSdk 35
+
+              defaultConfig {
+                  applicationId "com.sonanie.guide"
+                  minSdk 23
+                  targetSdk 35
+                  versionCode 26
+                  versionName "1.0.1"
+
+                  manifestPlaceholders = [
+                      hostName: "my-handyguide1.replit.app",
+                      defaultUrl: "https://my-handyguide1.replit.app",
+                      launcherName: "My Handy Guide",
+                      assetStatements: '[{ "relation": ["delegate_permission/common.handle_all_urls"], "target": { "namespace": "android_app", "package_name": "com.sonanie.guide", "sha256_cert_fingerprints": ["CD:4A:8A:7F:82:13:A2:74:49:0D:3C:3F:AD:0F:46:41:FF:E0:08:BA:78:DF:36:0B:09:C4:B2:A4:B9:81:6F:BC"] } }]'
+                  ]
+              }
+
+              signingConfigs {
+                  release {
+                      storeFile file("../keystore.jks")
+                      storePassword "android"
+                      keyAlias "key0"
+                      keyPassword "android"
+                  }
+              }
+
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.release
+                      minifyEnabled false
+                  }
+              }
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+
+          dependencies {
+              implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.5.0'
+          }
+          APPEOF
+
+          # AndroidManifest.xml
+          cat > twa-build/app/src/main/AndroidManifest.xml << 'MANIFEST'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <uses-permission android:name="android.permission.CAMERA" />
+              <uses-permission android:name="android.permission.RECORD_AUDIO" />
+              <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+              <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+              <uses-permission android:name="android.permission.VIBRATE" />
+
+              <application
+                  android:allowBackup="true"
+                  android:icon="@mipmap/ic_launcher"
+                  android:label="${launcherName}"
+                  android:theme="@style/Theme.LauncherActivity">
+
+                  <meta-data
+                      android:name="asset_statements"
+                      android:value='${assetStatements}' />
+
+                  <activity
+                      android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+                      android:exported="true"
+                      android:screenOrientation="portrait">
+                      <meta-data
+                          android:name="android.support.customtabs.trusted.DEFAULT_URL"
+                          android:value="${defaultUrl}" />
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                      <intent-filter android:autoVerify="true">
+                          <action android:name="android.intent.action.VIEW" />
+                          <category android:name="android.intent.category.DEFAULT" />
+                          <category android:name="android.intent.category.BROWSABLE" />
+                          <data android:scheme="https" android:host="${hostName}" />
+                      </intent-filter>
+                  </activity>
+
+                  <service
+                      android:name="com.google.androidbrowserhelper.trusted.TwaProviderPicker$Action"
+                      android:enabled="true"
+                      android:exported="false" />
+
+              </application>
+          </manifest>
+          MANIFEST
+
+          # styles.xml
+          cat > twa-build/app/src/main/res/values/styles.xml << 'STYLES'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <style name="Theme.LauncherActivity" parent="Theme.AppCompat.NoActionBar">
+                  <item name="android:windowBackground">#FFFEFA</item>
+                  <item name="android:statusBarColor">#4285F4</item>
+                  <item name="android:navigationBarColor">#4285F4</item>
+              </style>
+          </resources>
+          STYLES
+
+          # strings.xml
+          cat > twa-build/app/src/main/res/values/strings.xml << 'STRINGS'
+          <?xml version="1.0" encoding="utf-8"?>
+          <resources>
+              <string name="app_name">My Handy Guide</string>
+          </resources>
+          STRINGS
+
+          # gradle wrapper
+          cd twa-build
+          gradle wrapper --gradle-version 8.5
+
+      - name: Copy keystore
+        run: cp mobile-app/keystore.jks twa-build/keystore.jks
+
+      - name: Build APK
         run: |
           cd twa-build
-          expect << 'BUILDEOF'
-          set timeout 600
-          spawn bubblewrap build --skipPwaValidation
-          expect {
-            -re "JDK.*Y/n" { send "n\r"; exp_continue }
-            -re "Path.*JDK" { send "$env(JAVA_HOME)\r"; exp_continue }
-            -re "Android SDK.*Y/n" { send "n\r"; exp_continue }
-            -re "Path.*Android SDK" { send "$env(ANDROID_HOME)\r"; exp_continue }
-            -re "password" { send "android\r"; exp_continue }
-            -re "\\?" { send "\r"; exp_continue }
-            "Build result" { }
-            eof { }
-          }
-          BUILDEOF
-
-      - name: Find APK
-        run: |
-          echo "=== Searching for APK files ==="
-          find twa-build -name "*.apk" -type f 2>/dev/null
-          echo "=== twa-build root ==="
-          ls -la twa-build/ 2>/dev/null
-          echo "=== twa-build/app ==="
-          ls -la twa-build/app/build/outputs/apk/release/ 2>/dev/null || echo "no release dir"
+          ./gradlew assembleRelease --no-daemon
 
       - name: Upload TWA APK
         uses: actions/upload-artifact@v4
         with:
           name: twa-apk
-          path: twa-build/app-release-signed.apk
-          if-no-files-found: warn
-
-      - name: Upload any APK found
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: twa-apk-all
-          path: |
-            twa-build/**/*.apk
-          if-no-files-found: warn
+          path: twa-build/app/build/outputs/apk/release/app-release.apk
