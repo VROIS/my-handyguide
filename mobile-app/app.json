@@ -55,7 +55,7 @@
         "backgroundColor": "#4285F4"
       },
       "package": "com.sonanie.guide",
-      "versionCode": 26,
+      "versionCode": 16,
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",

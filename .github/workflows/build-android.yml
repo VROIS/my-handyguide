@@ -17,12 +17,13 @@ jobs:
         run: npm install -g eas-cli
       - name: Install dependencies
         run: cd mobile-app && npm ci
-      - name: Build APK (preview profile — 삼성 테스트용)
-        run: cd mobile-app && eas build --local --platform android --profile preview --non-interactive
+      # ⚠️ 수정금지(승인필요): AAB 게시용 빌드 (production 프로필)
+      - name: Build AAB (production — Play Store 게시용)
+        run: cd mobile-app && eas build --local --platform android --profile production --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      - name: Upload APK
+      - name: Upload AAB
         uses: actions/upload-artifact@v4
         with:
-          name: android-apk
-          path: mobile-app/*.apk
+          name: android-aab
+          path: mobile-app/*.aab
