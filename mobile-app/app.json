@@ -9,8 +9,7 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "plugins": [
-      "./plugins/withAndroid15Fixes",
-      "expo-speech-recognition"
+      "./plugins/withAndroid15Fixes"
     ],
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -20,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.sonanie.guide",
-      "buildNumber": "9",
+      "buildNumber": "10",
       "infoPlist": {
         "NSCameraUsageDescription": "AI 여행 가이드를 위해 카메라로 장소나 음식을 촬영합니다.",
         "NSMicrophoneUsageDescription": "음성으로 여행 질문을 할 수 있습니다.",
