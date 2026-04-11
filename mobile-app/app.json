@@ -3,7 +3,7 @@
     "name": "My Handy Guide",
     "slug": "sonanie-guide",
     "scheme": "sonanie-guide",
-    "version": "1.0.1",
+    "version": "1.1.1",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -20,7 +20,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.sonanie.guide",
-      "buildNumber": "8",
+      "buildNumber": "9",
       "infoPlist": {
         "NSCameraUsageDescription": "AI 여행 가이드를 위해 카메라로 장소나 음식을 촬영합니다.",
         "NSMicrophoneUsageDescription": "음성으로 여행 질문을 할 수 있습니다.",
@@ -56,7 +56,7 @@
         "backgroundColor": "#4285F4"
       },
       "package": "com.sonanie.guide",
-      "versionCode": 25,
+      "versionCode": 26,
       "permissions": [
         "CAMERA",
         "RECORD_AUDIO",
