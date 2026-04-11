@@ -66,8 +66,8 @@ jobs:
                   applicationId "com.sonanie.guide"
                   minSdk 23
                   targetSdk 34
-                  versionCode 26
-                  versionName "1.0.1"
+                  versionCode 17
+                  versionName "1.1.2"
 
                   manifestPlaceholders = [
                       hostName    : "my-handyguide1.replit.app",
@@ -172,14 +172,14 @@ jobs:
           cd twa-build
           gradle wrapper --gradle-version 8.5
 
-      - name: Build APK
+      - name: Build AAB
         run: |
           cd twa-build
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --stacktrace
+          ./gradlew bundleRelease --no-daemon --stacktrace
 
-      - name: Upload TWA APK
+      - name: Upload TWA AAB
         uses: actions/upload-artifact@v4
         with:
-          name: twa-apk
-          path: twa-build/app/build/outputs/apk/release/app-release.apk
+          name: twa-aab
+          path: twa-build/app/build/outputs/bundle/release/app-release.aab
