@@ -43,7 +43,9 @@ export default defineConfig({
           'sw-share.js',
           'admin-settings.html',
           'download.html',
-          'privacy.html'
+          'privacy.html',
+          'beta.html',
+          'icon-512.png'
         ];
         
         filesToCopy.forEach(file => {
