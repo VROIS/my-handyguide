@@ -41,11 +41,8 @@ export async function setupAppleAuth(app: Express) {
     return;
   }
 
-  // ⚠️ 수정금지(승인필요): 콜백 URL 생성 (Replit 도메인 자동 감지)
-  const domains = process.env.REPLIT_DOMAINS?.split(",") || ['localhost:5000'];
-  const domain = domains[0];
-  const protocol = domain.includes('replit.dev') || domain.includes('replit.app') ? 'https' : 'http';
-  const callbackURL = `${protocol}://${domain}/api/auth/apple/callback`;
+  // ⚠️ 수정금지(승인필요): 콜백 URL 고정 (Apple Developer Console 등록 도메인)
+  const callbackURL = 'https://my-handyguide1.replit.app/api/auth/apple/callback';
 
   console.log('🍎 Apple OAuth Callback URL:', callbackURL);
 
