@@ -9,7 +9,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "plugins": [
-      "./plugins/withAndroid15Fixes"
+      "./plugins/withAndroid15Fixes",
+      "expo-speech-recognition"
     ],
     "splash": {
       "image": "./assets/splash-icon.png",
