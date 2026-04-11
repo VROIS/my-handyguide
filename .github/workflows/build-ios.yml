@@ -3,7 +3,10 @@ on: workflow_dispatch
 
 jobs:
   build:
-    runs-on: macos-latest
+    # ⚠️ 수정금지(승인필요): EAS 클라우드 빌드 — 로컬(--local) 제거
+    # sdk-54 = Xcode 26.0 = iOS 26 SDK (Apple 4/28 마감 대응)
+    # 빌드 7(1.0.1) 정상 환경과 동일한 sdk-54 이미지 사용
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -17,22 +20,9 @@ jobs:
         run: |
           echo "${{ secrets.APPLE_API_KEY_BASE64 }}" | base64 --decode > mobile-app/AuthKey_H92XS2QHYH.p8
           echo "AuthKey restored: $(ls -la mobile-app/AuthKey_H92XS2QHYH.p8)"
-      - name: Build IPA locally
+      - name: Build IPA on EAS Cloud + Submit to TestFlight
         working-directory: mobile-app
-        run: eas build --local --platform ios --non-interactive
+        # ⚠️ 수정금지(승인필요): --auto-submit → 빌드 완료 후 자동 TestFlight 제출
+        run: eas build --platform ios --profile production --auto-submit --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      - name: Submit to TestFlight
-        working-directory: mobile-app
-        run: |
-          IPA=$(find . -name "*.ipa" -maxdepth 1 | head -1)
-          echo "Found IPA: $IPA"
-          eas submit --platform ios --path "$IPA" --non-interactive
-        env:
-          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-      - name: Upload IPA artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ios-ipa
-          path: mobile-app/*.ipa
