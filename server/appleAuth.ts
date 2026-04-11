@@ -47,8 +47,18 @@ export async function setupAppleAuth(app: Express) {
   console.log('🍎 Apple OAuth Callback URL:', callbackURL);
 
   // ⚠️ 수정금지(승인필요): Apple Strategy 설정
-  // APPLE_PRIVATE_KEY는 줄바꿈을 \\n으로 저장 → 실제 줄바꿈으로 변환
-  const privateKeyPEM = applePrivateKey.replace(/\\n/g, '\n');
+  // APPLE_PRIVATE_KEY 줄바꿈 정규화:
+  //   1) \\n 리터럴 → 실제 줄바꿈
+  //   2) 헤더/푸터 주변 공백 → 줄바꿈 (환경변수에 공백으로 저장된 경우 대응)
+  let privateKeyPEM = applePrivateKey.replace(/\\n/g, '\n');
+  // 공백으로만 구분된 경우 정규화
+  if (!privateKeyPEM.includes('\n')) {
+    privateKeyPEM = privateKeyPEM
+      .replace('-----BEGIN PRIVATE KEY----- ', '-----BEGIN PRIVATE KEY-----\n')
+      .replace(' -----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----')
+      .replace(/([A-Za-z0-9+/=]{64}) /g, '$1\n'); // 64자 단위 줄바꿈
+  }
+  console.log('🍎 privateKeyPEM 앞 50자:', JSON.stringify(privateKeyPEM.substring(0, 50)));
 
   passport.use(
     new AppleStrategy(
