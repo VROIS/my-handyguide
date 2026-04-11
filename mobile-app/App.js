@@ -15,8 +15,6 @@ import { WebView } from 'react-native-webview';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRef, useEffect, useCallback } from 'react';
 import Constants from 'expo-constants';
-// ⚠️ 수정금지(승인필요): iOS WKWebView SpeechRecognition 차단 대응 — 네이티브 음성인식 브릿지
-import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 
 // ⚠️ 수정금지(승인필요): 실제 도메인 my-handyguide1 (1 포함)
 const WEB_APP_URL = Constants.expoConfig?.extra?.webAppUrl || 'https://my-handyguide1.replit.app';
@@ -91,51 +89,6 @@ function WebViewScreen() {
     request.grant(request.resources);
   }, []);
 
-  // ⚠️ 수정금지(승인필요): iOS WKWebView SpeechRecognition 차단 대응
-  // 네이티브 음성인식 결과 → WebView에 전달 (JSON.stringify로 모든 특수문자 안전 처리)
-  useSpeechRecognitionEvent('result', (event) => {
-    const text = event.results[0]?.transcript;
-    if (text && webViewRef.current) {
-      const payload = JSON.stringify({ type: 'speechResult', text });
-      webViewRef.current.injectJavaScript(`
-        window.dispatchEvent(new CustomEvent('nativeResponse', { detail: ${payload} }));
-        true;
-      `);
-    }
-  });
-
-  useSpeechRecognitionEvent('error', (event) => {
-    if (webViewRef.current) {
-      const payload = JSON.stringify({ type: 'speechResult', error: event.error });
-      webViewRef.current.injectJavaScript(`
-        window.dispatchEvent(new CustomEvent('nativeResponse', { detail: ${payload} }));
-        true;
-      `);
-    }
-  });
-
-  // ⚠️ 수정금지(승인필요): 언마운트 시 음성인식 정리 (마이크 해제)
-  useEffect(() => {
-    return () => { ExpoSpeechRecognitionModule.stop(); };
-  }, []);
-
-  // ⚠️ 수정금지(승인필요): WebView → 네이티브 메시지 수신 (음성인식 시작 등)
-  const handleMessage = useCallback((event) => {
-    try {
-      const data = JSON.parse(event.nativeEvent.data);
-      if (data.type === 'startSpeechRecognition') {
-        // 기존 세션 정리 후 시작 (동시 호출 충돌 방지)
-        ExpoSpeechRecognitionModule.stop();
-        ExpoSpeechRecognitionModule.start({
-          lang: data.payload?.language || 'ko-KR',
-          interimResults: false,
-        });
-      }
-    } catch (e) {
-      // JSON 파싱 실패 무시
-    }
-  }, []);
-
   return (
     // ⚠️ 수정금지(승인필요): [1] edge-to-edge 인셋 패딩 적용
     // Android: 상단 상태바 + 하단 3버튼/제스처 네비게이션 바 모두 처리
@@ -170,8 +123,6 @@ function WebViewScreen() {
         onPermissionRequest={handlePermissionRequest}
         // ⚠️ 수정금지(승인필요): [3] 백그라운드 네트워크 오류 → 자동 재시도
         onError={handleError}
-        // ⚠️ 수정금지(승인필요): WebView → 네이티브 메시지 수신 (음성인식 브릿지)
-        onMessage={handleMessage}
         // ⚠️ 수정금지(승인필요): [6] Samsung One UI 7 tapjacking 차단 대응
         // 다중창 허용 시 Edge Panel 등이 터치 이벤트 가로챌 수 있음
         setSupportMultipleWindows={false}
