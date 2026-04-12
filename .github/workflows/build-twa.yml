@@ -60,12 +60,12 @@ jobs:
 
           android {
               namespace 'com.sonanie.guide'
-              compileSdk 34
+              compileSdk 35
 
               defaultConfig {
                   applicationId "com.sonanie.guide"
                   minSdk 23
-                  targetSdk 34
+                  targetSdk 35
                   versionCode 17
                   versionName "1.1.2"
 
