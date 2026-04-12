@@ -26,7 +26,9 @@ public/shared/*.bak
 # 빌드 산출물
 *.aab
 *.ipa
+*.apk
 ios-ipa/
+rn-test-apk/
 shared_guidebooks/
 public/shared/
 
