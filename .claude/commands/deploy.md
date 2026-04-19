@@ -101,6 +101,13 @@ GH="/c/Program Files/GitHub CLI/gh.exe"
 
 ## 배포 일지
 
+### 2026-04-11 (v16/b11)
+- **versionCode**: 15 → 16 (AAB 게시용), **buildNumber**: "8" → "11"
+- **version**: 1.0.1 → 1.1.1 (프레임워크 변경: TWA + 네이티브 음성인식 시도→롤백)
+- **iOS**: EAS 클라우드 빌드 전환 (--local 제거, sdk-54=Xcode 26.0)
+- **Android**: build-android.yml → production 프로필(AAB) 전환
+- **⚠️ 교훈**: AAB=게시용(versionCode 연속), APK=테스트용(별도) 구분 필수
+
 ### 2026-04-04 (v15/b6)
 - **versionCode**: 14 → 15, **buildNumber**: "5" → "6"
 - **커밋**: `b50ce7e` iOS 워크플로우 .p8 키 Secret 복원 수정

@@ -52,52 +52,59 @@ export async function setupKakaoAuth(app: Express) {
   console.log('  - Client Secret 앞 10자:', kakaoClientSecret.substring(0, 10));
   console.log('  - Callback URL:', callbackURL);
 
-  passport.use(
-    new KakaoStrategy(
-      {
-        clientID: kakaoClientId,
-        clientSecret: kakaoClientSecret,
-        callbackURL: callbackURL,
-      },
-      async (accessToken: string, refreshToken: string, profile: any, done: any) => {
-        try {
-          const email = profile._json?.kakao_account?.email;
-          const nickname = profile.displayName || profile.username || '';
-          const profileImageUrl = profile._json?.kakao_account?.profile?.profile_image_url || '';
+  // ⚠️ 수정금지(승인필요): 2026-04-19 Kakao 신규 가입자 iOS -1002 해결
+  // prompt=login 파라미터 강제 → 카카오톡 앱 전환 차단 → 웹 인증만으로 완결
+  // 근거: Kakao REST API 공식 문서 (prevents automatic app switching)
+  const kakaoStrategy = new KakaoStrategy(
+    {
+      clientID: kakaoClientId,
+      clientSecret: kakaoClientSecret,
+      callbackURL: callbackURL,
+    },
+    async (accessToken: string, refreshToken: string, profile: any, done: any) => {
+      try {
+        const email = profile._json?.kakao_account?.email;
+        const nickname = profile.displayName || profile.username || '';
+        const profileImageUrl = profile._json?.kakao_account?.profile?.profile_image_url || '';
 
-          const userId = `kakao_${profile.id}`;
+        const userId = `kakao_${profile.id}`;
 
-          await storage.upsertUser({
-            id: userId,
-            email: email,
-            firstName: nickname,
-            lastName: '',
-            profileImageUrl: profileImageUrl,
-            provider: 'kakao',
-          });
+        await storage.upsertUser({
+          id: userId,
+          email: email,
+          firstName: nickname,
+          lastName: '',
+          profileImageUrl: profileImageUrl,
+          provider: 'kakao',
+        });
 
-          // 🎁 리워드 시스템: referral 처리는 콜백에서 수행 (쿠키 접근 필요)
-          const existingUser = await storage.getUser(userId);
-          const isNewUser = !existingUser?.referredBy;
+        // 🎁 리워드 시스템: referral 처리는 콜백에서 수행 (쿠키 접근 필요)
+        const existingUser = await storage.getUser(userId);
+        const isNewUser = !existingUser?.referredBy;
 
-          const user = {
-            id: userId,
-            email: email,
-            firstName: nickname,
-            lastName: '',
-            profileImageUrl: profileImageUrl,
-            provider: 'kakao',
-            isNewUser: isNewUser,
-          };
+        const user = {
+          id: userId,
+          email: email,
+          firstName: nickname,
+          lastName: '',
+          profileImageUrl: profileImageUrl,
+          provider: 'kakao',
+          isNewUser: isNewUser,
+        };
 
-          done(null, user);
-        } catch (error) {
-          console.error('카카오 인증 오류:', error);
-          done(error as Error, undefined);
-        }
+        done(null, user);
+      } catch (error) {
+        console.error('카카오 인증 오류:', error);
+        done(error as Error, undefined);
       }
-    )
+    }
   );
+
+  // ⚠️ 수정금지(승인필요): 2026-04-19 authorize URL에 prompt=login 자동 추가
+  // iOS WKWebView에서 kakaotalk:// 스킴 호출 차단 → NSURLErrorDomain -1002 해결
+  (kakaoStrategy as any).authorizationParams = () => ({ prompt: 'login' });
+
+  passport.use(kakaoStrategy);
 
   app.get(
     "/api/auth/kakao",
