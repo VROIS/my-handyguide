@@ -207,24 +207,27 @@ export async function setupAppleAuth(app: Express) {
                 // ⚠️ 수정금지(승인필요): 2026-03-14 Apple OAuth 완료 처리
                 // - 팝업 환경(웹 브라우저): postMessage → window.close()
                 // - WebView 환경(앱): opener 없음 → 딥링크로 앱 복귀
+                // ⚠️ 수정금지(승인필요): 2026-04-20 Apple 전용 mainPage 직행
+                // iOS native sheet 분리로 window.opener=null → reload 시 랜딩/기능설명 시각적 통과 발생
+                // ?direct=main 쿼리 파라미터로 index.html 첫 페인트부터 mainPage만 표시 (Apple만 영향, Google/Kakao 무관)
                 // ═══════════════════════════════════════════════════════════════
                 (function() {
+                  // ⚠️ 수정금지(승인필요): WebView/예외 fallback 공통 처리 (else + catch 동일 동작)
+                  function appleFallback() {
+                    localStorage.setItem('auth_success', 'true');
+                    localStorage.setItem('landingVisited', 'true');
+                    window.location.replace('/?direct=main');
+                  }
                   try {
                     if (window.opener && !window.opener.closed) {
                       // 웹 팝업: 부모 탭에 성공 알림 후 창 닫기
                       window.opener.postMessage({ type: 'oauth_success' }, window.location.origin);
                       window.close();
                     } else {
-                      // ⚠️ 수정금지(승인필요): 2026-03-24 OTT 딥링크 제거 — 웹에서 딥링크 발사하면 앱이 열려 세션 깨짐
-                      localStorage.setItem('auth_success', 'true');
-                      localStorage.setItem('landingVisited', 'true');
-                      window.location.replace('/');
+                      appleFallback();
                     }
                   } catch(e) {
-                    // ⚠️ 수정금지(승인필요): 예외 시에도 인증 플래그 설정
-                    localStorage.setItem('auth_success', 'true');
-                    localStorage.setItem('landingVisited', 'true');
-                    window.location.replace('/');
+                    appleFallback();
                   }
                 })();
               </script>

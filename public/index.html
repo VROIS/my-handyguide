@@ -561,6 +561,38 @@
         }
     </style>
   <script type="module" src="/index.js?v=20260409a"></script>
+  <!-- ⚠️ 수정금지(승인필요): 2026-04-20 Apple OAuth 완료 후 mainPage 즉시 직행 -->
+  <!-- iOS native sheet 분리(window.opener=null) → reload 시 랜딩/기능설명 시각적 통과 발생 -->
+  <!-- ?direct=main 쿼리 감지 시 storage 이벤트 강제 발사 → public/index.js 기존 핸들러 자동 트리거 -->
+  <!-- Apple 콜백만 영향 (Google/Kakao는 if(window.opener) 분기 타서 무관) -->
+  <script>
+  (function() {
+    try {
+      // ⚠️ 수정금지(승인필요): hot path — 99% 페이지 로드는 noop. URLSearchParams 할당 회피용 substring 검사
+      if (location.search.indexOf('direct=main') !== -1 && localStorage.getItem('auth_success') === 'true') {
+        // URL 정리 (?direct=main 제거 — 새로고침 시 무한 루프 방지)
+        history.replaceState({}, '', '/');
+        // public/index.js 내 storage 이벤트 listener(line 2271)에 위임
+        var fire = function() {
+          setTimeout(function() {
+            try {
+              window.dispatchEvent(new StorageEvent('storage', {
+                key: 'auth_success',
+                newValue: 'true',
+                storageArea: localStorage
+              }));
+            } catch(e) {}
+          }, 100);
+        };
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', fire, { once: true });
+        } else {
+          fire();
+        }
+      }
+    } catch(e) {}
+  })();
+  </script>
 </head>
 <body style="background-color: #FFFEFA;">
     <!-- 🆕 New Landing Page (2025-12-07) - 모바일 최적화 -->
