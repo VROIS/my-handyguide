@@ -561,34 +561,18 @@
         }
     </style>
   <script type="module" src="/index.js?v=20260409a"></script>
-  <!-- ⚠️ 수정금지(승인필요): 2026-04-20 Apple OAuth 완료 후 mainPage 즉시 직행 (옵션 B) -->
+  <!-- ⚠️ 수정금지(승인필요): 2026-04-20 Apple OAuth 완료 후 mainPage 즉시 직행 -->
   <!-- iOS native sheet 분리(window.opener=null) → reload 시 랜딩/기능설명 시각적 통과 발생 -->
-  <!-- ?direct=main + auth_success=true 동시 만족 시: -->
-  <!--   1) <html>에 apple-skip 클래스 → CSS로 랜딩/기능설명 첫 페인트부터 hidden -->
-  <!--   2) DOMContentLoaded → mainPage.visible 추가 (정상 토글 메커니즘) + apple-skip 제거 (1회용) -->
-  <!--   3) storage 이벤트 발사 → public/index.js 핸들러 → handleStartFeaturesClick (카메라/Gemini) -->
+  <!-- ?direct=main 쿼리 감지 시 storage 이벤트 강제 발사 → public/index.js 기존 핸들러 자동 트리거 -->
   <!-- Apple 콜백만 영향 (Google/Kakao는 if(window.opener) 분기 타서 무관) -->
-  <style>
-    /* ⚠️ 수정금지(승인필요): 첫 페인트부터 랜딩/기능설명 hidden — 1회용 (applyMain 후 제거됨) */
-    html.apple-skip #landingPage,
-    html.apple-skip #featuresPage { display: none !important; }
-  </style>
   <script>
   (function() {
     try {
       // ⚠️ 수정금지(승인필요): hot path — 99% 페이지 로드는 noop. URLSearchParams 할당 회피용 substring 검사
       if (location.search.indexOf('direct=main') !== -1 && localStorage.getItem('auth_success') === 'true') {
-        // 첫 페인트부터 랜딩/기능설명 hidden (위 CSS)
-        document.documentElement.classList.add('apple-skip');
         // URL 정리 (?direct=main 제거 — 새로고침 시 무한 루프 방지)
         history.replaceState({}, '', '/');
-        // mainPage 즉시 visible 처리 + apple-skip 1회용 제거 (정상 토글 흐름 복귀)
-        var applyMain = function() {
-          var mp = document.getElementById('mainPage');
-          if (mp) mp.classList.add('visible');
-          document.documentElement.classList.remove('apple-skip');
-        };
-        // public/index.js 내 storage 이벤트 listener(line 2271)에 위임 → handleStartFeaturesClick
+        // public/index.js 내 storage 이벤트 listener(line 2271)에 위임
         var fire = function() {
           setTimeout(function() {
             try {
@@ -601,12 +585,8 @@
           }, 100);
         };
         if (document.readyState === 'loading') {
-          document.addEventListener('DOMContentLoaded', function() {
-            applyMain();
-            fire();
-          }, { once: true });
+          document.addEventListener('DOMContentLoaded', fire, { once: true });
         } else {
-          applyMain();
           fire();
         }
       }
