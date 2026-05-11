@@ -916,12 +916,35 @@ export class DatabaseStorage implements IStorage {
    * ⚠️ 현재 미사용 (기능 보류 중)
    */
   async getFeaturedHtmlPages(): Promise<SharedHtmlPage[]> {
-    return await db
-      .select()
+    // ⚠️ 수정금지(승인필요): 2026-05-11 명시 SELECT — htmlContent 제외
+    // 기존 select()는 htmlContent(평균 2.8MB, 최대 12MB) 포함 → 3 row × ~7MB = ~21MB DB→서버 전송 (낭비)
+    // 호출처 모두 thumbnail/메타데이터만 사용 (routes.ts:1935,1949,2671 + storage.ts setFeatured)
+    // 효과: DB→서버 부담 99% 감소, 보관함 추천 갤러리 카드 표시 1초 → 100~300ms 추정
+    // htmlContent는 null로 채워 SharedHtmlPage 타입 호환 유지
+    const rows = await db
+      .select({
+        id: sharedHtmlPages.id,
+        userId: sharedHtmlPages.userId,
+        name: sharedHtmlPages.name,
+        htmlFilePath: sharedHtmlPages.htmlFilePath,
+        templateVersion: sharedHtmlPages.templateVersion,
+        guideIds: sharedHtmlPages.guideIds,
+        thumbnail: sharedHtmlPages.thumbnail,
+        sender: sharedHtmlPages.sender,
+        location: sharedHtmlPages.location,
+        date: sharedHtmlPages.date,
+        featured: sharedHtmlPages.featured,
+        featuredOrder: sharedHtmlPages.featuredOrder,
+        downloadCount: sharedHtmlPages.downloadCount,
+        isActive: sharedHtmlPages.isActive,
+        createdAt: sharedHtmlPages.createdAt,
+        updatedAt: sharedHtmlPages.updatedAt,
+      })
       .from(sharedHtmlPages)
       .where(and(eq(sharedHtmlPages.featured, true), eq(sharedHtmlPages.isActive, true)))
       .orderBy(desc(sharedHtmlPages.createdAt))
       .limit(3);
+    return rows.map(r => ({ ...r, htmlContent: null })) as SharedHtmlPage[];
   }
 
   /**
