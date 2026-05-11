@@ -945,7 +945,13 @@
     <!-- ⚠️ 수정금지(승인필요) — overlay X 버튼 삭제: iframe 내부 자체 버튼이 가려지는 겹침 해결 (Claude Opus 4.6, 2026-03-09) -->
     <div id="pageOverlay" class="fixed inset-0 z-[9999] bg-white hidden" style="pointer-events: auto;">
         <!-- ⚠️ 수정금지(승인필요): 2026-03-19 iframe 권한 — camera/microphone/geolocation 추가로 오버레이 전환 시 권한 세션 유지 -->
-        <iframe id="pageOverlayIframe" class="w-full h-full border-0" src="" allow="clipboard-write; camera; microphone; geolocation"></iframe>
+        <!-- ⚠️ 수정금지(승인필요): 2026-05-11 sandbox 추가 — 자식 iframe의 부모창 navigation 차단 (TWA 첫 클릭 시 랜딩 redirect 버그 해결) -->
+        <!-- allow-top-navigation 미포함 → 자식이 부모 location 변경 차단. 나머지(scripts/번역/postMessage/언어 localStorage)는 정상 작동 -->
+        <iframe id="pageOverlayIframe"
+                class="w-full h-full border-0"
+                src=""
+                allow="clipboard-write; camera; microphone; geolocation"
+                sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox"></iframe>
     </div>
 
     <!-- Features Page -->
