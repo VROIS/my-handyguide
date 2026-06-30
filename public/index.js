@@ -1774,6 +1774,9 @@ document.addEventListener('DOMContentLoaded', () => {
             window.__nativeSpeakDoneListener = null;
         }
         window.__nativePausedUtterance = null;
+        // ⚠️ 수정금지(승인필요): 2026-06-30 좀비 워치독 취소 — 리셋 후 직전 음성의 살아있는 워치독이
+        // 나중에 발동해 새 재생을 끊거나(synth.cancel) 문장 스킵하는 것 방지.
+        if (window._currentWatchdog) { clearTimeout(window._currentWatchdog); window._currentWatchdog = null; }
         // 🧹 메모리 최적화: 이전 음성 완전 정리 (2025-10-05)
         // ⚠️ 수정금지(승인필요): iOS에서 cancel() 스킵 (세션 파괴 방지)
         if (detectPlatform() !== 'ios') { synth.cancel(); }
@@ -4029,6 +4032,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function speakNext() {
+        // ⚠️ 수정금지(승인필요): 2026-06-30 첫 무음 방지 — 삼성 웹/TWA는 getVoices()가 비동기로 늦게 채워짐
+        // 음성 목록이 비기 전에 speak()하면 첫 재생이 무음(voice=null) → 재시도하면 정상이던 증상의 원인.
+        // 비-iOS·비-네이티브(=삼성 TWA)에서만, 최초 1회 음성 목록 준비를 최대 ~1초 비동기 대기(busy-wait 금지).
+        // iOS는 첫무음 대상 아님 + getVoices가 오래 비어있을 수 있어 제외, 네이티브는 __nativeVoices 사용하므로 제외.
+        if (!window.__ttsVoicesReady && !isNativeApp && detectPlatform() !== 'ios') {
+            for (let i = 0; i < 20 && synth.getVoices().length === 0; i++) {
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+            window.__ttsVoicesReady = true;
+        }
+
         // 🌐 2025-01-21: AI 생성 직후(cameFromArchive=false)는 번역 불필요 → 즉시 TTS
         // 보관함에서(cameFromArchive=true)만 구글 번역 대기
         if (cameFromArchive) {
@@ -4083,6 +4097,11 @@ document.addEventListener('DOMContentLoaded', () => {
             translatedText = element.innerText.trim() || text;
         }
         const utterance = new SpeechSynthesisUtterance(translatedText);
+        // ⚠️ 수정금지(승인필요): 2026-06-30 같은문단 반복 방지 — 이 음성의 1회용 진행 빗장
+        // onend·onerror·워치독 셋 다 speakNext()를 부를 수 있어, 워치독이 먼저 터진 뒤 늦은 onend가 또 불려
+        // 같은 문단을 두 번 읽던 버그(이중진행) 차단. 먼저 도착한 1개만 진행, 나머지는 즉시 return.
+        // 반드시 이 음성(클로저) 지역변수 — 전역이면 둘째 문장부터 영구 차단됨.
+        let advanced = false;
         // ⚠️ 수정금지(승인필요): 2026-03-17 GC 방지 — Chrome이 utterance를 가비지 수집하면 onend 안 불림
         // window에 참조를 유지하여 GC 방지 (검증된 Chrome 버그 워크어라운드)
         window._currentUtterance = utterance;
@@ -4141,6 +4160,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // ⚠️ 2026-03-05: 연속 에러 카운터 (무한 루프 방지)
         utterance.onend = () => {
+            if (advanced) return; advanced = true; // ⚠️ 수정금지(승인필요): 2026-06-30 1회용 빗장 (반드시 콜백 최상단 — 부수효과 중복 차단)
             element.classList.remove('speaking');
             window.__ttsErrorCount = 0; // 정상 종료 시 카운터 초기화
             if (!isPaused) {
@@ -4149,6 +4169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         utterance.onerror = (e) => {
+            if (advanced) return; advanced = true; // ⚠️ 수정금지(승인필요): 2026-06-30 1회용 빗장 (최상단 — 에러카운터 이중증가→3회 조기정지 방지)
             element.classList.remove('speaking');
             window.__ttsErrorCount = (window.__ttsErrorCount || 0) + 1;
             // 연속 3회 에러 시 완전 정지 (무한 루프 방지)
@@ -4166,12 +4187,14 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         // ⚠️ 수정금지(승인필요): 2026-03-17 onend 미발동 워치독 — Chrome/iOS에서 onend 안 불리는 버그 대응
-        // utterance 텍스트 길이 기반 타임아웃 (한국어 ~4자/초 + iOS 여유 8초)
-        // iOS WKWebView: Siri 합성 지연 + onend 미발동 빈번 → 여유 시간 충분히
-        const estimatedDuration = Math.max((translatedText.length / 4) * 1000, 3000) + 8000;
+        // utterance 텍스트 길이 기반 타임아웃 (한국어 ~4자/초 + 여유 8초)
+        // 워치독은 onend가 영영 안 오는 경우(Chromium ~15초 컷오프, 모바일 start-only) 음성 멈춤 방지용 안전망 → 삭제 금지.
+        // ⚠️ 수정금지(승인필요): 2026-06-30 실제 재생속도(rate 0.9, 10% 느림 — 아래 utterance.rate) 반영해 /0.9로 시간을 더 길게.
+        // 이전엔 rate 미반영이라 긴 문장에서 워치독이 재생 끝나기 전 조기발동 → 같은문단 반복의 핵심 원인. 변경 이력은 git 참조.
+        const estimatedDuration = Math.max((translatedText.length / 4 / 0.9) * 1000, 3000) + 8000;
         const watchdog = setTimeout(() => {
+            if (advanced) return; advanced = true; // ⚠️ 수정금지(승인필요): 2026-06-30 1회용 빗장 (최상단 — onend와 이중진행 차단)
             // synth.speaking이든 아니든, onend가 안 불렸으면 강제 진행
-            // iOS에서 synth.speaking이 false인데 onend도 안 불리는 경우 존재
             console.warn('[TTS] onend 미발동 워치독 발동 → 강제 다음 문장');
             // ⚠️ 수정금지(승인필요): 2026-03-23 iOS에서 cancel() 스킵 (세션 파괴 방지)
             if (detectPlatform() !== 'ios') { synth.cancel(); }
@@ -4181,6 +4204,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 speakNext();
             }
         }, estimatedDuration);
+        // ⚠️ 수정금지(승인필요): 2026-06-30 워치독 핸들 외부 노출 — 일시정지/리셋 시 취소용
+        // 핸들이 speakNext 클로저 안에만 있으면, 일시정지 중 좀비 워치독이 나중에 발동해 synth.cancel()로
+        // 일시정지된 음성을 파괴 → 재개(▶) 먹통. resetSpeechState/일시정지에서 이 참조로 clearTimeout 가능하게 함.
+        window._currentWatchdog = watchdog;
 
         // onend/onerror 발동 시 워치독 해제
         const origOnEnd = utterance.onend;
@@ -4288,6 +4315,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 } else {
                     synth.pause();
+                    // ⚠️ 수정금지(승인필요): 2026-06-30 일시정지 중 좀비 워치독 취소
+                    // 안 끄면 일시정지 동안 워치독이 발동해 synth.cancel()로 멈춘 음성을 파괴 → 재개(▶) 먹통.
+                    if (window._currentWatchdog) { clearTimeout(window._currentWatchdog); window._currentWatchdog = null; }
                 }
                 isPaused = true;
                 updateAudioButton('play');
