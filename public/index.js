@@ -4092,10 +4092,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (fontEl) {
             // Google Translate <font> 태그에서 번역된 텍스트 가져오기
             translatedText = fontEl.innerText.trim() || fontEl.textContent.trim() || text;
-        } else {
-            // <font> 태그가 없으면 innerText 시도
-            translatedText = element.innerText.trim() || text;
         }
+        // ⚠️ 수정금지(승인필요): 2026-06-30 삼성 앱 같은문단 반복 수정 — else에서 element.innerText(span 전체) 덮어쓰기 제거.
+        // 200자 초과 문장은 청크 A/B/C가 같은 span을 공유(queueForSpeech 4031)하는데,
+        // 이전엔 <font> 없을 때 element.innerText로 매 청크마다 문장 전체를 다시 읽어 반복 재생됐음.
+        // 이제 큐에서 꺼낸 text(그 청크)를 그대로 사용 → 반복 제거. if(fontEl) 번역경로는 그대로 유지(안 깨짐).
+        // 앱(TWA)은 구글번역 위젯이 개입 안 하므로(retranslate isNativeApp 즉시 return) 항상 이 경로 → 앱 반복버그 해결.
+        // 참고: 웹에서 외국어+구글위젯 번역 상태의 200자 초과 문장은 fontEl(span 전체)이라 반복 잔존 — 앱은 무관하여 이번 범위 밖.
         const utterance = new SpeechSynthesisUtterance(translatedText);
         // ⚠️ 수정금지(승인필요): 2026-06-30 같은문단 반복 방지 — 이 음성의 1회용 진행 빗장
         // onend·onerror·워치독 셋 다 speakNext()를 부를 수 있어, 워치독이 먼저 터진 뒤 늦은 onend가 또 불려
